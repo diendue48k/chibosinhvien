@@ -26,7 +26,7 @@ const safeDayjs = (dateVal) => {
 
 const DAN_TOC = ["Kinh", "Tày", "Thái", "Hoa", "Khmer", "Mường", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ngái", "Ê Đê", "Ba Na", "Xơ Đăng", "Sán Chay", "Cơ Ho", "Chăm", "Sán Dìu", "Hrê", "Mnông", "Ra Glai", "Xtiêng", "Bru-Vân Kiều", "Thổ", "Giáy", "Cơ Tu", "Giẻ Triêng", "Mạ", "Khơ Mú", "Co", "Tà Ôi", "Chơ Ro", "Kháng", "Xinh Mun", "Hà Nhì", "Chu Ru", "Lào", "La Chí", "La Ha", "Phù Lá", "La Hủ", "Lự", "Lô Lô", "Chứt", "Mảng", "Pà Thẻn", "Co Lao", "Cống", "Bố Y", "Si La", "Pu Péo", "Brâu", "Ơ Đu", "Rơ Măm", "Khác"];
 const TON_GIAO = ["Không", "Phật giáo", "Công giáo", "Tin Lành", "Cao Đài", "Hòa Hảo", "Hồi giáo", "Bà La Môn", "Khác"];
-const NHOM = ["Phát triển Đảng", "Hồ sơ sinh hoạt Đảng", "Kiểm tra - Giám sát", "Truyền thông", "Tổ chức"];
+const NHOM = ["Phát triển Đảng", "Hồ sơ sinh hoạt Đảng", "Kiểm tra - Giám sát", "Truyền thông", "Tổ chức", "Khác"];
 const KHOA = ["P.CTSV", "Quản trị Kinh doanh", "Du lịch", "Marketing", "Tài chính", "Ngân hàng", "Kinh tế", "Kế toán", "Luật", "Thống kê - Tin học", "Thương mại điện tử", "Kinh doanh quốc tế", "Lý luận chính trị", "Khác"];
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
@@ -1020,9 +1020,9 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                     <Field name="ngay_chuyen_vao" label="Ngày chuyển vào Chi bộ" span={12}><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large"/></Field>
                     <Field name="noi_chuyen_di" label="Nơi chuyển đi (Nơi sinh hoạt cũ)" span={12}><Input size="large" /></Field>
                   </Row>
-                  {!shouldHideOfficialDetails && (
+                  {(!shouldHideOfficialDetails || collectionName === "ho_so_ket_nap") && (
                     <Row gutter={16}>
-                      <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} 
+                      <Field name="ngay_chinh_thuc" label={collectionName === "ho_so_ket_nap" ? "Ngày ký quyết định kết nạp" : "Ngày chính thức"} span={12} 
                          rules={[
                           ({ getFieldValue }) => ({
                             validator(_, value) {
@@ -1030,12 +1030,12 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                               if (!value || !vaoDang || value.isAfter(vaoDang) || value.isSame(vaoDang)) {
                                 return Promise.resolve();
                               }
-                              return Promise.reject(new Error('Ngày CT phải lớn hơn ngày vào'));
+                              return Promise.reject(new Error(collectionName === 'ho_so_ket_nap' ? 'Ngày quyết định phải lớn hơn ngày vào' : 'Ngày CT phải lớn hơn ngày vào'));
                             },
                           }),
                          ]}
                       ><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large"/></Field>
-                      <Field name="so_the_dang" label="Số thẻ Đảng" span={12}><Input size="large" /></Field>
+                      <Field name="so_the_dang" label={collectionName === "ho_so_ket_nap" ? "Số quyết định kết nạp" : "Số thẻ Đảng"} span={12}><Input size="large" /></Field>
                     </Row>
                   )}
                   <Row gutter={16}>
