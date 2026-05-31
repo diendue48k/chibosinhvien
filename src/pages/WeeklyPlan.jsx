@@ -749,7 +749,7 @@ const WeeklyPlan = () => {
                             <Button type="link" size="small" style={{ padding: 0, fontSize: '12px', color: '#1890ff', fontWeight: 500 }}>
                               <EditOutlined /> Phân việc chi tiết
                             </Button>
-                            {(isBiThu || isCapUy) && (
+                            {(isBiThu || isCapUy || isLeaderOf(teamKey) || getCurrentUserTeamKey() === teamKey) && (
                               <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteTask(teamTask.id, e);
@@ -1083,7 +1083,7 @@ const WeeklyPlan = () => {
             <Select placeholder="Chọn nhóm nhận nhiệm vụ" disabled={!isBiThu}>
               {Object.keys(TEAMS).map(key => (
                 <Option key={key} value={key}>
-                  {TEAMS[key].name} (Phụ trách: {TEAMS[key].leaderName})
+                  {TEAMS[key].name}
                 </Option>
               ))}
             </Select>
