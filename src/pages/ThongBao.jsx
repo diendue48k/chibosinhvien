@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ROLES, permissionService } from '../services/permissionService';
 import PermissionWrapper from '../components/PermissionWrapper';
 import dayjs from 'dayjs';
+import { API_BASE_URL } from '../config';
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -410,7 +411,7 @@ const ThongBao = () => {
     const noEmailCount = recipientList.length - emails.length;
     const htmlBody = generateEmailHtml(title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone);
     try {
-      const response = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+      const response = await fetch(`${API_BASE_URL}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bcc: emails.join(', '), subject: `[Thông báo Chi bộ] ${title}`, html: htmlBody })

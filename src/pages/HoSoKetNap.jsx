@@ -285,6 +285,7 @@ const HoSoKetNap = () => {
 
   const filteredSheetData = useMemo(() => {
     return spreadsheetData.filter(item => {
+      if (!item) return false;
       const matchSearch = !sheetSearchText || 
         item.mssv?.toLowerCase().includes(sheetSearchText.toLowerCase()) || 
         item.hoten?.toLowerCase().includes(sheetSearchText.toLowerCase());
@@ -399,7 +400,7 @@ const HoSoKetNap = () => {
         key: 'status_history',
         width: 140,
         render: (history, record) => {
-          const logs = history || [];
+          const logs = Array.isArray(history) ? history.filter(h => h && typeof h === 'object') : [];
           if (logs.length === 0) return <span style={{ fontSize: '12px', color: '#8c8c8c' }}>Chưa ghi nhận</span>;
           
           const content = (
@@ -1107,7 +1108,7 @@ const HoSoKetNap = () => {
       }
 
       for (const row of changedRows) {
-        let updatedHistory = row.status_history || [];
+        let updatedHistory = Array.isArray(row.status_history) ? [...row.status_history] : [];
         if (row.isNew) {
           updatedHistory = [{
             step: Number(row.trangthai || 1),
@@ -1183,7 +1184,7 @@ const HoSoKetNap = () => {
     setIsEditable(record.nguon_du_lieu !== 'auto'); // Auto starts locked, manual is fully editable
     setCurrentStep(record.trangthai || 1);
     setIsDataLoaded(true);
-    setStatusHistory(record.status_history || []);
+    setStatusHistory(Array.isArray(record.status_history) ? record.status_history.filter(h => h && typeof h === 'object') : []);
 
     form.setFieldsValue({
       ...record,

@@ -9,6 +9,7 @@ import {
   HistoryOutlined, FileTextOutlined, EyeOutlined, CheckCircleOutlined 
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { API_BASE_URL } from '../config';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -158,7 +159,7 @@ const AINotifications = () => {
           </div>
         `;
 
-        const response = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+        const response = await fetch(`${API_BASE_URL}/api/send-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

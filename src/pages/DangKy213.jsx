@@ -21,6 +21,7 @@ import { ROLES } from '../services/permissionService';
 import addressData from '../data/addressData.json';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
+import { API_BASE_URL } from '../config';
 import JSZip from 'jszip';
 import { Document, Packer, Paragraph, TextRun, AlignmentType, Table as DocxTable, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import DetailModal from '../components/DetailModal';
@@ -1388,7 +1389,7 @@ const DangKy213 = () => {
       // Gửi email
       if (to) {
         try {
-          await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+          await fetch(`${API_BASE_URL}/api/send-email`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ to, subject, html })
@@ -1473,7 +1474,7 @@ const DangKy213 = () => {
         if (to) {
           const html = buildEmailHtml(reg, member, emailDiaDiem, emailThoiGian, emailLienHe);
           try {
-            const res = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+            const res = await fetch(`${API_BASE_URL}/api/send-email`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

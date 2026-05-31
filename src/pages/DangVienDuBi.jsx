@@ -15,6 +15,7 @@ import { collection, query, where, getDocs, addDoc, updateDoc, doc, deleteDoc } 
 import { dbMain as db } from '../firebase';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
+import { API_BASE_URL } from '../config';
 import ImportExcel from '../components/ImportExcel';
 import ProfileDrawer from '../components/ProfileDrawer';
 
@@ -603,7 +604,7 @@ const DangVienDuBi = () => {
           </html>
         `;
 
-        const response = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+        const response = await fetch(`${API_BASE_URL}/api/send-email`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ to: targetEmail, subject: bulkEmailSubject, html: htmlBody })
@@ -985,7 +986,7 @@ const DangVienDuBi = () => {
       `;
 
       // 1. Gửi request tới Node.js Backend Server
-      const response = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+      const response = await fetch(`${API_BASE_URL}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1537,6 +1538,7 @@ const DangVienDuBi = () => {
         dataIndex: 'sdt', 
         key: 'sdt', 
         width: 130,
+        render: (text, record) => record.so_dien_thoai || record.sdt || '--',
         ...getColumnSearchProps('sdt', 'Số điện thoại')
       },
       { 

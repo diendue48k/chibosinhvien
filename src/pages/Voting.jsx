@@ -20,6 +20,7 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
 import dayjs from 'dayjs';
+import { API_BASE_URL } from '../config';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -809,7 +810,7 @@ const Voting = () => {
 
       const htmlBody = buildEmailHtml(selectedSession, candidates, window.location.origin);
 
-      const resp = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+      const resp = await fetch(`${API_BASE_URL}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

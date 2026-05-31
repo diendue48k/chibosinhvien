@@ -16,6 +16,7 @@ import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import debounce from 'lodash/debounce';
 import ProfileDrawer from '../components/ProfileDrawer';
+import { API_BASE_URL } from '../config';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -764,7 +765,7 @@ const HoSoDaKetNap = () => {
         </html>
       `;
       
-      const response = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+      const response = await fetch(`${API_BASE_URL}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

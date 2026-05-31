@@ -6,6 +6,7 @@ import { db } from '../firebase';
 import ProfileDrawer from '../components/ProfileDrawer';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
+import { API_BASE_URL } from '../config';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -315,7 +316,7 @@ const HoSoChuyenRa = () => {
         const to = record.email || '';
         if (sendEmailChecked && to) {
           try {
-            await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+            await fetch(`${API_BASE_URL}/api/send-email`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -361,7 +362,7 @@ const HoSoChuyenRa = () => {
         const to = record.email || '';
         if (sendEmailChecked && to) {
           try {
-            await fetch('https://chibosinhvien.onrender.com/api/send-email', {
+            await fetch(`${API_BASE_URL}/api/send-email`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
