@@ -603,7 +603,7 @@ const DangVienDuBi = () => {
           </html>
         `;
 
-        const response = await fetch('http://localhost:5000/api/send-email', {
+        const response = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ to: targetEmail, subject: bulkEmailSubject, html: htmlBody })
@@ -985,7 +985,7 @@ const DangVienDuBi = () => {
       `;
 
       // 1. Gửi request tới Node.js Backend Server
-      const response = await fetch('http://localhost:5000/api/send-email', {
+      const response = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

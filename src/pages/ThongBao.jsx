@@ -410,7 +410,7 @@ const ThongBao = () => {
     const noEmailCount = recipientList.length - emails.length;
     const htmlBody = generateEmailHtml(title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone);
     try {
-      const response = await fetch('http://localhost:5000/api/send-email', {
+      const response = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bcc: emails.join(', '), subject: `[Thông báo Chi bộ] ${title}`, html: htmlBody })

@@ -315,7 +315,7 @@ const HoSoChuyenRa = () => {
         const to = record.email || '';
         if (sendEmailChecked && to) {
           try {
-            await fetch('http://localhost:5000/api/send-email', {
+            await fetch('https://chibosinhvien.onrender.com/api/send-email', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -361,7 +361,7 @@ const HoSoChuyenRa = () => {
         const to = record.email || '';
         if (sendEmailChecked && to) {
           try {
-            await fetch('http://localhost:5000/api/send-email', {
+            await fetch('https://chibosinhvien.onrender.com/api/send-email', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

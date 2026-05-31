@@ -171,7 +171,7 @@ const LichHop = () => {
         const toEmail = m.email || m.email_sv || '';
         if (!toEmail) return;
         try {
-          await fetch('http://localhost:5000/api/send-email', {
+          await fetch('https://chibosinhvien.onrender.com/api/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

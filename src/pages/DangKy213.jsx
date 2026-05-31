@@ -1388,7 +1388,7 @@ const DangKy213 = () => {
       // Gửi email
       if (to) {
         try {
-          await fetch('http://localhost:5000/api/send-email', {
+          await fetch('https://chibosinhvien.onrender.com/api/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ to, subject, html })
@@ -1473,7 +1473,7 @@ const DangKy213 = () => {
         if (to) {
           const html = buildEmailHtml(reg, member, emailDiaDiem, emailThoiGian, emailLienHe);
           try {
-            const res = await fetch('http://localhost:5000/api/send-email', {
+            const res = await fetch('https://chibosinhvien.onrender.com/api/send-email', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
