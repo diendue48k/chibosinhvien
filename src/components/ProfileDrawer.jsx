@@ -453,9 +453,9 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
 
       if (changes.length > 0) {
         await addDoc(collection(db, "lich_su_cap_nhat"), {
-          dang_vien_id: data.id,
-          mssv: data.mssv,
-          ho_ten: data.ho_ten,
+          dang_vien_id: data.id || '',
+          mssv: data.mssv || '',
+          ho_ten: data.ho_ten || '',
           updated_by: currentUser?.email || currentUser?.username || "Hệ thống",
           updated_at: new Date().toISOString(),
           changes: changes
@@ -516,7 +516,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
       onUpdate(); // refresh table
     } catch (e) {
       console.error(e);
-      if(!e.errorFields) message.error("Lỗi khi cập nhật");
+      if(!e.errorFields) message.error("Lỗi khi cập nhật: " + (e.message || e.toString()));
     } finally {
       setSaving(false);
     }
