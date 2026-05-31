@@ -73,7 +73,9 @@ const FIELD_LABELS = {
   sdt_nguoi_than: "SĐT người thân",
   anh_ca_nhan: "Ảnh cá nhân",
   dang_vien_du_bi: "Loại Đảng viên",
-  trang_thai: "Trạng thái sinh hoạt"
+  trang_thai: "Trạng thái sinh hoạt",
+  soqd: "Số quyết định kết nạp",
+  ngaykiqd: "Ngày ký quyết định kết nạp"
 };
 
 const FieldContext = React.createContext(null);
@@ -84,7 +86,7 @@ const Field = ({ name, label, rules, children, valueMap, span = 12 }) => {
   
   // For date formatting
   let displayVal = val;
-  if (name.includes('ngay_') && val) {
+  if ((name.includes('ngay_') || name === 'ngaykiqd') && val) {
     const d = safeDayjs(val);
     displayVal = d ? d.format('DD/MM/YYYY') : '--';
   }
@@ -153,12 +155,16 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         dang_vien_du_bi: true,
         loai_dang_vien: "Dự bị",
         trang_thai: "dang_sinh_hoat",
-        so_the_dang: originalData.so_the_dang || originalData.soqd || '',
-        ngay_chinh_thuc: originalData.ngay_chinh_thuc || originalData.ngaykiqd || null,
+        soqd: originalData.soqd || '',
+        ngaykiqd: originalData.ngaykiqd || null,
         facebook: originalData.facebook || originalData.link_fb || '',
       };
     }
-    return originalData;
+    return {
+      ...originalData,
+      soqd: originalData.soqd || originalData.so_qd || '',
+      ngaykiqd: originalData.ngaykiqd || originalData.ngay_ki_qd || null,
+    };
   }, [originalData, collectionName]);
   const [editMode, setEditMode] = useState(false);
   const [form] = Form.useForm();
@@ -310,6 +316,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         ngay_chuyen_vao: safeDayjs(data.ngay_chuyen_vao),
         ngay_chinh_thuc: ngayChinhThuc,
         ngay_chuyen_ra: safeDayjs(data.ngay_chuyen_ra),
+        ngaykiqd: safeDayjs(data.ngaykiqd),
       });
       fetchHistoryLogs();
     }
@@ -344,6 +351,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
       ngay_chuyen_vao: data.ngay_chuyen_vao ? dayjs(data.ngay_chuyen_vao) : null,
       ngay_chinh_thuc: data.ngay_chinh_thuc ? dayjs(data.ngay_chinh_thuc) : null,
       ngay_chuyen_ra: data.ngay_chuyen_ra ? dayjs(data.ngay_chuyen_ra) : null,
+      ngaykiqd: data.ngaykiqd ? dayjs(data.ngaykiqd) : null,
     });
     setEditMode(false);
     setIsModified(false);
@@ -412,6 +420,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         ngay_chuyen_vao: values.ngay_chuyen_vao ? values.ngay_chuyen_vao.format('YYYY-MM-DD') : null,
         ngay_chinh_thuc: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : null,
         ngay_chuyen_ra: values.ngay_chuyen_ra ? values.ngay_chuyen_ra.format('YYYY-MM-DD') : null,
+        ngaykiqd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : null,
         dang_vien_du_bi: !!values.dang_vien_du_bi
       };
 
@@ -477,13 +486,20 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
           sdt: formatted.so_dien_thoai || '',
           dangvienhuongdan: formatted.dvhd || '',
           ngayvaodang: formatted.ngay_vao_dang || null,
-          soqd: formatted.so_the_dang || '',
-          ngaykiqd: formatted.ngay_chinh_thuc || null,
+          soqd: formatted.soqd || '',
+          ngaykiqd: formatted.ngaykiqd || null,
           updated_at: new Date().toISOString()
         };
         await updateDoc(doc(db, "ho_so_ket_nap", data.id), mappedBack);
       } else {
-        await updateDoc(doc(db, collectionName, data.id), formatted);
+        const updateData = {
+          ...formatted,
+          soqd: formatted.soqd || '',
+          so_qd: formatted.soqd || '',
+          ngaykiqd: formatted.ngaykiqd || null,
+          ngay_ki_qd: formatted.ngaykiqd || null,
+        };
+        await updateDoc(doc(db, collectionName, data.id), updateData);
       }
       fetchHistoryLogs();
 
@@ -1020,29 +1036,41 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                     <Field name="ngay_chuyen_vao" label="Ngày chuyển vào Chi bộ" span={12}><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large"/></Field>
                     <Field name="noi_chuyen_di" label="Nơi chuyển đi (Nơi sinh hoạt cũ)" span={12}><Input size="large" /></Field>
                   </Row>
-                  {(!shouldHideOfficialDetails || collectionName === "ho_so_ket_nap") && (
+                  {/* Quyết định kết nạp (Always show this since both probationary, official, and ho_so_ket_nap have an admission decision!) */}
+                  <Row gutter={16}>
+                    <Field name="ngaykiqd" label="Ngày ký quyết định kết nạp" span={12} 
+                       rules={[
+                        ({ getFieldValue }) => ({
+                          validator(_, value) {
+                            const vaoDang = getFieldValue('ngay_vao_dang');
+                            if (!value || !vaoDang || value.isBefore(vaoDang) || value.isSame(vaoDang)) {
+                              return Promise.resolve();
+                            }
+                            return Promise.reject(new Error('Ngày ký quyết định phải trước hoặc bằng ngày vào Đảng'));
+                          },
+                        }),
+                       ]}
+                    ><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large"/></Field>
+                    <Field name="soqd" label="Số quyết định kết nạp" span={12}><Input size="large" /></Field>
+                  </Row>
+                  
+                  {/* Official membership details (Only show if not probationary) */}
+                  {!shouldHideOfficialDetails && (
                     <Row gutter={16}>
-                      <Field name="ngay_chinh_thuc" label={collectionName === "ho_so_ket_nap" ? "Ngày ký quyết định kết nạp" : "Ngày chính thức"} span={12} 
+                      <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} 
                          rules={[
                           ({ getFieldValue }) => ({
                             validator(_, value) {
                               const vaoDang = getFieldValue('ngay_vao_dang');
-                              if (collectionName === 'ho_so_ket_nap') {
-                                if (!value || !vaoDang || value.isBefore(vaoDang) || value.isSame(vaoDang)) {
-                                  return Promise.resolve();
-                                }
-                                return Promise.reject(new Error('Ngày ký quyết định phải trước hoặc bằng ngày vào Đảng'));
-                              } else {
-                                if (!value || !vaoDang || value.isAfter(vaoDang)) {
-                                  return Promise.resolve();
-                                }
-                                return Promise.reject(new Error('Ngày chính thức phải lớn hơn ngày vào'));
+                              if (!value || !vaoDang || value.isAfter(vaoDang)) {
+                                return Promise.resolve();
                               }
+                              return Promise.reject(new Error('Ngày chính thức phải lớn hơn ngày vào'));
                             },
                           }),
                          ]}
                       ><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large"/></Field>
-                      <Field name="so_the_dang" label={collectionName === "ho_so_ket_nap" ? "Số quyết định kết nạp" : "Số thẻ Đảng"} span={12}><Input size="large" /></Field>
+                      <Field name="so_the_dang" label="Số thẻ Đảng" span={12}><Input size="large" /></Field>
                     </Row>
                   )}
                   <Row gutter={16}>
