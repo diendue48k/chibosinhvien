@@ -79,7 +79,7 @@ const FIELD_LABELS = {
 const FieldContext = React.createContext(null);
 
 const Field = ({ name, label, rules, children, valueMap, span = 12 }) => {
-  const { data, editMode, currentUser, form, setIsModified } = React.useContext(FieldContext);
+  const { data, editMode, currentUser, form, setIsModified, collectionName } = React.useContext(FieldContext);
   const val = valueMap ? valueMap[data[name]] || data[name] : data[name];
   
   // For date formatting
@@ -106,7 +106,7 @@ const Field = ({ name, label, rules, children, valueMap, span = 12 }) => {
     <Col span={span}>
       {editMode ? (
         <Form.Item name={name} label={label} rules={rules} style={{ marginBottom: 12 }}>
-          {name === 'so_the_dang' && hasConvertPermission && data.cccd ? (
+          {name === 'so_the_dang' && hasConvertPermission && data.cccd && collectionName !== 'ho_so_ket_nap' ? (
             React.cloneElement(children, {
               addonAfter: (
                 <span 
@@ -847,7 +847,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         </div>
       }
     >
-      <FieldContext.Provider value={{ data, editMode, currentUser, form, setIsModified }}>
+      <FieldContext.Provider value={{ data, editMode, currentUser, form, setIsModified, collectionName }}>
       <Row gutter={24}>
         {/* LEFT SIDE: ID Card Profile */}
         <Col span={7}>
@@ -1027,10 +1027,17 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                           ({ getFieldValue }) => ({
                             validator(_, value) {
                               const vaoDang = getFieldValue('ngay_vao_dang');
-                              if (!value || !vaoDang || value.isAfter(vaoDang) || value.isSame(vaoDang)) {
-                                return Promise.resolve();
+                              if (collectionName === 'ho_so_ket_nap') {
+                                if (!value || !vaoDang || value.isBefore(vaoDang) || value.isSame(vaoDang)) {
+                                  return Promise.resolve();
+                                }
+                                return Promise.reject(new Error('Ngày ký quyết định phải trước hoặc bằng ngày vào Đảng'));
+                              } else {
+                                if (!value || !vaoDang || value.isAfter(vaoDang)) {
+                                  return Promise.resolve();
+                                }
+                                return Promise.reject(new Error('Ngày chính thức phải lớn hơn ngày vào'));
                               }
-                              return Promise.reject(new Error(collectionName === 'ho_so_ket_nap' ? 'Ngày quyết định phải lớn hơn ngày vào' : 'Ngày CT phải lớn hơn ngày vào'));
                             },
                           }),
                          ]}
