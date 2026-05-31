@@ -1,0 +1,33 @@
+TEMPLATE DUMP FOR: ĐHKT_QĐ 213- 24052026.Sinh vien.docx
+================================================================================
+
+--- PARAGRAPHS ---
+P0: 
+P1: 
+P2: GIẤY GIỚI THIỆU
+P3: 
+P4: 
+P5: Thực hiện Quy định số 213-QĐ/TW, ngày 02 tháng 01 năm 2020 của Bộ Chính trị về trách nhiệm của đảng viên đang công tác thường xuyên giữ mối liên hệ với tổ chức đảng và nhân dân nơi cư trú.
+P6: ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG
+P7: Giới thiệu đồng chí		: Lê Quốc Việt
+P8: Nam, nữ				: Nam
+P9: Sinh ngày				: 13/06/2004
+P10: Kết nạp vào Đảng ngày		: 05/02/2025
+P11: Chính thức ngày			: 05/02/2026
+P12: Đang sinh hoạt đảng tại Chi bộ	: Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.
+P13: Hiện cư trú tại			: 65 Trần Nhân Tông, phường Sơn Trà, thành phố Đà Nẵng về sinh hoạt nơi cư trú.
+P14: Đề nghị các đồng chí tiếp nhận và tạo điều kiện cho đảng viên Lê Quốc Việt hoàn thành nhiệm vụ.
+P15: 
+P16: 
+P17: 
+
+--- TABLES ---
+
+TABLE 0:
+  ROW 0: C0: ĐẢNG BỘ ỦY BAN NHÂN DÂN TPĐN ĐẢNG ỦY ĐẠI HỌC ĐÀ nẴNG * Số         -GGT/ĐU, C1: ĐẢNG CỘNG SẢN VIỆT NAM   Đà Nẵng, ngày     tháng     năm 2026
+
+TABLE 1:
+  ROW 0: C0: Kính gửi:, C1: - Đảng uỷ phường Sơn Trà, Đà Nẵng, - Chi bộ Mân Quang 4.
+
+TABLE 2:
+  ROW 0: C0: ĐẢNG ỦY NƠI CƯ TRÚ Tiếp nhận ngày …………………… Đã giới thiệu về sinh hoạt tại Chi bộ …………………………………….  T/M ĐẢNG ỦY BÍ THƯ, C1: T/M ĐẢNG ỦY BÍ THƯ     Phan Minh Đức

@@ -1,0 +1,38 @@
+TEMPLATE DUMP FOR: 5. Biên bản họp Chi Đoàn.docx
+================================================================================
+
+--- PARAGRAPHS ---
+P0: 
+P1: BIÊN BẢN
+P2: Họp xét đề nghị công nhận đảng viên chính thức
+P3: ----------
+P4: 
+P5: Hôm nay, ngày …… tháng …… năm …… tại Trường Đại học Kinh tế - Đại học Đà Nẵng.
+P6: Chi Đoàn ………… thuộc Liên chi Đoàn khoa…..………………………... trực thuộc Đoàn TNCS Hồ Chí Minh Trường Đại học Kinh tế, là tổ chức Đoàn giới thiệu và bảo đảm thứ 2 cho đồng chí …………………………….............. được kết nạp vào Đảng Cộng sản Việt Nam.
+P7: Chi Đoàn ………… tổ chức Hội nghị Chi Đoàn để xét đề nghị công nhận đảng viên chính thức cho đoàn viên ………………………………………………
+P8: I. THÀNH PHẦN THAM DỰ
+P9: 1. Chủ trì cuộc họp:…………………………………………………………
+P10: 2. Thư ký cuộc họp:…………………………………………………………
+P11: 3. Tổng số đoàn viên: …………… Tham gia: ………… Vắng: …………..
+P12: Lý do:………………………………………………………………………...
+P13: II. NỘI DUNG CUỘC HỌP
+P14: Chi Đoàn …………… đã tiến hành họp nhận xét thông qua bản tự kiểm điểm của đồng chí ………………………………… trong suốt thời gian dự bị.
+P15: Hội nghị nhất trí nhận xét về những ưu điểm, khuyết điểm chính của đồng chí ………………………………………. trong suốt quá trình phấn đấu học tập, công tác, rèn luyện tại Chi Đoàn, cụ thể như sau:
+P16: 1. Ưu điểm:
+P17: ……………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………
+P18: 2. Khuyết điểm:
+P19: ………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………
+P20: Đối chiếu với tiêu chuẩn và điều kiện chuyển đảng chính thức, Chi Đoàn…………….. thuộc Liên chi Đoàn khoa …………………………………… giới thiệu và kính đề nghị tổ chức Đoàn, tổ chức Đảng các cấp xem xét chuyển chính thức đúng thời hạn cho đồng chí ……………………………………………
+P21: Biểu quyết thông qua với sự tán thành của …… đoàn viên (đạt ……%); số không tán thành …… đồng chí, với lý do………………………………………….
+P22: Tập thể Chi Đoàn ……… thuộc Liên chi Đoàn khoa………………………... xin chịu hoàn toàn trách nhiệm về những nội dung giới thiệu nêu trên./.
+P23: 
+P24: 
+
+--- TABLES ---
+
+TABLE 0:
+  ROW 0: C0: LIÊN CHI ĐOÀN KHOA …………………………………….. BCH CHI ĐOÀN………………… ***, C1: ĐOÀN TNCS HỒ CHÍ MINH
+  ROW 1: C0: , C1: Đà Nẵng, ngày……tháng…… năm 20…
+
+TABLE 1:
+  ROW 0: C0: Thư ký (Ký, ghi họ tên), C1: Chủ tọa (Ký, ghi họ tên)

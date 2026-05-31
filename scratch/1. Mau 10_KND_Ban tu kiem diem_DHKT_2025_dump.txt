@@ -1,0 +1,4 @@
+TEMPLATE DUMP FOR: 1. Mau 10_KND_Ban tu kiem diem_DHKT_2025.doc
+================================================================================
+
+Binary .doc file - cannot dump via python-docx.

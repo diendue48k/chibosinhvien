@@ -1,0 +1,37 @@
+TEMPLATE DUMP FOR: 6. Biên bản họp lớp.docx
+================================================================================
+
+--- PARAGRAPHS ---
+P0: 
+P1: BIÊN BẢN
+P2: Họp xét đề nghị công nhận đảng viên chính thức
+P3: 
+P4: Hôm nay, ngày …… tháng …… năm …… tại Trường Đại học Kinh tế - Đại học Đà Nẵng.
+P5: Lớp ………… thuộc khoa ………………………... Trường Đại học Kinh tế.
+P6: Tổ chức họp lớp để xét đề nghị công nhận đảng viên chính thức cho sinh viên ……………………………………………………………………………….
+P7: I. THÀNH PHẦN THAM DỰ
+P8: 1. Giảng viên chủ nhiệm:…………………………………………………...
+P9: 2. Chủ trì cuộc họp:…………………………………………………………
+P10: 3. Thư ký cuộc họp:…………………………………………………………
+P11: 4. Tổng số sinh viên lớp: ………… Tham gia: ………… Vắng: …………
+P12: II. NỘI DUNG CUỘC HỌP
+P13: Lớp…………… đã tiến hành họp nhận xét về những ưu điểm, khuyết điểm chính của đảng viên dự bị ………………………………………. trong suốt quá trình phấn đấu học tập, công tác, rèn luyện tại lớp, cụ thể như sau:
+P14: 1. Ưu điểm:
+P15: ……………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………
+P16: 2. Khuyết điểm:
+P17: ………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………………
+P18: Đối chiếu với các tiêu chuẩn và điều kiện chuyển đảng chính thức, tập thể lớp………… thuộc khoa …………………………… giới thiệu và kính đề nghị tổ chức Đoàn, tổ chức Đảng các cấp xem xét chuyển chính thức đúng thời hạn cho đảng viên dự bị………………………………………………………………..
+P19: Biểu quyết thông qua với sự tán thành của …… sinh viên (đạt ……%); số không tán thành …… sinh viên, với lý do…………………………………………
+P20: Tập thể lớp………… thuộc khoa………………………………. xin chịu hoàn toàn trách nhiệm về những nội dung giới thiệu nêu trên./.
+P21: 
+P22: 
+
+--- TABLES ---
+
+TABLE 0:
+  ROW 0: C0: ĐẠI HỌC ĐÀ NẴNG TRƯỜNG ĐẠI HỌC KINH TẾ, C1: CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM Độc lập - Tự do - Hạnh phúc
+  ROW 1: C0: , C1: 
+  ROW 2: C0: , C1: Đà Nẵng, ngày……tháng… năm 20…
+
+TABLE 1:
+  ROW 0: C0: Giảng viên chủ nhiệm lớp (Ký, ghi họ tên), C1: Thư ký (Ký, ghi họ tên), C2: Chủ tọa (Ký, ghi họ tên)

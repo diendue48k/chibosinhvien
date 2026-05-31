@@ -1,0 +1,214 @@
+
+=========================================
+FILE: 1. Mau 10_KND_Ban tu kiem diem_DHKT_2025.doc
+=========================================
+Error reading docx XML: "There is no item named 'word/document.xml' in the archive"
+
+=========================================
+FILE: 1. Nghị quyết LCĐ.docx
+=========================================
+[center] ĐOÀN TRƯỜNG ĐẠI HỌC KINH TẾ
+[center] BCH LIÊN CHI ĐOÀN KHOA
+[center] {{khoa_caps}}
+[center] ***
+[center] ĐOÀN TNCS HỒ CHÍ MINH
+[center] Đà Nẵng, ngày {{ngay_ky_d}} tháng {{ngay_ky_m}} năm {{ngay_ky_y}}    
+[center] NGHỊ QUYẾT
+[center] Đề nghị công nhận đảng viên chính thức
+[center] ----------
+[center] Kính gửi: Ban Chấp hành Đoàn Trường Đại học Kinh tế.
+[both] - Căn cứ điều 5, Điều lệ Đảng Cộng sản Việt Nam
+[both] - Xét biên bản họp của lớp {{lop}}
+[both] - Xét nghị quyết, biên bản họp của Chi Đoàn {{lop}}
+[both] - Ban Chấp hành Liên chi Đoàn khoa {{khoa}} họp ngày {{ngay_hop_lcd_d}} tháng {{ngay_hop_lcd_m}} năm {{ngay_hop_lcd_y}} xét thấy:
+[both] Đảng viên dự bị {{ho_ten}} Chi Đoàn {{lop}} được kết nạp vào Đảng ngày {{ngay_vao_dang_formatted}}, đã nỗ lực, phấn đấu trở thành đảng viên chính thức, nay Ban Chấp hành Liên chi Đoàn khoa {{khoa}} kính báo cáo Ban Chấp hành Đoàn Trường Đại học Kinh tế về những ưu điểm, khuyết điểm chính của đảng viên dự bị {{ho_ten}}, cụ thể như sau:
+[both] 1. Ưu điểm:
+[both] - Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.
+[both] -  Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.
+[both] - Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.
+[both] -  Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.
+[both] -  Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.
+[both] 2. Khuyết điểm:
+[both] - Không có khuyết điểm gì lớn
+[both] Đối chiếu với tiêu chuẩn và điều kiện chuyển đảng chính thức, Ban Chấp hành Liên chi Đoàn khoa {{khoa}} giới thiệu và kính đề nghị Ban Chấp hành Đoàn Trường Đại học Kinh tế - Đại học Đà Nẵng xem xét đề nghị tổ chức Đảng các cấp công nhận đảng viên dự bị {{ho_ten}} trở thành đảng viên chính thức
+[both] Biển quyết thông qua với sự tán thành của {{tan_thanh_lcd}} đồng chí Ủy viên Ban Chấp hành Liên chi Đoàn (đạt {{ti_le_lcd}}%); số không tán thành {{khong_tan_thanh_lcd}} đồng chí
+[both] Ban Chấp hành Liên chi Đoàn khoa {{khoa}} xin chịu hoàn toàn trách nhiệm về những nội dung giới thiệu nêu trên./.
+[center] TM. BAN CHẤP HÀNH LIÊN CHI ĐOÀN
+[center] BÍ THƯ
+[center] {{bi_thu_lcd}}
+
+=========================================
+FILE: 1. Nghị quyết Đoàn Trường (02 bản).docx
+=========================================
+[center] ĐOÀN ĐẠI HỌC ĐÀ NẴNG
+[center] BCH ĐOÀN TRƯỜNG ĐH KINH TẾ
+[center] ***
+[center] ĐOÀN TNCS HỒ CHÍ MINH
+[center] Số: {{so_nq_doan_truong}}
+[center] Đà Nẵng, ngày {{ngay_ky_d}} tháng {{ngay_ky_m}} năm {{ngay_ky_y}}    
+[center] NGHỊ QUYẾT
+[center] Đề nghị công nhận đảng viên chính thức
+[center] ----------
+[right] Kính gửi:
+[both] - Chi ủy Chi bộ Sinh viên;
+[both] - Đảng ủy Trường Đại học Kinh tế - Đại học Đà Nẵng.
+[both] - Căn cứ điểm 5, Điều lệ Đảng Cộng sản Việt Nam
+[both] - Xét biên bản họp của lớp {{lop}}
+[both] - Xét nghị quyết, biên bản họp của Chi Đoàn {{lop}}
+[both] - Xét nghị quyết, biên bản họp của Liên chi Đoàn khoa {{khoa}}
+[both] Ban Chấp hành Đoàn TNCS Hồ Chí Minh Trường Đại học Kinh tế - Đại học Đà Nẵng họp ngày {{ngay_hop_doan_truong_d}} tháng {{ngay_hop_doan_truong_m}} năm {{ngay_hop_doan_truong_y}} xét thấy:
+[both] Đảng viên dự bị {{ho_ten}} được kết nạp vào Đảng ngày {{ngay_vao_dang_formatted}}, đã nỗ lực, phấn đấu trở thành đảng viên chính thức, nay Ban Chấp hành Đoàn Trường Đại học Kinh tế kính báo cáo tổ chức Đảng các cấp về những ưu điểm, khuyết điểm chính của đoàn viên {{ho_ten}} trong suốt thời gian dự bị, cụ thể như sau:
+[both] 1. Ưu điểm:
+[both] - Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.
+[both] -  Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.
+[both] - Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.
+[both] -  Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.
+[both] -  Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.
+[both] 2. Khuyết điểm:
+[both] - Không có khuyết điểm gì lớn
+[both] Đối chiếu với tiêu chuẩn và điều kiện chuyển đảng chính thức, Ban Chấp hành Đoàn Trường Đại học Kinh tế giới thiệu và kính đề nghị Chi ủy Chi bộ Sinh viên, Đảng uỷ Trường Đại học Kinh tế xem xét, công nhận đảng viên dự bị {{ho_ten}} trở thành đảng viên chính thức.
+[both] Biểu quyết thông qua với sự tán thành của {{tan_thanh_doan_truong}} đồng chí Ủy viên Ban Chấp hành Đoàn Trường (đạt {{ti_le_doan_truong}}%); số không tán thành {{khong_tan_thanh_doan_truong}} đồng chí.
+[both] Ban Chấp hành Đoàn Trường Đại học Kinh tế xin hoàn toàn chịu trách nhiệm về những nội dung giới thiệu nói trên./.
+[both] Nơi nhận:
+[both] - Như trên;
+[both] - Lưu: VP.
+[center] TM. BAN CHẤP HÀNH ĐOÀN TRƯỜNG
+[center] BÍ THƯ
+[center] {{bi_thu_doan_truong}}
+
+=========================================
+FILE: 3. Biên bản họp Liên chi Đoàn.docx
+=========================================
+[center] ĐOÀN TRƯỜNG ĐẠI HỌC KINH TẾ
+[center] BCH LIÊN CHI ĐOÀN KHOA
+[center] {{khoa_caps}}
+[center] ***
+[center] ĐOÀN TNCS HỒ CHÍ MINH
+[center] Đà Nẵng, ngày {{ngay_ky_d}} tháng {{ngay_ky_m}} năm {{ngay_ky_y}}    
+[center] BIÊN BẢN
+[center] Họp xét đề nghị công nhận đảng viên chính thức
+[center] ----------
+[both] Hôm nay, ngày {{ngay_hop_lcd_d}} tháng {{ngay_hop_lcd_m}} năm {{ngay_hop_lcd_y}} tại Trường Đại học Kinh tế - Đại học Đà Nẵng.
+[both] Ban Chấp hành Liên chi Đoàn khoa {{khoa}} trực thuộc Đoàn TNCS Hồ Chí Minh Trường Đại học Kinh tế tổ chức họp xét đề nghị công nhận đảng viên chính thức cho đoàn viên {{ho_ten}}
+[both] I. THÀNH PHẦN THAM DỰ
+[both] 1. Chủ trì cuộc họp:
+[both] Đồng chí {{chu_tri_lcd}} - Bí thư Liên chi Đoàn.
+[both] 2. Thư ký cuộc họp:
+[both] Đồng chí {{thu_ky_lcd}}
+[both] 3. Tổng số ủy viên: {{tong_so_uy_vien_lcd}} đồng chí  Tham gia: {{tham_gia_lcd}} đồng chí   Vắng: {{vang_lcd}}
+[both] II. NỘI DUNG CUỘC HỌP
+[both] Ban Chấp hành Liên chi Đoàn khoa {{khoa}} đã tiến hành họp nhận xét thông qua bản nhận xét của Chi Đoàn {{lop}} thông qua bản tự kiểm điểm của đồng chí {{ho_ten}} trong suốt thời gian dự bị.
+[both] Ban Chấp hành Liên chi Đoàn khoa {{khoa}} nhất trí nhận xét về những ưu điểm, khuyết điểm chính của đồng chí {{ho_ten}} trong suốt quá trình phấn đấu học tập, công tác, rèn luyện tại Chi Đoàn {{lop}}, cụ thể như sau:
+[both] 1. Ưu điểm:
+[both] - Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.
+[both] -  Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.
+[both] - Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.
+[both] -  Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.
+[both] -  Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.
+[both] 2. Khuyết điểm:
+[both] - Không có khuyết điểm gì lớn
+[both] Đối chiếu với tiêu chuẩn và điều kiện chuyển đảng chính thức, Ban Chấp hành Liên chi Đoàn khoa {{khoa}} giới thiệu và kính đề nghị Ban Chấp hành Đoàn Trường Đại học Kinh tế giới thiệu đồng chí {{ho_ten}} cho tổ chức Đảng các cấp xem xét chuyển chính thức đúng thời hạn.
+[both] Biểu quyết thông qua với sự tán thành của {{tong_so_uy_vien_lcd}} đồng chí Ủy viên Ban Chấp hành Liên chi Đoàn (đạt {{ti_le_lcd}}%); số không tán thành {{khong_tan_thanh_lcd}} đồng chí.
+[both] Ban Chấp hành Liên chi Đoàn khoa {{khoa}} xin chịu hoàn toàn trách nhiệm về những nội dung giới thiệu nêu trên./.
+[center] Thư ký
+[center] {{thu_ky_lcd}}
+[center] Chủ tọa
+[center] {{chu_tri_lcd}}
+
+=========================================
+FILE: 4. Nghị quyết Chi Đoàn.docx
+=========================================
+[center] LIÊN CHI ĐOÀN KHOA
+[center] {{khoa_caps}}
+[center] BCH CHI ĐOÀN {{lop}}
+[center] ***
+[center] ĐOÀN TNCS HỒ CHÍ MINH
+[center] Đà Nẵng, ngày {{ngay_hop_chi_doan_d}} tháng {{ngay_hop_chi_doan_m}} năm {{ngay_hop_chi_doan_y}}    
+[center] NGHỊ QUYẾT
+[center] Đề nghị công nhận đảng viên chính thức
+[center] ----------
+[center] Kính gửi: Ban Chấp hành Liên chi Đoàn khoa {{khoa}}
+[both] - Căn cứ điều 5, Điều lệ Đảng Cộng sản Việt Nam.
+[both] - Xét biên bản họp của lớp {{lop}}
+[both] - Xét biên bản họp của Chi Đoàn {{lop}}
+[both] Ban Chấp hành Chi Đoàn {{lop}} họp ngày {{ngay_hop_chi_doan_d}} tháng {{ngay_hop_chi_doan_m}} năm {{ngay_hop_chi_doan_y}} xét thấy:
+[both] Đảng viên dự bị {{ho_ten}} thuộc Chi Đoàn {{lop}} được kết nạp vào Đảng ngày {{ngay_vao_dang_formatted}}, đã nỗ lực, phấn đấu trở thành đảng viên chính thức, nay Ban Chấp hành Chi Đoàn {{lop}} kính báo cáo Ban Chấp hành Liên chi Đoàn khoa {{khoa}} về những ưu điểm, khuyết điểm chính của đảng viên dự bị {{ho_ten}}, cụ thể như sau:
+[both] 1. Ưu điểm:
+[both] - Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.
+[both] -  Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.
+[both] - Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.
+[both] -  Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.
+[both] -  Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.
+[both] 2. Khuyết điểm:
+[both] - Không có khuyết điểm gì lớn
+[both] Đối chiếu với tiêu chuẩn và điều kiện chuyển đảng chính thức, Ban Chấp Chi Đoàn {{lop}} giới thiệu và kính đề nghị Ban Chấp hành Liên chi Đoàn khoa {{khoa}} xem xét đề nghị Ban Chấp hành Đoàn Trường Đại học Kinh tế giới thiệu đảng viên dự bị {{ho_ten}} trở thành đảng viên chính thức.
+[both] Biểu quyết thông qua với sự tán thành của {{tan_thanh_chi_doan}} đồng chí Ủy viên Ban Chấp hành Chi Đoàn (đạt {{ti_le_chi_doan}}%); số không tán thành {{khong_tan_thanh_chi_doan}} đồng chí.
+[both] Ban Chấp hành Chi Đoàn {{lop}} xin chịu hoàn toàn trách nhiệm về những nội dung giới thiệu nêu trên./.
+[center] TM. BAN CHẤP CHI ĐOÀN
+[center] BÍ THƯ
+[center] {{bi_thu_chi_doan}}
+
+=========================================
+FILE: 5. Biên bản họp Chi Đoàn.docx
+=========================================
+[center] LIÊN CHI ĐOÀN KHOA
+[center] BCH CHI ĐOÀN…………………
+[center] ***
+[center] ĐOÀN TNCS HỒ CHÍ MINH
+[center] Đà Nẵng, ngày {{ngay_ky_d}} tháng {{ngay_ky_m}} năm {{ngay_ky_y}}    
+[center] BIÊN BẢN
+[center] Họp xét đề nghị công nhận đảng viên chính thức
+[center] ----------
+[both] Hôm nay, ngày {{ngay_hop_chi_doan_d}} tháng {{ngay_hop_chi_doan_m}} năm {{ngay_hop_chi_doan_y}} Đại học Kinh tế - Đại học Đà Nẵng.
+[both] Chi Đoàn {{lop}} thuộc Liên chi Đoàn khoa {{khoa}} trực thuộc Đoàn TNCS Hồ Chí Minh Trường Đại học Kinh tế, là tổ chức Đoàn giới thiệu và bảo đảm thứ 2 cho đồng chí {{ho_ten}} được kết nạp vào Đảng Cộng sản Việt Nam.
+[both] Chi Đoàn {{lop}} tổ chức Hội nghị Chi Đoàn để xét đề nghị công nhận đảng viên chính thức cho đoàn viên {{ho_ten}}
+[both] I. THÀNH PHẦN THAM DỰ
+[both] 1. Chủ trì cuộc họp: {{chu_tri_chi_doan}}
+[both] 2. Thư ký cuộc họp: {{thu_ky_chi_doan}}
+[both] 3. Tổng số đoàn viên: {{tong_so_dv_chi_doan}}   Tham gia: {{tham_gia_chi_doan}}   Vắng: {{vang_chi_doan}}
+[both] Lý do vắng: {{ly_do_vang_chi_doan}}
+[both] II. NỘI DUNG CUỘC HỌP
+[both] Chi Đoàn {{lop}} đã tiến hành họp nhận xét thông qua bản tự kiểm điểm của đồng chí {{ho_ten}} trong suốt thời gian dự bị.
+[both] Hội nghị nhất trí nhận xét về những ưu điểm, khuyết điểm chính của đồng chí {{ho_ten}} trong suốt quá trình phấn đấu học tập, công tác, rèn luyện tại Chi Đoàn, cụ thể như sau:
+[left] 1. Ưu điểm: {{uu_diem}}
+[left] 2. Khuyết điểm: {{khuyet_diem}}
+[both] Đối chiếu với tiêu chuẩn và điều kiện chuyển đảng chính thức, Chi Đoàn {{lop}} thuộc Liên chi Đoàn khoa {{khoa}} giới thiệu và kính đề nghị tổ chức Đoàn, tổ chức Đảng các cấp xem xét chuyển chính thức đúng thời hạn cho đồng chí {{ho_ten}}
+[both] Biểu quyết thông qua với sự tán thành của {{tham_gia_chi_doan}} đoàn viên (đạt {{ti_le_bb_chi_doan}}%); số không tán thành {{khong_tan_thanh_bb_chi_doan}} đồng chí, với lý do: {{ly_do_khong_tan_thanh_bb_chi_doan}}
+[both] Tập thể Chi Đoàn {{lop}} thuộc Liên chi Đoàn khoa {{khoa}} xin chịu hoàn toàn trách nhiệm về những nội dung giới thiệu nêu trên./.
+[center] Thư ký
+[center] (Ký, ghi họ tên)
+[center] Chủ tọa
+[center] (Ký, ghi họ tên)
+
+=========================================
+FILE: 6. Biên bản họp lớp.docx
+=========================================
+[center] ĐẠI HỌC ĐÀ NẴNG
+[center] TRƯỜNG ĐẠI HỌC KINH TẾ
+[center] CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
+[center] Độc lập - Tự do - Hạnh phúc
+[center] Đà Nẵng, ngày {{ngay_ky_d}} tháng {{ngay_ky_m}} năm {{ngay_ky_y}}    
+[center] BIÊN BẢN
+[center] Họp xét đề nghị công nhận đảng viên chính thức
+[both] Hôm nay, ngày {{ngay_hop_lop_d}} tháng {{ngay_hop_lop_m}} năm {{ngay_hop_lop_y}} Đại học Kinh tế - Đại học Đà Nẵng.
+[both] Lớp {{lop}} thuộc khoa {{khoa}} Trường Đại học Kinh tế.
+[both] Tổ chức họp lớp để xét đề nghị công nhận đảng viên chính thức cho sinh viên {{ho_ten}}
+[both] I. THÀNH PHẦN THAM DỰ
+[both] 1. Giảng viên chủ nhiệm: {{gvcn}}
+[both] 2. Chủ trì cuộc họp: {{chu_tri_lop}}
+[both] 3. Thư ký cuộc họp: {{thu_ky_lop}}
+[both] 4. Tổng số sinh viên lớp: {{tong_so_sv_lop}}   Tham gia: {{tham_gia_lop}}   Vắng: {{vang_lop}}
+[both] II. NỘI DUNG CUỘC HỌP
+[both] Lớp {{lop}} đã tiến hành họp nhận xét về những ưu điểm, khuyết điểm chính của đảng viên dự bị {{ho_ten}} trong suốt quá trình phấn đấu học tập, công tác, rèn luyện tại lớp, cụ thể như sau:
+[left] 1. Ưu điểm: {{uu_diem}}
+[left] 2. Khuyết điểm: {{khuyet_diem}}
+[both] Đối chiếu với các tiêu chuẩn và điều kiện chuyển đảng chính thức, tập thể lớp {{lop}} thuộc khoa {{khoa}} giới thiệu và kính đề nghị tổ chức Đoàn, tổ chức Đảng các cấp xem xét chuyển chính thức đúng thời hạn cho đảng viên dự bị {{ho_ten}}
+[both] Biểu quyết thông qua với sự tán thành của {{tham_gia_lop}} sinh viên (đạt {{ti_le_bb_lop}}%); số không tán thành {{khong_tan_thanh_bb_lop}} sinh viên, với lý do: {{ly_do_khong_tan_thanh_bb_lop}}
+[both] Tập thể lớp {{lop}} thuộc khoa {{khoa}} xin chịu hoàn toàn trách nhiệm về những nội dung giới thiệu nêu trên./.
+[center] Giảng viên
+[center] chủ nhiệm lớp
+[center] (Ký, ghi họ tên)
+[center] Thư ký
+[center] (Ký, ghi họ tên)
+[center] Chủ tọa
+[center] (Ký, ghi họ tên)

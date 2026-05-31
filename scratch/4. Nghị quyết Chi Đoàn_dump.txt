@@ -1,0 +1,38 @@
+TEMPLATE DUMP FOR: 4. Nghị quyết Chi Đoàn.docx
+================================================================================
+
+--- PARAGRAPHS ---
+P0: 
+P1: NGHỊ QUYẾT
+P2: Đề nghị công nhận đảng viên chính thức
+P3: ----------
+P4: 
+P5: Kính gửi: Ban Chấp hành Liên chi Đoàn khoa Quản trị kinh doanh
+P6: 
+P7: - Căn cứ điều 5, Điều lệ Đảng Cộng sản Việt Nam.
+P8: - Xét biên bản họp của lớp 51K25.2
+P9: - Xét biên bản họp của Chi Đoàn 51K25.2
+P10: Ban Chấp hành Chi Đoàn 51K25.2 họp ngày     tháng     năm 2026 xét thấy:
+P11: Đảng viên dự bị Nguyễn Hữu Ái Quốc thuộc Chi Đoàn 51K25.2 được kết nạp vào Đảng ngày 30 tháng 5 năm 2025, đã nỗ lực, phấn đấu trở thành đảng viên chính thức, nay Ban Chấp hành Chi Đoàn 51K25.2 kính báo cáo Ban Chấp hành Liên chi Đoàn khoa Quản trị kinh doanh về những ưu điểm, khuyết điểm chính của đảng viên dự bị Nguyễn Hữu Ái Quốc, cụ thể như sau:
+P12: 1. Ưu điểm:
+P13: - Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.
+P14: -  Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.
+P15: - Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.
+P16: -  Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.
+P17: -  Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.
+P18: 2. Khuyết điểm:
+P19: - Không có khuyết điểm gì lớn
+P20: Đối chiếu với tiêu chuẩn và điều kiện chuyển đảng chính thức, Ban Chấp Chi Đoàn 51K25.2 giới thiệu và kính đề nghị Ban Chấp hành Liên chi Đoàn khoa Quản trị kinh doanh xem xét đề nghị Ban Chấp hành Đoàn Trường Đại học Kinh tế giới thiệu đảng viên dự bị Nguyễn Hữu Ái Quốc trở thành đảng viên chính thức.
+P21: Biểu quyết thông qua với sự tán thành của 03 đồng chí Ủy viên Ban Chấp hành Chi Đoàn (đạt 100 %); số không tán thành 0 đồng chí.
+P22: Ban Chấp hành Chi Đoàn 51K25.2 xin chịu hoàn toàn trách nhiệm về những nội dung giới thiệu nêu trên./.
+P23: 
+P24: 
+
+--- TABLES ---
+
+TABLE 0:
+  ROW 0: C0: LIÊN CHI ĐOÀN KHOA QUẢN TRỊ KINH DOANH BCH CHI ĐOÀN 51K25.2 ***, C1: ĐOÀN TNCS HỒ CHÍ MINH
+  ROW 1: C0: , C1: Đà Nẵng, ngày     tháng     năm 2026
+
+TABLE 1:
+  ROW 0: C0: , C1: TM. BAN CHẤP CHI ĐOÀN BÍ THƯ
