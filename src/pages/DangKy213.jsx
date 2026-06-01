@@ -25,6 +25,7 @@ import { API_BASE_URL } from '../config';
 import JSZip from 'jszip';
 import { Document, Packer, Paragraph, TextRun, AlignmentType, Table as DocxTable, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import DetailModal from '../components/DetailModal';
+import AddressWardSelect from '../components/AddressWardSelect';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -1764,11 +1765,7 @@ const DangKy213 = () => {
               </Col>
               <Col xs={24} sm={12}>
                 <Form.Item name="phuong" label="Phường / Xã" rules={[{ required: true, message: 'Vui lòng chọn phường / xã' }]}>
-                  <Select showSearch placeholder="Chọn phường / xã"
-                    filterOption={(input, option) => option.children?.toString().toLowerCase().includes(input.toLowerCase())}
-                  >
-                    {(addressData[selectedCity] || []).map(ward => (<Option key={ward} value={ward}>{ward}</Option>))}
-                  </Select>
+                  <AddressWardSelect province={selectedCity} />
                 </Form.Item>
               </Col>
             </Row>

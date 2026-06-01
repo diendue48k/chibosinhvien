@@ -401,7 +401,8 @@ const DangVienDashboard = () => {
       title: 'Xem thành viên nhóm',
       desc: 'Tra cứu danh bạ hoạt động nhóm',
       icon: <TeamOutlined />,
-      route: '/dang-vien',
+      route: '#',
+      onClick: () => setIsGroupModalVisible(true),
       color: '#13c2c2',
       bg: '#e6fffb'
     }
@@ -564,7 +565,13 @@ const DangVienDashboard = () => {
             <Col xs={12} sm={8} lg={6} xl={index === activeUtilities.length - 1 ? 6 : undefined} key={util.route} style={{ flexGrow: 1 }}>
               <Card 
                 className="utility-card"
-                onClick={() => navigate(util.route)}
+                onClick={() => {
+                  if (util.onClick) {
+                    util.onClick();
+                  } else {
+                    navigate(util.route);
+                  }
+                }}
                 bodyStyle={{ padding: '16px' }}
               >
                 <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
