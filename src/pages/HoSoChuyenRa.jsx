@@ -99,7 +99,7 @@ const generateDefaultEmailTemplate = (record, values) => {
       </table>
     </div>
     <p style="font-size:14px; margin-top:16px; text-align:justify; font-family: inherit;">Đồng chí vui lòng chú ý điện thoại để nhận lại Hồ sơ Đảng viên và nộp cho Đơn vị mới. Cảm ơn đồng chí đã luôn đồng hành và gắn bó cùng Chi bộ Sinh viên trong suốt thời gian vừa qua.</p>
-    <p style="font-size:14px; margin-top:20px; font-weight:600; color:#555; font-family: inherit;">Kính chúc đồng chí luôn hoàn thành tốt mọi nhiệm vụ được giao ở đơn vị mới. Trân trọng</p>
+    <p style="font-size:14px; margin-top:20px; font-weight:600; color:#555; font-family: inherit;">Kính chúc đồng chí luôn hoàn thành tốt mọi nhiệm vụ được giao ở đơn vị mới. <br> Trân trọng</p>
     <hr style="border:none; border-top:1px solid #f0f0f0; margin:20px 0 12px 0; font-family: inherit;" />
     <p style="color:#999; font-size:11px; margin:0; text-align:center; font-family: inherit;">Email tự động từ Hệ thống quản lý Chi bộ Sinh viên - Trường ĐH Kinh tế ĐHĐN.</p>
   </div>
