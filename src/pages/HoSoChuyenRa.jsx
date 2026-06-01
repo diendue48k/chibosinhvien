@@ -89,7 +89,7 @@ const generateDefaultEmailTemplate = (record, values) => {
   </div>
   <div style="padding: 24px; border: 1px solid #e8e8e8; border-top: none; border-radius: 0 0 10px 10px; background: #fff; font-family: inherit;">
     <p style="font-size: 15px; margin-bottom: 6px; font-family: inherit;">Kính gửi Đồng chí <strong style="color:#c62828">${record.ho_ten || ''}</strong>,</p>
-    <p style="font-size: 14px; color:#555; text-align:justify; font-family: inherit;">Hồ sơ thủ tục chuyển sinh hoạt Đảng của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành 3 bước và chuyển nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng như dưới đây:</p>
+    <p style="font-size: 14px; color:#555; text-align:justify; font-family: inherit;">Hồ sơ thủ tục chuyển sinh hoạt Đảng của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành và chuyển nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng như dưới đây:</p>
     <div style="background:#f6ffed; border:1px solid #b7eb8f; border-radius:8px; padding:14px 18px; margin:16px 0; font-family: inherit;">
       <p style="margin:0 0 10px 0; font-weight:700; color:#52c41a; font-size:14px; font-family: inherit;">📍 Thông tin chuyển sinh hoạt Đảng chính thức</p>
       <table style="width:100%; border-collapse:collapse; font-size:13px; font-family: inherit;">
@@ -98,8 +98,8 @@ const generateDefaultEmailTemplate = (record, values) => {
         ${ghiChuStr ? `<tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600; font-family: inherit;">Ghi chú:</td><td style="color:#333; font-family: inherit;">${ghiChuStr}</td></tr>` : ''}
       </table>
     </div>
-    <p style="font-size:14px; margin-top:16px; text-align:justify; font-family: inherit;">Đồng chí vui lòng khẩn trương liên hệ trực tiếp với <strong>Văn phòng Đảng ủy Trường (Phòng H208)</strong> để nhận lại túi Hồ sơ Đảng chính thức và thực hiện nộp về Đảng ủy/Tổ chức Đảng mới theo đúng thời gian quy định.</p>
-    <p style="font-size:14px; margin-top:20px; font-weight:600; color:#555; font-family: inherit;">Trân trọng chúc đồng chí luôn hoàn thành xuất sắc nhiệm vụ tại tổ chức Đảng mới./.</p>
+    <p style="font-size:14px; margin-top:16px; text-align:justify; font-family: inherit;">Đồng chí vui lòng chú ý điện thoại để nhận lại Hồ sơ Đảng viên và nộp cho Đơn vị mới. Cảm ơn đồng chí đã luôn đồng hành và gắn bó cùng Chi bộ Sinh viên trong suốt thời gian vừa qua.</p>
+    <p style="font-size:14px; margin-top:20px; font-weight:600; color:#555; font-family: inherit;">Kính chúc đồng chí luôn hoàn thành tốt mọi nhiệm vụ được giao ở đơn vị mới. Trân trọng</p>
     <hr style="border:none; border-top:1px solid #f0f0f0; margin:20px 0 12px 0; font-family: inherit;" />
     <p style="color:#999; font-size:11px; margin:0; text-align:center; font-family: inherit;">Email tự động từ Hệ thống quản lý Chi bộ Sinh viên - Trường ĐH Kinh tế ĐHĐN.</p>
   </div>
