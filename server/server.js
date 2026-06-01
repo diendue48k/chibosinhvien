@@ -52,7 +52,7 @@ app.get('/api/verify', async (req, res) => {
 });
 
 app.post('/api/send-email', async (req, res) => {
-  const { to, bcc, subject, html } = req.body;
+  const { to, bcc, subject, html, attachments: clientAttachments } = req.body;
 
   if ((!to && !bcc) || !subject || !html) {
     return res.status(400).json({ error: 'Thiếu thông tin gửi email (to/bcc, subject, html).' });
@@ -72,6 +72,17 @@ app.post('/api/send-email', async (req, res) => {
         filename: 'logo.png',
         path: path.join(__dirname, '../public/logo.png'),
         cid: 'chibologo'
+      });
+    }
+
+    if (clientAttachments && Array.isArray(clientAttachments)) {
+      clientAttachments.forEach(att => {
+        if (att.url && att.filename) {
+          attachments.push({
+            filename: att.filename,
+            path: att.url
+          });
+        }
       });
     }
 

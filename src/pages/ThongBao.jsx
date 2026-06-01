@@ -12,7 +12,8 @@ import {
   SearchOutlined
 } from '@ant-design/icons';
 import { collection, getDocs, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES, permissionService } from '../services/permissionService';
 import PermissionWrapper from '../components/PermissionWrapper';
@@ -68,6 +69,10 @@ const ThongBao = () => {
   // Form sub-states
   const [recipientType, setRecipientType] = useState('ca_nhan');
   const [previewImage, setPreviewImage] = useState('');
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageProgress, setImageProgress] = useState(0);
+  const [fileList, setFileList] = useState([]);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
 
   // Real-time preview
   const watchedTitle = Form.useWatch('title', form);
@@ -79,7 +84,7 @@ const ThongBao = () => {
   const watchedSenderPhone = Form.useWatch('sender_phone', form);
 
   // ── Email HTML Generator ──────────────────────────────────────────────────
-  const generateEmailHtml = (title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone) => {
+  const generateEmailHtml = (title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone, attachments = []) => {
     const formattedContent = (content || '').replace(/\n/g, '<br />');
     const sentDate = dayjs().format('HH:mm, DD/MM/YYYY');
     const deadlineStr = deadline ? dayjs(deadline).format('HH:mm, DD/MM/YYYY') : null;
@@ -198,6 +203,21 @@ const ThongBao = () => {
           <p style="margin: 0 0 8px; font-size: 11px; text-transform: uppercase; color: #999; letter-spacing: 0.5px; font-weight: 600; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">📎 Hình ảnh đính kèm</p>
           <img src="${imageUrl}" alt="Đính kèm" style="max-width: 100%; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" />
         </div>` : ''}
+
+        ${attachments && attachments.length > 0 ? `
+        <!-- ATTACHMENTS -->
+        <div style="background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-top: 20px; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">
+          <p style="margin: 0 0 8px; font-size: 11px; text-transform: uppercase; color: #999; letter-spacing: 0.5px; font-weight: 600;">📎 Tài liệu đính kèm</p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #333;">
+            ${attachments.map(att => `
+              <li style="margin-bottom: 6px;">
+                <a href="${att.url}" target="_blank" style="color: #096dd9; text-decoration: underline; font-weight: 600;">
+                  ${att.filename}
+                </a>
+              </li>
+            `).join('')}
+          </ul>
+        </div>` : ''}
   
       </div>
   
@@ -253,16 +273,99 @@ const ThongBao = () => {
 
   // Live preview
   const livePreviewHtml = useMemo(() => {
-    return generateEmailHtml(watchedTitle, watchedContent, watchedImageUrl || previewImage, watchedCreatedBy, watchedDeadline, watchedSenderEmail, watchedSenderPhone);
+    return generateEmailHtml(
+      watchedTitle,
+      watchedContent,
+      watchedImageUrl || previewImage,
+      watchedCreatedBy,
+      watchedDeadline,
+      watchedSenderEmail,
+      watchedSenderPhone,
+      uploadedFiles
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedTitle, watchedContent, watchedCreatedBy, watchedDeadline, watchedImageUrl, previewImage, watchedSenderEmail, watchedSenderPhone]);
+  }, [watchedTitle, watchedContent, watchedCreatedBy, watchedDeadline, watchedImageUrl, previewImage, watchedSenderEmail, watchedSenderPhone, uploadedFiles]);
 
-  // ── Image Upload ──────────────────────────────────────────────────────────
+  // ── Image & File Upload ───────────────────────────────────────────────────
   const handleImageUpload = (file) => {
-    const reader = new FileReader();
-    reader.onload = (e) => { setPreviewImage(e.target.result); form.setFieldsValue({ image_url: e.target.result }); };
-    reader.readAsDataURL(file);
+    setImageUploading(true);
+    setImageProgress(0);
+    const storageRef = ref(storage, `notifications/images/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        setImageProgress(percent);
+      },
+      (error) => {
+        message.error('Lỗi khi tải ảnh lên: ' + error.message);
+        setImageUploading(false);
+      },
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        setPreviewImage(downloadURL);
+        form.setFieldsValue({ image_url: downloadURL });
+        setImageUploading(false);
+        message.success('✓ Tải ảnh lên thành công!');
+      }
+    );
     return false;
+  };
+
+  const beforeFileUpload = (file) => {
+    const isLt10M = file.size / 1024 / 1024 < 10;
+    if (!isLt10M) {
+      message.error('Tệp đính kèm phải có dung lượng nhỏ hơn 10MB!');
+    }
+    return isLt10M;
+  };
+
+  const handleCustomFileUpload = ({ file, onSuccess, onError, onProgress }) => {
+    const storageRef = ref(storage, `notifications/files/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot) => {
+        const percent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+        onProgress({ percent });
+      },
+      (error) => {
+        message.error(`Lỗi khi tải file ${file.name} lên: ${error.message}`);
+        onError(error);
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          onSuccess({ url: downloadURL }, file);
+          message.success(`✓ Tải file ${file.name} thành công!`);
+        } catch (err) {
+          onError(err);
+        }
+      }
+    );
+  };
+
+  const handleFileChange = ({ file, fileList: newFileList }) => {
+    setFileList(newFileList);
+    if (file.status === 'done') {
+      const downloadURL = file.response?.url;
+      if (downloadURL) {
+        setUploadedFiles(prev => {
+          if (prev.some(f => f.uid === file.uid)) return prev;
+          return [...prev, {
+            uid: file.uid,
+            filename: file.name,
+            url: downloadURL,
+            size: file.size
+          }];
+        });
+      }
+    } else if (file.status === 'removed' || !file.status) {
+      setUploadedFiles(prev => prev.filter(f => f.uid !== file.uid));
+    }
   };
 
   // ── Data Fetching ─────────────────────────────────────────────────────────
@@ -343,6 +446,8 @@ const ThongBao = () => {
     form.resetFields();
     setPreviewImage('');
     setRecipientType('ca_nhan');
+    setUploadedFiles([]);
+    setFileList([]);
     form.setFieldsValue({
       created_by: currentUser?.name || 'Chi ủy Chi bộ',
       recipient_type: 'ca_nhan',
@@ -358,6 +463,14 @@ const ThongBao = () => {
     form.resetFields();
     setPreviewImage(record.image_url || '');
     setRecipientType(record.recipient_type || 'ca_nhan');
+    const attachments = record.attachments || [];
+    setUploadedFiles(attachments);
+    setFileList(attachments.map(att => ({
+      uid: att.uid || att.url,
+      name: att.filename,
+      status: 'done',
+      url: att.url
+    })));
     // Populate form with existing data
     form.setFieldsValue({
       title: record.title,
@@ -379,6 +492,8 @@ const ThongBao = () => {
     form.resetFields();
     setPreviewImage('');
     setEditingRecord(null);
+    setUploadedFiles([]);
+    setFileList([]);
     setIsFormModalVisible(false);
   };
 
@@ -402,19 +517,19 @@ const ThongBao = () => {
   };
 
   // ── Send Email helper ─────────────────────────────────────────────────────
-  const doSendEmail = async (title, content, imageUrl, createdBy, deadline, recipientList, senderEmail, senderPhone) => {
+  const doSendEmail = async (title, content, imageUrl, createdBy, deadline, recipientList, senderEmail, senderPhone, attachments = []) => {
     const emails = recipientList.map(r => r.email || r.email_sv).filter(e => e?.trim() && e.includes('@'));
     if (emails.length === 0) {
       message.warning('Không có Đảng viên nào có địa chỉ email hợp lệ!');
       return { sent: 0, failed: 0 };
     }
     const noEmailCount = recipientList.length - emails.length;
-    const htmlBody = generateEmailHtml(title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone);
+    const htmlBody = generateEmailHtml(title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone, attachments);
     try {
       const response = await fetch(`${API_BASE_URL}/api/send-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bcc: emails.join(', '), subject: `[Thông báo Chi bộ] ${title}`, html: htmlBody })
+        body: JSON.stringify({ bcc: emails.join(', '), subject: `[Thông báo Chi bộ] ${title}`, html: htmlBody, attachments })
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -447,7 +562,7 @@ const ThongBao = () => {
       if (send_email) {
         emailEnabled = true;
         try {
-          const r = await doSendEmail(title, content, image_url, created_by, deadline, resolvedRecipients, sender_email, sender_phone);
+          const r = await doSendEmail(title, content, image_url, created_by, deadline, resolvedRecipients, sender_email, sender_phone, uploadedFiles);
           emailSentCount = r.sent; emailFailCount = r.failed;
         } catch (err) {
           emailFailCount = resolvedRecipients.length;
@@ -466,7 +581,8 @@ const ThongBao = () => {
         email_fail_count: emailFailCount,
         recipients: resolvedRecipients.map(r => ({ id: r.id, mssv: r.mssv, ho_ten: r.ho_ten, email: r.email || r.email_sv || '' })),
         sender_email: sender_email || null,
-        sender_phone: sender_phone || null
+        sender_phone: sender_phone || null,
+        attachments: uploadedFiles
       };
 
       if (editingRecord) {
@@ -499,8 +615,8 @@ const ThongBao = () => {
     if (!sendEmailTarget) return;
     setSendingEmail(true);
     try {
-      const { title, content, image_url, created_by, deadline, recipients, sender_email, sender_phone } = sendEmailTarget;
-      const result = await doSendEmail(title, content, image_url, created_by, deadline, recipients || [], sender_email, sender_phone);
+      const { title, content, image_url, created_by, deadline, recipients, sender_email, sender_phone, attachments } = sendEmailTarget;
+      const result = await doSendEmail(title, content, image_url, created_by, deadline, recipients || [], sender_email, sender_phone, attachments || []);
       
       // Update Firestore document with new email counts
       await updateDoc(doc(db, 'notifications', sendEmailTarget.id), {
@@ -841,9 +957,11 @@ const ThongBao = () => {
               </Row>
 
               <Form.Item name="image_url" label={<b>Ảnh đính kèm</b>} style={{ marginBottom: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Upload beforeUpload={handleImageUpload} showUploadList={false} accept="image/*">
-                    <Button icon={<UploadOutlined />} size="small">Chọn ảnh</Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                  <Upload beforeUpload={handleImageUpload} showUploadList={false} accept="image/*" disabled={imageUploading}>
+                    <Button icon={<UploadOutlined />} size="small" loading={imageUploading}>
+                      {imageUploading ? `Đang tải... (${imageProgress}%)` : 'Chọn ảnh'}
+                    </Button>
                   </Upload>
                   {previewImage && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -852,6 +970,17 @@ const ThongBao = () => {
                     </div>
                   )}
                 </div>
+              </Form.Item>
+
+              <Form.Item label={<b>Tài liệu đính kèm (PDF, Word, Excel...)</b>} style={{ marginBottom: 12 }}>
+                <Upload
+                  customRequest={handleCustomFileUpload}
+                  onChange={handleFileChange}
+                  fileList={fileList}
+                  beforeUpload={beforeFileUpload}
+                >
+                  <Button icon={<UploadOutlined />} size="small">Chọn tệp tin</Button>
+                </Upload>
               </Form.Item>
 
               <Divider style={{ margin: '4px 0 12px' }} />
@@ -1025,6 +1154,23 @@ const ThongBao = () => {
               {detailRecord.image_url && (
                 <div style={{ marginBottom: 20, textAlign: 'center', padding: 12, background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
                   <img src={detailRecord.image_url} alt="Đính kèm" style={{ maxWidth: '100%', maxHeight: 360, borderRadius: 6, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }} />
+                </div>
+              )}
+
+              {detailRecord.attachments && detailRecord.attachments.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, borderBottom: '2px solid #c62828', paddingBottom: 5, display: 'inline-block' }}>Tài liệu đính kèm</div>
+                  <div style={{ padding: 12, background: '#fafafa', borderRadius: 8, border: '1px solid #f0f0f0' }}>
+                    <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#333' }}>
+                      {detailRecord.attachments.map((att, idx) => (
+                        <li key={idx} style={{ marginBottom: 6 }}>
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: '#096dd9', textDecoration: 'underline', fontWeight: 600 }}>
+                            {att.filename}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
 
