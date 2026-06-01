@@ -742,7 +742,7 @@ const DangVien = () => {
   };
 
   const getAvatarUrl = (url) => {
-    if (!url) return undefined;
+    if (!url || typeof url !== 'string') return undefined;
     const driveRegex = /\/file\/d\/([a-zA-Z0-9_-]+)\//;
     const match = url.match(driveRegex);
     if (match && match[1]) {
@@ -1194,8 +1194,8 @@ const DangVien = () => {
   };
 
   const getUniqueColumnFilters = (data, field) => {
-    if (!data) return [];
-    const uniqueVals = [...new Set(data.map(item => item[field]).filter(Boolean))];
+    if (!data || !Array.isArray(data)) return [];
+    const uniqueVals = [...new Set(data.map(item => item && item[field]).filter(Boolean))];
     uniqueVals.sort((a, b) => String(a).localeCompare(String(b)));
     return uniqueVals.map(val => ({ text: String(val), value: val }));
   };

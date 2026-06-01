@@ -32,7 +32,7 @@ const PIE_COLORS = ['#52c41a', '#ff4d4f'];
 // HELPER: Avatar resolver
 // ============================================================
 const getAvatarUrl = (url) => {
-  if (!url) return undefined;
+  if (!url || typeof url !== 'string') return undefined;
   const driveRegex = /\/file\/d\/([a-zA-Z0-9_-]+)\//;
   const match = url.match(driveRegex);
   if (match && match[1]) {

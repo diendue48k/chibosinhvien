@@ -1401,8 +1401,8 @@ const DangVienDuBi = () => {
   };
 
   const getUniqueColumnFilters = (dataSource, field) => {
-    if (!dataSource) return [];
-    const uniqueVals = [...new Set(dataSource.map(item => item[field]).filter(Boolean))];
+    if (!dataSource || !Array.isArray(dataSource)) return [];
+    const uniqueVals = [...new Set(dataSource.map(item => item && item[field]).filter(Boolean))];
     uniqueVals.sort((a, b) => String(a).localeCompare(String(b)));
     return uniqueVals.map(val => ({ text: String(val), value: val }));
   };
