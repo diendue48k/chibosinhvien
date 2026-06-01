@@ -2,8 +2,13 @@ import express from 'express';
 import nodemailer from 'nodemailer';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -65,7 +70,7 @@ app.post('/api/send-email', async (req, res) => {
       processedHtml = html.replace(/src=["'](?:https?:\/\/[^"'>\s]+)?\/logo\.png["']/g, 'src="cid:chibologo"');
       attachments.push({
         filename: 'logo.png',
-        path: '../public/logo.png',
+        path: path.join(__dirname, '../public/logo.png'),
         cid: 'chibologo'
       });
     }
@@ -88,6 +93,10 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server gửi Email đang chạy tại http://localhost:${port}`);
-});
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+  app.listen(port, () => {
+    console.log(`Server gửi Email đang chạy tại http://localhost:${port}`);
+  });
+}
+
+export default app;
