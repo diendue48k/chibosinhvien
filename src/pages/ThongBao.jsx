@@ -208,7 +208,7 @@ const ThongBao = () => {
           <tr>
             <!-- Left Side: Logo & Name -->
             <td class="footer-cell-left" width="42%" align="center" style="vertical-align: middle; padding-right: 15px;">
-              <img src="http://localhost:5173/logo.png" alt="Logo Chi Bộ Sinh Viên" height="70" style="display: block; margin-bottom: 8px;" />
+              <img src="https://chibosinhvien.vercel.app/logo.png" alt="Logo Chi Bộ Sinh Viên" height="70" style="display: block; margin-bottom: 8px;" />
               <div style="color: #b71c1c; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-family: 'SVN-Gilroy', 'Inter', Arial, sans-serif;">CHI BỘ SINH VIÊN</div>
               <div style="color: #610c0c; font-size: 9px; font-weight: bold; text-transform: uppercase; font-family: 'SVN-Gilroy', 'Inter', Arial, sans-serif;">ĐẢNG BỘ TRƯỜNG ĐẠI HỌC KINH TẾ</div>
             </td>
