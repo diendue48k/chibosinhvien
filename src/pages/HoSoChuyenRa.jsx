@@ -55,26 +55,26 @@ const generateDefaultEmailTemplate = (record, values) => {
     const ghiChuStr = values.ghi_chu || '';
 
     html = `<div style="font-family: 'SVN-Gilroy', 'Inter', sans-serif; max-width: 650px; margin: 0 auto; color: #333; line-height: 1.6;">
-  <div style="background: linear-gradient(135deg,#fa8c16,#d46b08); padding: 24px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h2 style="color: white; margin: 0 0 4px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;">CHI BỘ SINH VIÊN</h2>
-    <p style="color: #ffe7ba; margin: 0; font-size: 13px;">Trường Đại học Kinh tế - Đại học Đà Nẵng</p>
+  <div style="background: linear-gradient(135deg,#fa8c16,#d46b08); padding: 24px; text-align: center; border-radius: 10px 10px 0 0; font-family: inherit;">
+    <h2 style="color: white; margin: 0 0 4px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; font-family: inherit;">CHI BỘ SINH VIÊN</h2>
+    <p style="color: #ffe7ba; margin: 0; font-size: 13px; font-family: inherit;">Trường Đại học Kinh tế - Đại học Đà Nẵng</p>
   </div>
-  <div style="padding: 24px; border: 1px solid #e8e8e8; border-top: none; border-radius: 0 0 10px 10px; background: #fff;">
-    <p style="font-size: 15px; margin-bottom: 6px;">Kính gửi Đồng chí <strong style="color:#d46b08">${record.ho_ten || ''}</strong>,</p>
-    <p style="font-size: 14px; color:#555; text-align:justify;">Hồ sơ thủ tục chuyển sinh hoạt Đảng <strong>tạm thời</strong> của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành và gửi nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng tạm thời như dưới đây:</p>
-    <div style="background:#fffbe6; border:1px solid #ffe58f; border-radius:8px; padding:14px 18px; margin:16px 0;">
-      <p style="margin:0 0 10px 0; font-weight:700; color:#d46b08; font-size:14px;">📍 Thông tin chuyển sinh hoạt Đảng tạm thời</p>
-      <table style="width:100%; border-collapse:collapse; font-size:13px;">
-        <tr><td style="padding:4px 0; color:#8c8c8c; width:150px; font-weight:600;">Ngày bắt đầu đi:</td><td style="font-weight:600; color:#333;">${ngayChuyenStr}</td></tr>
-        <tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600;">Thời gian dự kiến:</td><td style="font-weight:600; color:#333;">${thoiGianVe}</td></tr>
-        <tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600;">Nơi sinh hoạt tạm thời:</td><td style="font-weight:600; color:#333;">${noiChuyenStr}</td></tr>
-        ${ghiChuStr ? `<tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600;">Ghi chú:</td><td style="color:#333;">${ghiChuStr}</td></tr>` : ''}
+  <div style="padding: 24px; border: 1px solid #e8e8e8; border-top: none; border-radius: 0 0 10px 10px; background: #fff; font-family: inherit;">
+    <p style="font-size: 15px; margin-bottom: 6px; font-family: inherit;">Kính gửi Đồng chí <strong style="color:#d46b08">${record.ho_ten || ''}</strong>,</p>
+    <p style="font-size: 14px; color:#555; text-align:justify; font-family: inherit;">Hồ sơ thủ tục chuyển sinh hoạt Đảng <strong>tạm thời</strong> của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành và gửi nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng tạm thời như dưới đây:</p>
+    <div style="background:#fffbe6; border:1px solid #ffe58f; border-radius:8px; padding:14px 18px; margin:16px 0; font-family: inherit;">
+      <p style="margin:0 0 10px 0; font-weight:700; color:#d46b08; font-size:14px; font-family: inherit;">📍 Thông tin chuyển sinh hoạt Đảng tạm thời</p>
+      <table style="width:100%; border-collapse:collapse; font-size:13px; font-family: inherit;">
+        <tr><td style="padding:4px 0; color:#8c8c8c; width:150px; font-weight:600; font-family: inherit;">Ngày bắt đầu đi:</td><td style="font-weight:600; color:#333; font-family: inherit;">${ngayChuyenStr}</td></tr>
+        <tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600; font-family: inherit;">Thời gian dự kiến:</td><td style="font-weight:600; color:#333; font-family: inherit;">${thoiGianVe}</td></tr>
+        <tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600; font-family: inherit;">Nơi sinh hoạt tạm thời:</td><td style="font-weight:600; color:#333; font-family: inherit;">${noiChuyenStr}</td></tr>
+        ${ghiChuStr ? `<tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600; font-family: inherit;">Ghi chú:</td><td style="color:#333; font-family: inherit;">${ghiChuStr}</td></tr>` : ''}
       </table>
     </div>
-    <p style="font-size:14px; margin-top:16px; text-align:justify;">Đồng chí vui lòng khẩn trương liên hệ trực tiếp với <strong>Văn phòng Đảng ủy Trường (Phòng H208)</strong> để nhận lại túi Hồ sơ Đảng tạm thời và thực hiện nộp về Đảng ủy mới theo đúng thời gian quy định. Sau khi hoàn thành đợt sinh hoạt tạm thời, đồng chí có trách nhiệm làm thủ tục chuyển sinh hoạt trở lại Chi bộ Sinh viên.</p>
-    <p style="font-size:14px; margin-top:20px; font-weight:600; color:#555;">Trân trọng chúc đồng chí luôn hoàn thành tốt mọi nhiệm vụ học tập và công tác tại tổ chức Đảng mới./.</p>
-    <hr style="border:none; border-top:1px solid #f0f0f0; margin:20px 0 12px 0;" />
-    <p style="color:#999; font-size:11px; margin:0; text-align:center;">Email tự động từ Hệ thống quản lý Chi bộ Sinh viên - Trường ĐH Kinh tế ĐHĐN.</p>
+    <p style="font-size:14px; margin-top:16px; text-align:justify; font-family: inherit;">Đồng chí vui lòng khẩn trương liên hệ trực tiếp với <strong>Văn phòng Đảng ủy Trường (Phòng H208)</strong> để nhận lại túi Hồ sơ Đảng tạm thời và thực hiện nộp về Đảng ủy mới theo đúng thời gian quy định. Sau khi hoàn thành đợt sinh hoạt tạm thời, đồng chí có trách nhiệm làm thủ tục chuyển sinh hoạt trở lại Chi bộ Sinh viên.</p>
+    <p style="font-size:14px; margin-top:20px; font-weight:600; color:#555; font-family: inherit;">Trân trọng chúc đồng chí luôn hoàn thành tốt mọi nhiệm vụ học tập và công tác tại tổ chức Đảng mới./.</p>
+    <hr style="border:none; border-top:1px solid #f0f0f0; margin:20px 0 12px 0; font-family: inherit;" />
+    <p style="color:#999; font-size:11px; margin:0; text-align:center; font-family: inherit;">Email tự động từ Hệ thống quản lý Chi bộ Sinh viên - Trường ĐH Kinh tế ĐHĐN.</p>
   </div>
 </div>`;
   } else {
@@ -83,25 +83,25 @@ const generateDefaultEmailTemplate = (record, values) => {
     const ghiChuStr = values.ghi_chu || '';
 
     html = `<div style="font-family: 'SVN-Gilroy', 'Inter', sans-serif; max-width: 650px; margin: 0 auto; color: #333; line-height: 1.6;">
-  <div style="background: linear-gradient(135deg,#c62828,#b71c1c); padding: 24px; text-align: center; border-radius: 10px 10px 0 0;">
-    <h2 style="color: white; margin: 0 0 4px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;">CHI BỘ SINH VIÊN</h2>
-    <p style="color: #ffcdd2; margin: 0; font-size: 13px;">Trường Đại học Kinh tế - Đại học Đà Nẵng</p>
+  <div style="background: linear-gradient(135deg,#c62828,#b71c1c); padding: 24px; text-align: center; border-radius: 10px 10px 0 0; font-family: inherit;">
+    <h2 style="color: white; margin: 0 0 4px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; font-family: inherit;">CHI BỘ SINH VIÊN</h2>
+    <p style="color: #ffcdd2; margin: 0; font-size: 13px; font-family: inherit;">Trường Đại học Kinh tế - Đại học Đà Nẵng</p>
   </div>
-  <div style="padding: 24px; border: 1px solid #e8e8e8; border-top: none; border-radius: 0 0 10px 10px; background: #fff;">
-    <p style="font-size: 15px; margin-bottom: 6px;">Kính gửi Đồng chí <strong style="color:#c62828">${record.ho_ten || ''}</strong>,</p>
-    <p style="font-size: 14px; color:#555; text-align:justify;">Hồ sơ thủ tục chuyển sinh hoạt Đảng của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành 3 bước và chuyển nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng như dưới đây:</p>
-    <div style="background:#f6ffed; border:1px solid #b7eb8f; border-radius:8px; padding:14px 18px; margin:16px 0;">
-      <p style="margin:0 0 10px 0; font-weight:700; color:#52c41a; font-size:14px;">📍 Thông tin chuyển sinh hoạt Đảng chính thức</p>
-      <table style="width:100%; border-collapse:collapse; font-size:13px;">
-        <tr><td style="padding:4px 0; color:#8c8c8c; width:120px; font-weight:600;">Ngày chuyển đi:</td><td style="font-weight:600; color:#333;">${ngayChuyenStr}</td></tr>
-        <tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600;">Nơi chuyển đến:</td><td style="font-weight:600; color:#333;">${noiChuyenStr}</td></tr>
-        ${ghiChuStr ? `<tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600;">Ghi chú:</td><td style="color:#333;">${ghiChuStr}</td></tr>` : ''}
+  <div style="padding: 24px; border: 1px solid #e8e8e8; border-top: none; border-radius: 0 0 10px 10px; background: #fff; font-family: inherit;">
+    <p style="font-size: 15px; margin-bottom: 6px; font-family: inherit;">Kính gửi Đồng chí <strong style="color:#c62828">${record.ho_ten || ''}</strong>,</p>
+    <p style="font-size: 14px; color:#555; text-align:justify; font-family: inherit;">Hồ sơ thủ tục chuyển sinh hoạt Đảng của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành 3 bước và chuyển nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng như dưới đây:</p>
+    <div style="background:#f6ffed; border:1px solid #b7eb8f; border-radius:8px; padding:14px 18px; margin:16px 0; font-family: inherit;">
+      <p style="margin:0 0 10px 0; font-weight:700; color:#52c41a; font-size:14px; font-family: inherit;">📍 Thông tin chuyển sinh hoạt Đảng chính thức</p>
+      <table style="width:100%; border-collapse:collapse; font-size:13px; font-family: inherit;">
+        <tr><td style="padding:4px 0; color:#8c8c8c; width:120px; font-weight:600; font-family: inherit;">Ngày chuyển đi:</td><td style="font-weight:600; color:#333; font-family: inherit;">${ngayChuyenStr}</td></tr>
+        <tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600; font-family: inherit;">Nơi chuyển đến:</td><td style="font-weight:600; color:#333; font-family: inherit;">${noiChuyenStr}</td></tr>
+        ${ghiChuStr ? `<tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600; font-family: inherit;">Ghi chú:</td><td style="color:#333; font-family: inherit;">${ghiChuStr}</td></tr>` : ''}
       </table>
     </div>
-    <p style="font-size:14px; margin-top:16px; text-align:justify;">Đồng chí vui lòng khẩn trương liên hệ trực tiếp với <strong>Văn phòng Đảng ủy Trường (Phòng H208)</strong> để nhận lại túi Hồ sơ Đảng chính thức và thực hiện nộp về Đảng ủy/Tổ chức Đảng mới theo đúng thời gian quy định.</p>
-    <p style="font-size:14px; margin-top:20px; font-weight:600; color:#555;">Trân trọng chúc đồng chí luôn hoàn thành xuất sắc nhiệm vụ tại tổ chức Đảng mới./.</p>
-    <hr style="border:none; border-top:1px solid #f0f0f0; margin:20px 0 12px 0;" />
-    <p style="color:#999; font-size:11px; margin:0; text-align:center;">Email tự động từ Hệ thống quản lý Chi bộ Sinh viên - Trường ĐH Kinh tế ĐHĐN.</p>
+    <p style="font-size:14px; margin-top:16px; text-align:justify; font-family: inherit;">Đồng chí vui lòng khẩn trương liên hệ trực tiếp với <strong>Văn phòng Đảng ủy Trường (Phòng H208)</strong> để nhận lại túi Hồ sơ Đảng chính thức và thực hiện nộp về Đảng ủy/Tổ chức Đảng mới theo đúng thời gian quy định.</p>
+    <p style="font-size:14px; margin-top:20px; font-weight:600; color:#555; font-family: inherit;">Trân trọng chúc đồng chí luôn hoàn thành xuất sắc nhiệm vụ tại tổ chức Đảng mới./.</p>
+    <hr style="border:none; border-top:1px solid #f0f0f0; margin:20px 0 12px 0; font-family: inherit;" />
+    <p style="color:#999; font-size:11px; margin:0; text-align:center; font-family: inherit;">Email tự động từ Hệ thống quản lý Chi bộ Sinh viên - Trường ĐH Kinh tế ĐHĐN.</p>
   </div>
 </div>`;
   }
