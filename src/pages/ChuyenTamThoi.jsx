@@ -366,8 +366,8 @@ const ChuyenTamThoi = () => {
     <div style={{ padding: '4px' }}>
 
       {/* Row 1: Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', minWidth: '280px' }}>
           <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
           <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px' }}>
             Quản lý Đảng viên chuyển sinh hoạt tạm thời
@@ -596,7 +596,7 @@ const ChuyenTamThoi = () => {
 
           <Divider style={{ margin: '16px 0' }} />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626' }}>
               2. Chọn các Trường Thông tin cần xuất:
             </div>

@@ -232,7 +232,7 @@ const MainLayout = () => {
       if (item.children) {
         const filteredChildren = item.children.filter(child => {
           // Additional check for DANGVIEN and document-generator: only show if reserve member
-          if (child.key === '/document-generator' && currentUser?.role === ROLES.DANGVIEN) {
+          if (child.key === '/document-generator' && currentUser?.role === 'DANGVIEN') {
             return currentUser?.dang_vien_du_bi === true;
           }
           return permissionService.hasRouteAccess(role, child.key);
@@ -242,6 +242,18 @@ const MainLayout = () => {
         }
         return null;
       }
+      
+
+
+      // Hide transfer registration menu item for admin/managers
+      if (item.key === '/dang-ky-chuyen') {
+        const isManager = [
+          'ADMIN', 'BITHU', 'PHOBIHU', 'CAPUY', 
+          'OFFICIAL_MANAGER', 'ADMISSION_MANAGER', 'KIEMTRA'
+        ].includes(role);
+        if (isManager) return null;
+      }
+
       return permissionService.hasRouteAccess(role, item.key) ? item : null;
     }).filter(Boolean);
   };

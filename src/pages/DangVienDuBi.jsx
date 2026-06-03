@@ -18,6 +18,7 @@ import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../config';
 import ImportExcel from '../components/ImportExcel';
 import ProfileDrawer from '../components/ProfileDrawer';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -93,6 +94,7 @@ const KHOA_LIST = [
 ];
 
 const DangVienDuBi = () => {
+  const { currentUser } = useAuth();
   const [data, setData] = useState([]);
   const [allOfficialMembers, setAllOfficialMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -101,8 +103,10 @@ const DangVienDuBi = () => {
   // Filter states
   const [filterKhoa, setFilterKhoa] = useState(null);
   const [filterLop, setFilterLop] = useState(null);
+  const [filterIntake, setFilterIntake] = useState(null);
   const [filterHocLop, setFilterHocLop] = useState(null);
   const [filterHanXet, setFilterHanXet] = useState(null);
+  const [filterThangXet, setFilterThangXet] = useState(null);
   
   // Drawer/Modal state
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -112,6 +116,9 @@ const DangVienDuBi = () => {
   const [isChuyenChinhThucModalVisible, setIsChuyenChinhThucModalVisible] = useState(false);
   const [isEmailModalVisible, setIsEmailModalVisible] = useState(false);
   const [emailRecord, setEmailRecord] = useState(null);
+  const [isNextStepModalVisible, setIsNextStepModalVisible] = useState(false);
+  const [nextStepNote, setNextStepNote] = useState('');
+  const [nextStepLoading, setNextStepLoading] = useState(false);
   
   // === DETAIL MODAL STATE ===
   const [isDetailVisible, setIsDetailVisible] = useState(false);
@@ -475,7 +482,23 @@ const DangVienDuBi = () => {
           } else if (field.isSpecial === 'status') {
             row[field.label] = `B${item.ho_so_status || 1}: ${HO_SO_STEPS[item.ho_so_status || 1]}`;
           } else {
-            row[field.label] = item[field.key] || "";
+            let val = item[field.key];
+            if (field.key === 'so_dien_thoai') {
+              val = item.so_dien_thoai || item.sdt;
+            } else if (field.key === 'email') {
+              val = item.email || item.email_sv;
+            } else if (field.key === 'que_quan') {
+              val = item.que_quan || item.quequan;
+            } else if (field.key === 'tinh_tp_qq') {
+              val = item.tinh_tp_qq || item.tinh_tp_qq_cu;
+            } else if (field.key === 'xa_phuong_qq') {
+              val = item.xa_phuong_qq || item.xa_phuong_qq_cu;
+            } else if (field.key === 'tinh_tp_tt') {
+              val = item.tinh_tp_tt || item.tinh_tp_tt_cu;
+            } else if (field.key === 'xa_phuong_tt') {
+              val = item.xa_phuong_tt || item.xa_phuong_tt_cu;
+            }
+            row[field.label] = val || "";
           }
         }
       });
@@ -1117,38 +1140,20 @@ const DangVienDuBi = () => {
       }
     }
 
-    if (currentStep === 3) {
-      Modal.confirm({
-        title: 'Xác nhận chuyển sang Bước 4',
-        content: 'Bạn xác nhận đã nhận được Nhận xét cư trú của Đảng viên này?',
-        okText: 'Xác nhận',
-        cancelText: 'Hủy',
-        onOk: () => proceedNextStep(currentStep)
-      });
-      return;
-    }
-
-    if (currentStep === 5) {
-      Modal.confirm({
-        title: 'Xác nhận chuyển sang Bước 6',
-        content: 'Bạn xác nhận đã có minh chứng nộp hồ sơ lên VPĐU?',
-        okText: 'Xác nhận',
-        cancelText: 'Hủy',
-        onOk: () => proceedNextStep(currentStep)
-      });
-      return;
-    }
-
-    proceedNextStep(currentStep);
+    setIsNextStepModalVisible(true);
+    setNextStepNote('');
   };
 
-  const proceedNextStep = async (currentStep) => {
+  const submitNextStep = async () => {
+    const currentStep = editingRecord?.ho_so_status || 1;
+    setNextStepLoading(true);
     try {
       const newHistory = [...(editingRecord?.ho_so_history || []), {
         from: currentStep,
         to: currentStep + 1,
         time: new Date().toISOString(),
-        updated_by: "Admin" 
+        note: nextStepNote || "",
+        updated_by: currentUser?.email || currentUser?.username || "Admin"
       }];
 
       const updateData = {
@@ -1161,19 +1166,31 @@ const DangVienDuBi = () => {
       message.success(`Đã chuyển sang Bước ${currentStep + 1}: ${HO_SO_STEPS[currentStep + 1]}`);
       
       setEditingRecord({ ...editingRecord, ...updateData });
+      setIsNextStepModalVisible(false);
+      setNextStepNote('');
       fetchDangVienDuBi();
     } catch (e) {
       console.error(e);
       message.error("Lỗi khi chuyển bước hồ sơ!");
+    } finally {
+      setNextStepLoading(false);
     }
   };
 
-  const [filterThangXet, setFilterThangXet] = useState(null);
+  const uniqueIntakes = useMemo(() => {
+    const intakes = data.map(item => {
+      const lop = item.lop || "";
+      const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+      return match ? match[1] : null;
+    }).filter(Boolean);
+    return [...new Set(intakes)].sort();
+  }, [data]);
 
   const resetFilters = () => {
     setSearchText('');
     setFilterKhoa(null);
     setFilterLop(null);
+    setFilterIntake(null);
     setFilterHocLop(null);
     setFilterHanXet(null);
     setFilterThangXet(null);
@@ -1189,6 +1206,12 @@ const DangVienDuBi = () => {
       }
       if (filterKhoa && item.khoa !== filterKhoa) return false;
       if (filterLop && item.lop !== filterLop) return false;
+      if (filterIntake) {
+        const lop = item.lop || "";
+        const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+        const intake = match ? match[1] : null;
+        if (intake !== filterIntake) return false;
+      }
       if (filterHocLop !== null && (item.hoc_lop_dv_moi || false) !== filterHocLop) return false;
       if (filterHanXet) {
         const han = calculateHanXet(item.ngay_vao_dang);
@@ -1213,7 +1236,7 @@ const DangVienDuBi = () => {
       const daysB = hanB ? hanB.daysLeft : Infinity;
       return daysA - daysB;
     });
-  }, [data, searchText, filterKhoa, filterLop, filterHocLop, filterHanXet, filterThangXet]);
+  }, [data, searchText, filterKhoa, filterLop, filterIntake, filterHocLop, filterHanXet, filterThangXet]);
 
   const rowSelection = {
     selectedRowKeys,
@@ -1738,6 +1761,21 @@ const DangVienDuBi = () => {
           </Select>
         </div>
 
+        <div style={{ flex: 1, minWidth: '120px' }}>
+          <Select 
+            placeholder="Khóa" 
+            style={{ width: '100%' }} 
+            allowClear 
+            value={filterIntake} 
+            onChange={setFilterIntake}
+            dropdownStyle={{ borderRadius: '6px' }}
+          >
+            {uniqueIntakes.map(k => (
+              <Option key={k} value={k}>{k}</Option>
+            ))}
+          </Select>
+        </div>
+
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select 
             placeholder="Lớp ĐVM (Đã học / Chưa)" 
@@ -1779,7 +1817,7 @@ const DangVienDuBi = () => {
           />
         </div>
 
-        {(searchText || filterKhoa || filterLop || filterHocLop !== null || filterHanXet || filterThangXet) && (
+        {(searchText || filterKhoa || filterLop || filterIntake || filterHocLop !== null || filterHanXet || filterThangXet) && (
           <div style={{ flexShrink: 0 }}>
             <Button 
               type="text" 
@@ -1941,8 +1979,8 @@ const DangVienDuBi = () => {
       >
         {editingRecord && (
           <div style={{ marginBottom: 24, padding: '20px', background: '#fafafa', borderRadius: '12px', border: '1px solid #f0f0f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Title level={5} style={{ margin: 0 }}>Tiến độ hồ sơ xét chuyển chính thức</Title>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
+              <Title level={5} style={{ margin: 0, flex: '1 1 auto', minWidth: '220px' }}>Tiến độ hồ sơ xét chuyển chính thức</Title>
               <Tag color="blue" style={{ fontSize: 13, padding: '4px 8px' }}>Bước {editingRecord.ho_so_status || 1}: {HO_SO_STEPS[editingRecord.ho_so_status || 1]}</Tag>
             </div>
             <Steps
@@ -1980,8 +2018,9 @@ const DangVienDuBi = () => {
                 </span>
                 <ul style={{ paddingLeft: 16, margin: 0, fontSize: 12, color: '#8c8c8c' }}>
                   {editingRecord.ho_so_history.map((log, idx) => (
-                    <li key={idx}>
+                    <li key={idx} style={{ marginBottom: 4 }}>
                       Chuyển từ <strong>Bước {log.from}</strong> → <strong>Bước {log.to}</strong> ({dayjs(log.time).format('DD/MM/YYYY HH:mm')} bởi {log.updated_by || 'Hệ thống'})
+                      {log.note && <div style={{ color: '#555', fontStyle: 'italic', paddingLeft: 8 }}>Ghi chú: {log.note}</div>}
                     </li>
                   ))}
                 </ul>
@@ -2202,6 +2241,41 @@ const DangVienDuBi = () => {
               </Col>
             </Row>
           </div>
+
+          {/* Section: Đặc điểm & Ghi chú hồ sơ */}
+          <div style={{ 
+            padding: '16px', 
+            border: '1px solid #e8e8e8', 
+            borderRadius: '12px', 
+            backgroundColor: '#fbfbfb', 
+            marginBottom: '10px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+          }}>
+            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
+              <SettingOutlined style={{ fontSize: '16px' }} /> Đặc điểm & Ghi chú hồ sơ
+            </span>
+            <Row gutter={16}>
+              <Col span={24}>
+                <Form.Item name="uu_diem" label="Ưu điểm">
+                  <Input.TextArea rows={3} placeholder="Ưu điểm, điểm mạnh..." style={{ borderRadius: '6px' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={24}>
+                <Form.Item name="khuyet_diem" label="Khuyết điểm">
+                  <Input.TextArea rows={3} placeholder="Khuyết điểm, điểm cần khắc phục..." style={{ borderRadius: '6px' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={24}>
+                <Form.Item name="ghi_chu_ho_so" label="Ghi chú hồ sơ">
+                  <Input.TextArea rows={2} placeholder="Ghi chú chung cho hồ sơ đảng viên này..." style={{ borderRadius: '6px' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
         </Form>
       </Drawer>
 
@@ -2231,6 +2305,50 @@ const DangVienDuBi = () => {
             <Input placeholder="Nhập số quyết định..." />
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Modal Chuyển bước kèm ghi chú */}
+      <Modal
+        title={`Chuyển sang Bước ${(editingRecord?.ho_so_status || 1) + 1}`}
+        open={isNextStepModalVisible}
+        onOk={submitNextStep}
+        onCancel={() => {
+          setIsNextStepModalVisible(false);
+          setNextStepNote('');
+        }}
+        okText="Chuyển bước"
+        cancelText="Hủy"
+        confirmLoading={nextStepLoading}
+        okButtonProps={{ style: { backgroundColor: '#c62828' } }}
+      >
+        <div style={{ marginBottom: 12 }}>
+          {editingRecord?.ho_so_status === 3 && (
+            <Alert 
+              message="Lưu ý khi chuyển sang Bước 4" 
+              description="Đảm bảo bạn đã nhận được Nhận xét cư trú của Đảng viên này và đã chuẩn bị các bản tự kiểm điểm liên quan." 
+              type="info" 
+              showIcon 
+              style={{ marginBottom: 12 }}
+            />
+          )}
+          {editingRecord?.ho_so_status === 5 && (
+            <Alert 
+              message="Lưu ý khi chuyển sang Bước 6" 
+              description="Đảm bảo đã có đầy đủ Biên nhận / Minh chứng nộp hồ sơ lên VPĐU Trường trước khi chuyển tiếp." 
+              type="warning" 
+              showIcon 
+              style={{ marginBottom: 12 }}
+            />
+          )}
+          <p>Nhập ghi chú cho bước chuyển này (không bắt buộc):</p>
+        </div>
+        <Input.TextArea 
+          rows={3} 
+          placeholder="Nhập ghi chú chi tiết..." 
+          value={nextStepNote} 
+          onChange={e => setNextStepNote(e.target.value)} 
+          style={{ borderRadius: '6px' }}
+        />
       </Modal>
 
       <Modal
@@ -2374,7 +2492,7 @@ const DangVienDuBi = () => {
             </Row>
           </Radio.Group>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626' }}>
               2. Chọn các Trường Thông tin cần xuất:
             </div>

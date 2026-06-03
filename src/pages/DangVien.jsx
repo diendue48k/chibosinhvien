@@ -261,6 +261,7 @@ const DangVien = () => {
   const [filterKhoa, setFilterKhoa] = useState(null);
   const [filterLop, setFilterLop] = useState(null);
   const [filterNhom, setFilterNhom] = useState(null);
+  const [filterIntake, setFilterIntake] = useState(null);
 
   // Group directory filter states
   const [groupFilterIntake, setGroupFilterIntake] = useState(null);
@@ -334,6 +335,13 @@ const DangVien = () => {
                          filterCoTheDang === 'Chưa có thẻ' ? !hasCard : true;
 
       const matchNoiChuyenDi = filterNoiChuyenDi ? item.noi_chuyen_di === filterNoiChuyenDi : true;
+      
+      if (filterIntake) {
+        const lop = item.lop || "";
+        const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+        const intake = match ? match[0] : null;
+        if (intake !== filterIntake) return false;
+      }
       
       let matchNgayVao = true;
       if (filterNgayVaoDangRange && filterNgayVaoDangRange.length === 2) {
@@ -411,6 +419,7 @@ const DangVien = () => {
     setFilterNoiChuyenDi(null);
     setFilterLoaiDangVien(null);
     setFilterCoTheDang(null);
+    setFilterIntake(null);
   };
 
   const formatDate = (dateString) => {
@@ -453,7 +462,27 @@ const DangVien = () => {
                                item.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
                                item.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
           } else {
-            row[field.label] = item[field.key] || "";
+            let val = item[field.key];
+            if (field.key === 'so_dien_thoai') {
+              val = item.so_dien_thoai || item.sdt;
+            } else if (field.key === 'email') {
+              val = item.email || item.email_sv;
+            } else if (field.key === 'email_sv') {
+              val = item.email_sv || item.email;
+            } else if (field.key === 'que_quan') {
+              val = item.que_quan || item.quequan || item.chi_tiet_qq_cu;
+            } else if (field.key === 'tinh_tp_qq') {
+              val = item.tinh_tp_qq || item.tinh_tp_qq_cu;
+            } else if (field.key === 'xa_phuong_qq') {
+              val = item.xa_phuong_qq || item.xa_phuong_qq_cu;
+            } else if (field.key === 'tinh_tp_tt') {
+              val = item.tinh_tp_tt || item.tinh_tp_tt_cu;
+            } else if (field.key === 'xa_phuong_tt') {
+              val = item.xa_phuong_tt || item.xa_phuong_tt_cu;
+            } else if (field.key === 'chi_tiet_dc') {
+              val = item.chi_tiet_dc || item.chi_tiet_tt_cu;
+            }
+            row[field.label] = val || "";
           }
         }
       });
@@ -1917,7 +1946,7 @@ const DangVien = () => {
                 <FilterOutlined style={{ color: '#c62828' }} /> <span>Bộ lọc dữ liệu</span>
               </div>
               
-              {(filterKhoa || filterLop || filterNhom || filterNgayVaoDangRange || filterNoiChuyenDi || filterLoaiDangVien || filterCoTheDang) && (
+              {(filterKhoa || filterLop || filterNhom || filterNgayVaoDangRange || filterNoiChuyenDi || filterLoaiDangVien || filterCoTheDang || filterIntake) && (
                 <Button 
                   type="text" 
                   danger 
@@ -1932,7 +1961,20 @@ const DangVien = () => {
             </div>
             
             <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} md={6} lg={6}>
+              <Col xs={24} sm={12} md={4} lg={4}>
+                <Select 
+                  placeholder="Chọn Khóa" 
+                  style={{ width: '100%' }} 
+                  allowClear 
+                  value={filterIntake} 
+                  onChange={setFilterIntake}
+                  dropdownStyle={{ borderRadius: '6px' }}
+                >
+                  {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
+                </Select>
+              </Col>
+
+              <Col xs={24} sm={12} md={5} lg={5}>
                 <Select 
                   showSearch
                   placeholder="Chọn Khoa" 
@@ -1948,7 +1990,7 @@ const DangVien = () => {
                 </Select>
               </Col>
               
-              <Col xs={24} sm={12} md={6} lg={6}>
+              <Col xs={24} sm={12} md={5} lg={5}>
                 <Select 
                   showSearch
                   placeholder="Chọn Lớp" 
@@ -1964,7 +2006,7 @@ const DangVien = () => {
                 </Select>
               </Col>
               
-              <Col xs={24} sm={12} md={6} lg={6}>
+              <Col xs={24} sm={12} md={5} lg={5}>
                 <Select 
                   showSearch
                   placeholder="Chọn Nhóm" 
@@ -1980,7 +2022,7 @@ const DangVien = () => {
                 </Select>
               </Col>
 
-              <Col xs={24} sm={12} md={6} lg={6}>
+              <Col xs={24} sm={12} md={5} lg={5}>
                 <Select 
                   placeholder="Loại Đảng viên" 
                   style={{ width: '100%' }} 
@@ -2429,7 +2471,7 @@ const DangVien = () => {
 
           <Divider style={{ margin: '16px 0' }} />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626' }}>
               2. Chọn các Trường Thông tin cần xuất:
             </div>

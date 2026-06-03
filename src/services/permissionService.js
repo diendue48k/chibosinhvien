@@ -133,7 +133,7 @@ export const permissionService = {
     }
 
     // Common routes accessible to all authenticated party members
-    const commonRoutes = ['/', '/dashboard', '/profile'];
+    const commonRoutes = ['/', '/dashboard', '/profile', '/dang-ky-chuyen'];
     if (commonRoutes.includes(path)) {
       return true;
     }
@@ -209,7 +209,7 @@ export const permissionService = {
       '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', 
       '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', 
       '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', 
-      '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/document-generator'
+      '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/document-generator', '/dang-ky-chuyen'
     ];
     return allRoutes.filter(path => this.hasRouteAccess(role, path));
   },

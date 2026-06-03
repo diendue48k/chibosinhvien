@@ -139,9 +139,98 @@ const prepareTemplateData = (data) => {
   };
 };
 
+const replaceTextInParagraph = (pNode, searchText, replaceText) => {
+  const tNodes = Array.from(pNode.getElementsByTagName('w:t'));
+  if (tNodes.length === 0) return false;
+  
+  let fullText = '';
+  const nodeIndices = [];
+  
+  for (const node of tNodes) {
+    const text = node.textContent || '';
+    const start = fullText.length;
+    fullText += text;
+    const end = fullText.length;
+    nodeIndices.push({ node, start, end });
+  }
+  
+  let index = fullText.indexOf(searchText);
+  let replaced = false;
+  
+  while (index !== -1) {
+    replaced = true;
+    const matchStart = index;
+    const matchEnd = index + searchText.length;
+    
+    let firstNodeInfo = null;
+    const nodesToClear = [];
+    
+    for (const info of nodeIndices) {
+      const overlapStart = Math.max(info.start, matchStart);
+      const overlapEnd = Math.min(info.end, matchEnd);
+      
+      if (overlapStart < overlapEnd) {
+        if (!firstNodeInfo) {
+          firstNodeInfo = info;
+        } else {
+          nodesToClear.push(info.node);
+        }
+      }
+    }
+    
+    if (firstNodeInfo) {
+      const node = firstNodeInfo.node;
+      const originalText = node.textContent || '';
+      const relativeStart = matchStart - firstNodeInfo.start;
+      const relativeEnd = matchEnd - firstNodeInfo.start;
+      
+      const prefix = originalText.substring(0, relativeStart);
+      const suffix = relativeEnd < originalText.length ? originalText.substring(relativeEnd) : '';
+      
+      node.textContent = prefix + replaceText + suffix;
+      node.setAttribute('xml:space', 'preserve');
+      
+      for (const clearNode of nodesToClear) {
+        clearNode.textContent = '';
+      }
+    }
+    
+    // Rebuild indexes for subsequent occurrences
+    fullText = '';
+    nodeIndices.length = 0;
+    for (const node of tNodes) {
+      const text = node.textContent || '';
+      const start = fullText.length;
+      fullText += text;
+      const end = fullText.length;
+      nodeIndices.push({ node, start, end });
+    }
+    
+    index = fullText.indexOf(searchText);
+  }
+  
+  return replaced;
+};
+
 const mergeXMLWithDOM = (xmlString, data) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, 'text/xml');
+  
+  // Pre-process paragraphs to de-split placeholders (e.g. {{key}})
+  const paragraphs = Array.from(doc.getElementsByTagName('w:p'));
+  for (const paragraph of paragraphs) {
+    const tNodes = Array.from(paragraph.getElementsByTagName('w:t'));
+    const fullText = tNodes.map(t => t.textContent || '').join('');
+    const placeholderRegex = /\{\{([^}]+)\}\}/g;
+    let match;
+    const matches = [];
+    while ((match = placeholderRegex.exec(fullText)) !== null) {
+      matches.push(match[0]);
+    }
+    for (const placeholder of matches) {
+      replaceTextInParagraph(paragraph, placeholder, placeholder);
+    }
+  }
   
   const textElements = Array.from(doc.getElementsByTagName('w:t'));
   
@@ -164,14 +253,32 @@ const mergeXMLWithDOM = (xmlString, data) => {
           }
           
           if (paragraph) {
-            // Line 1: Replace placeholder directly in the existing <w:t> node of the original paragraph
-            textElem.textContent = textContent.replace(`{{${key}}}`, lines[0]);
+            // Keep a clean clone of the paragraph *before* we modify anything
+            const cleanParagraphClone = paragraph.cloneNode(true);
             
+            const originalTNodes = Array.from(paragraph.getElementsByTagName('w:t'));
+            const textElemIndex = originalTNodes.indexOf(textElem);
+            
+            const partIndex = textContent.indexOf(`{{${key}}}`);
+            const prefix = partIndex !== -1 ? textContent.substring(0, partIndex) : '';
+            const suffix = partIndex !== -1 ? textContent.substring(partIndex + `{{${key}}}`.length) : '';
+
+            // Line 1: Replace placeholder directly in the existing <w:t> node
+            // This preserves any prefix (e.g., "Ưu điểm: ") and keeps it on the same line
+            textElem.textContent = prefix + lines[0];
+            
+            // Clear subsequent text elements in the original paragraph to prevent suffix duplication
+            for (let j = textElemIndex + 1; j < originalTNodes.length; j++) {
+              originalTNodes[j].textContent = '';
+            }
+            
+            // Lines 2+: Clone the clean parent paragraph (<w:p>) to ensure ALL fonts (Times New Roman),
+            // margin spacing, indentation, and alignment attributes are inherited exactly.
             let currentParagraph = paragraph;
             for (let i = 1; i < lines.length; i++) {
-              const clonedParagraph = paragraph.cloneNode(true);
+              const clonedParagraph = cleanParagraphClone.cloneNode(true);
               
-              // 1. Clean up paragraph properties of the cloned paragraph to ensure normal, non-bold text
+              // Clean up paragraph properties of the cloned paragraph to ensure normal, non-bold text
               // We preserve all native indentation (w:ind) and paragraph spacing (w:spacing) so that
               // all lines align perfectly with the first line and retain standard academic line height/paragraph spacing.
               // Remove bold formatting (<w:b/> and <w:bCs/>) from cloned paragraph properties and run properties
@@ -185,25 +292,33 @@ const mergeXMLWithDOM = (xmlString, data) => {
                 b.parentNode.removeChild(b);
               }
               
-              // 2. Set the text content for the cloned paragraph
+              // Find the target text node in the cloned paragraph by index
               const clonedTextElements = Array.from(clonedParagraph.getElementsByTagName('w:t'));
-              // Find the target text node that corresponds to the replaced placeholder
-              const targetClonedText = clonedTextElements.find(t => 
-                t.textContent.includes(`{{${key}}}`) || t.textContent.includes(lines[0])
-              );
+              const targetClonedText = textElemIndex !== -1 ? clonedTextElements[textElemIndex] : null;
               
               if (targetClonedText) {
-                targetClonedText.textContent = lines[i];
+                // Clear all elements BEFORE the target to remove prefix duplication
+                for (let j = 0; j < textElemIndex; j++) {
+                  if (clonedTextElements[j]) {
+                    clonedTextElements[j].textContent = '';
+                  }
+                }
                 
-                // Clear all other text elements in the cloned paragraph to prevent prefix/suffix duplication
-                for (const t of clonedTextElements) {
-                  if (t !== targetClonedText) {
-                    t.textContent = '';
+                if (i === lines.length - 1) {
+                  // Last line: set content with suffix, and keep elements AFTER the target intact
+                  targetClonedText.textContent = lines[i] + suffix;
+                } else {
+                  // Intermediate lines: set content and clear elements AFTER the target to prevent suffix duplication
+                  targetClonedText.textContent = lines[i];
+                  for (let j = textElemIndex + 1; j < clonedTextElements.length; j++) {
+                    if (clonedTextElements[j]) {
+                      clonedTextElements[j].textContent = '';
+                    }
                   }
                 }
               }
               
-              // 3. Insert the cloned paragraph right after currentParagraph
+              // Insert the cloned paragraph right after currentParagraph
               const parent = paragraph.parentNode;
               const nextSibling = currentParagraph.nextSibling;
               if (nextSibling) {

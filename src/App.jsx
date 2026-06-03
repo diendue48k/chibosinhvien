@@ -28,7 +28,6 @@ import DangKy213 from './pages/DangKy213';
 import LichHop from './pages/LichHop';
 import XinVang from './pages/XinVang';
 import DocumentGenerator from './pages/DocumentGenerator';
-
 function App() {
   useEffect(() => {
     const loadRolePermissions = async () => {

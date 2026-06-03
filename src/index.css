@@ -412,3 +412,14 @@ h6 {
   font-weight: 700 !important;
   color: #1e293b !important;
 }
+
+/* Custom Select Card for Transfer Type */
+.custom-select-card {
+  transition: all 0.2s ease-in-out !important;
+}
+
+.custom-select-card:hover {
+  transform: translateY(-2px);
+  border-color: #c62828 !important;
+  box-shadow: 0 6px 16px rgba(198, 40, 40, 0.06) !important;
+}

@@ -98,6 +98,7 @@ const HoSoDaChinhThuc = () => {
   const [searchText, setSearchText] = useState("");
   const [filterKhoa, setFilterKhoa] = useState(null);
   const [filterLop, setFilterLop] = useState(null);
+  const [filterIntake, setFilterIntake] = useState(null);
   const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
 
   // Drawer / View details
@@ -203,10 +204,20 @@ const HoSoDaChinhThuc = () => {
     fetchData();
   }, []);
 
+  const uniqueIntakes = useMemo(() => {
+    const intakes = data.map(item => {
+      const lop = item.lop || "";
+      const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+      return match ? match[1] : null;
+    }).filter(Boolean);
+    return [...new Set(intakes)].sort();
+  }, [data]);
+
   const resetFilters = () => {
     setSearchText("");
     setFilterKhoa(null);
     setFilterLop(null);
+    setFilterIntake(null);
     setFilterYear(new Date().getFullYear().toString());
   };
 
@@ -218,6 +229,13 @@ const HoSoDaChinhThuc = () => {
         item.ho_ten?.toLowerCase().includes(searchText.toLowerCase());
       const matchKhoa = filterKhoa ? item.khoa === filterKhoa : true;
       const matchLop = filterLop ? item.lop === filterLop : true;
+
+      if (filterIntake) {
+        const lop = item.lop || "";
+        const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+        const intake = match ? match[1] : null;
+        if (intake !== filterIntake) return false;
+      }
 
       const year = getOfficialYear(item);
       const yearNum = year ? parseInt(year, 10) : 0;
@@ -234,7 +252,7 @@ const HoSoDaChinhThuc = () => {
       const dateB = b.ngay_cong_nhan_dvct || b.ngay_chinh_thuc || '';
       return dateB.localeCompare(dateA); // Newest decisions on top
     });
-  }, [data, searchText, filterKhoa, filterLop, filterYear]);
+  }, [data, searchText, filterKhoa, filterLop, filterIntake, filterYear]);
 
   // Derived filter lists
   const uniqueKhoa = useMemo(() => {
@@ -895,11 +913,17 @@ const HoSoDaChinhThuc = () => {
         ...item,
         ho_ten: item.ho_ten || '',
         so_dien_thoai: item.so_dien_thoai || item.sdt || '',
+        email: item.email || item.email_sv || '',
+        email_sv: item.email_sv || item.email || '',
         ngay_sinh: item.ngay_sinh || null,
         que_quan: item.que_quan || '',
+        tinh_tp_qq: item.tinh_tp_qq || item.tinh_tp_qq_cu || '',
+        xa_phuong_qq: item.xa_phuong_qq || item.xa_phuong_qq_cu || '',
+        tinh_tp_tt: item.tinh_tp_tt || item.tinh_tp_tt_cu || '',
+        xa_phuong_tt: item.xa_phuong_tt || item.xa_phuong_tt_cu || '',
         ngay_vao_dang: item.ngay_vao_dang || null,
         dvhd: item.dvhd || '',
-        so_the_dang: item.so_quyet_dinh_dvct || item.so_qd || '',
+        so_the_dang: item.so_the_dang || item.so_quyet_dinh_dvct || item.so_qd || '',
         ngay_chinh_thuc: item.ngay_cong_nhan_dvct || item.ngay_chinh_thuc || null,
         dang_vien_du_bi: false,
         trang_thai: item.trang_thai || 'dang_sinh_hoat',
@@ -1170,6 +1194,19 @@ const HoSoDaChinhThuc = () => {
           </Select>
         </div>
 
+        <div style={{ flex: 1, minWidth: '120px' }}>
+          <Select
+            style={{ width: '100%' }}
+            placeholder="Lọc theo Khóa"
+            allowClear
+            value={filterIntake}
+            onChange={setFilterIntake}
+            dropdownStyle={{ borderRadius: '6px' }}
+          >
+            {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
+          </Select>
+        </div>
+
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select
             style={{ width: '100%' }}
@@ -1183,7 +1220,7 @@ const HoSoDaChinhThuc = () => {
           </Select>
         </div>
 
-        {(searchText || filterKhoa || filterLop || filterYear) && (
+        {(searchText || filterKhoa || filterLop || filterIntake || filterYear) && (
           <div style={{ flexShrink: 0 }}>
             <Button
               type="text"
@@ -1625,7 +1662,7 @@ const HoSoDaChinhThuc = () => {
                 <span>Cấu hình Bộ Lọc Dữ Liệu Xuất (Thay đổi sẽ cập nhật trực tiếp):</span>
               </div>
               <Row gutter={[12, 12]}>
-                <Col span={6}>
+                <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Tìm kiếm từ khóa:</div>
                   <Input 
                     placeholder="MSSV, Họ tên..." 
@@ -1635,7 +1672,7 @@ const HoSoDaChinhThuc = () => {
                     allowClear
                   />
                 </Col>
-                <Col span={6}>
+                <Col span={4}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khoa:</div>
                   <Select 
                     placeholder="Chọn Khoa" 
@@ -1648,7 +1685,7 @@ const HoSoDaChinhThuc = () => {
                     {KHOA_LIST.map(k => <Option key={k} value={k}>{k}</Option>)}
                   </Select>
                 </Col>
-                <Col span={6}>
+                <Col span={4}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Lớp:</div>
                   <Select 
                     placeholder="Chọn Lớp" 
@@ -1663,7 +1700,22 @@ const HoSoDaChinhThuc = () => {
                     ))}
                   </Select>
                 </Col>
-                <Col span={6}>
+                <Col span={4}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khóa:</div>
+                  <Select 
+                    placeholder="Chọn Khóa" 
+                    value={filterIntake} 
+                    onChange={setFilterIntake} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {uniqueIntakes.map(k => (
+                      <Option key={k} value={k}>{k}</Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col span={4}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Năm chính thức:</div>
                   <Select 
                     placeholder="Chọn Năm" 
@@ -1684,7 +1736,7 @@ const HoSoDaChinhThuc = () => {
 
           <Divider style={{ margin: '16px 0' }} />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626' }}>
               2. Chọn các Trường Thông tin cần xuất:
             </div>

@@ -75,7 +75,10 @@ const FIELD_LABELS = {
   dang_vien_du_bi: "Loại Đảng viên",
   trang_thai: "Trạng thái sinh hoạt",
   soqd: "Số quyết định kết nạp",
-  ngaykiqd: "Ngày ký quyết định kết nạp"
+  ngaykiqd: "Ngày ký quyết định kết nạp",
+  uu_diem: "Ưu điểm",
+  khuyet_diem: "Khuyết điểm",
+  ghi_chu_ho_so: "Ghi chú hồ sơ"
 };
 
 const FieldContext = React.createContext(null);
@@ -226,6 +229,35 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
     }
   };
 
+  const [transferProcess, setTransferProcess] = useState(null);
+  const [transferLoading, setTransferLoading] = useState(false);
+
+  const fetchTransferProcess = async () => {
+    if (!data?.id) return;
+    setTransferLoading(true);
+    try {
+      const q = query(
+        collection(db, "chuyen_sinh_hoat"),
+        where("dang_vien_id", "==", data.id)
+      );
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const processes = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        processes.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        setTransferProcess(processes[0]);
+      } else {
+        setTransferProcess(null);
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải tiến trình chuyển đi:", err);
+    } finally {
+      setTransferLoading(false);
+    }
+  };
+
   const findDocByMssv = async (colName, mStr) => {
     const mNum = Number(mStr);
     const q1 = query(collection(db, colName), where("mssv", "==", mStr));
@@ -319,6 +351,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         ngaykiqd: safeDayjs(data.ngaykiqd),
       });
       fetchHistoryLogs();
+      fetchTransferProcess();
     }
   }, [open, data, form]);
 
@@ -1096,6 +1129,24 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   </Card>
                 )}
 
+                <Card title={<><StarOutlined style={{marginRight: 8}}/> Đặc điểm & Ghi chú hồ sơ</>} bordered={false} style={cardStyle} headStyle={headStyle}>
+                  <Row gutter={16}>
+                    <Field name="uu_diem" label="Ưu điểm" span={24}>
+                      <Input.TextArea rows={3} placeholder="Điểm mạnh, ưu điểm của đảng viên..." />
+                    </Field>
+                  </Row>
+                  <Row gutter={16}>
+                    <Field name="khuyet_diem" label="Khuyết điểm" span={24}>
+                      <Input.TextArea rows={3} placeholder="Điểm hạn chế, khuyết điểm của đảng viên..." />
+                    </Field>
+                  </Row>
+                  <Row gutter={16}>
+                    <Field name="ghi_chu_ho_so" label="Ghi chú hồ sơ" span={24}>
+                      <Input.TextArea rows={2} placeholder="Ghi chú chung cho hồ sơ đảng viên..." />
+                    </Field>
+                  </Row>
+                </Card>
+
                 <Card title={<><PhoneOutlined style={{marginRight: 8}}/> Liên hệ</>} bordered={false} style={cardStyle} headStyle={headStyle}>
                   <Row gutter={16}>
                     <Field name="so_dien_thoai" label="SĐT" rules={[{ pattern: /^[0-9]+$/, message: 'SĐT không hợp lệ' }]} span={12}><Input size="large" /></Field>
@@ -1173,7 +1224,104 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                 </Card>
               </Form>
             </TabPane>
-            
+
+            {transferProcess && (
+              <TabPane tab="Tiến trình chuyển đi" key="transfer_progress" disabled={editMode}>
+                {transferLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <Spin tip="Đang tải tiến trình..." />
+                  </div>
+                ) : (
+                  <Card bordered={false} style={cardStyle} headStyle={headStyle} title={<><SwapOutlined style={{marginRight: 8}}/> Tiến trình chuyển sinh hoạt Đảng</>}>
+                    <div style={{ marginBottom: 20 }}>
+                      <p><strong>Loại hình chuyển:</strong> {
+                        transferProcess.loai_chuyen === 'chuyen_chinh_thuc' ? 'Chuyển ra đảng viên chính thức' :
+                        transferProcess.loai_chuyen === 'chuyen_du_bi' ? 'Chuyển ra đảng viên dự bị' :
+                        transferProcess.loai_chuyen === 'chuyen_tam_thoi' ? 'Chuyển sinh hoạt tạm thời' :
+                        transferProcess.loai_chuyen === 'chuyen_ra' ? 'Chuyển ra chính thức' : 'Chuyển sinh hoạt'
+                      }</p>
+                      {transferProcess.ngay_nop_ho_so && <p><strong>Ngày nộp hồ sơ chuyển đi:</strong> {dayjs(transferProcess.ngay_nop_ho_so).format('DD/MM/YYYY')}</p>}
+                      {transferProcess.noi_chuyen && <p><strong>Nơi chuyển đến:</strong> {transferProcess.noi_chuyen}</p>}
+                      {transferProcess.noi_chuyen_ra && <p><strong>Nơi chuyển đến:</strong> {transferProcess.noi_chuyen_ra}</p>}
+                      {transferProcess.ghi_chu && <p><strong>Ghi chú hồ sơ:</strong> {transferProcess.ghi_chu}</p>}
+                      <p><strong>Trạng thái:</strong> {transferProcess.status === 'completed' ? <span style={{color: '#52c41a', fontWeight: 'bold'}}>Đã hoàn tất</span> : <span style={{color: '#1890ff', fontWeight: 'bold'}}>Đang xử lý</span>}</p>
+                    </div>
+                    
+                    <Divider style={{ margin: '16px 0' }}>Lịch sử các bước</Divider>
+                    
+                    <Timeline mode="left" style={{ marginTop: 20 }}>
+                      <Timeline.Item color="green" dot={<CheckCircleOutlined style={{ fontSize: '16px' }} />}>
+                        <div>
+                          <strong>Bước 1: Nhận hồ sơ chuyển đi</strong>
+                          <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                            {transferProcess.ngay_nop_ho_so ? dayjs(transferProcess.ngay_nop_ho_so).format('DD/MM/YYYY') : dayjs(transferProcess.created_at).format('DD/MM/YYYY')}
+                          </div>
+                          {transferProcess.ghi_chu && <div style={{ marginTop: 4, fontStyle: 'italic' }}>Ghi chú: {transferProcess.ghi_chu}</div>}
+                        </div>
+                      </Timeline.Item>
+                      
+                      <Timeline.Item 
+                        color={transferProcess.buoc >= 2 ? "green" : "gray"}
+                        dot={transferProcess.buoc >= 2 ? <CheckCircleOutlined style={{ fontSize: '16px' }} /> : <ClockCircleOutlined style={{ fontSize: '16px' }} />}
+                      >
+                        <div>
+                          <strong>Bước 2: Gửi hồ sơ lên Văn phòng Đảng ủy Trường (VPĐU)</strong>
+                          {transferProcess.ngay_hoan_thien_gui_vpdu && (
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                              Ngày hoàn thành: {dayjs(transferProcess.ngay_hoan_thien_gui_vpdu).format('DD/MM/YYYY')}
+                            </div>
+                          )}
+                          {transferProcess.history && transferProcess.history.find(h => h.step === 2) && (
+                            <div style={{ marginTop: 4, fontStyle: 'italic', color: '#555' }}>
+                              Ghi chú chuyển bước: {transferProcess.history.find(h => h.step === 2).note}
+                              {transferProcess.history.find(h => h.step === 2).updated_by && <span style={{ fontSize: '11px', color: '#8c8c8c' }}> (bởi {transferProcess.history.find(h => h.step === 2).updated_by})</span>}
+                            </div>
+                          )}
+                        </div>
+                      </Timeline.Item>
+
+                      <Timeline.Item 
+                        color={transferProcess.buoc >= 3 ? "green" : "gray"}
+                        dot={transferProcess.buoc >= 3 ? <CheckCircleOutlined style={{ fontSize: '16px' }} /> : <ClockCircleOutlined style={{ fontSize: '16px' }} />}
+                      >
+                        <div>
+                          <strong>Bước 3: VPĐU gửi hồ sơ lên Đảng ủy Đại học Đà Nẵng (ĐHĐN)</strong>
+                          {transferProcess.ngay_gui_dhdn && (
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                              Ngày hoàn thành: {dayjs(transferProcess.ngay_gui_dhdn).format('DD/MM/YYYY')}
+                            </div>
+                          )}
+                          {transferProcess.history && transferProcess.history.find(h => h.step === 3) && (
+                            <div style={{ marginTop: 4, fontStyle: 'italic', color: '#555' }}>
+                              Ghi chú chuyển bước: {transferProcess.history.find(h => h.step === 3).note}
+                              {transferProcess.history.find(h => h.step === 3).updated_by && <span style={{ fontSize: '11px', color: '#8c8c8c' }}> (bởi {transferProcess.history.find(h => h.step === 3).updated_by})</span>}
+                            </div>
+                          )}
+                        </div>
+                      </Timeline.Item>
+
+                      {transferProcess.status === 'completed' && (
+                        <Timeline.Item color="green" dot={<CheckCircleOutlined style={{ fontSize: '16px' }} />}>
+                          <div>
+                            <strong>Bước 4: Hoàn tất thủ tục chuyển đi</strong>
+                            <div style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                              Ngày hoàn tất: {transferProcess.completed_at ? dayjs(transferProcess.completed_at).format('DD/MM/YYYY') : transferProcess.ngay_chuyen ? dayjs(transferProcess.ngay_chuyen).format('DD/MM/YYYY') : ''}
+                            </div>
+                            {transferProcess.history && transferProcess.history.find(h => h.step === 4) && (
+                              <div style={{ marginTop: 4, fontStyle: 'italic', color: '#555' }}>
+                                Ghi chú hoàn tất: {transferProcess.history.find(h => h.step === 4).note}
+                                {transferProcess.history.find(h => h.step === 4).updated_by && <span style={{ fontSize: '11px', color: '#8c8c8c' }}> (bởi {transferProcess.history.find(h => h.step === 4).updated_by})</span>}
+                              </div>
+                            )}
+                          </div>
+                        </Timeline.Item>
+                      )}
+                    </Timeline>
+                  </Card>
+                )}
+              </TabPane>
+            )}
+
             <TabPane tab="Lịch sử cập nhật" key="history" disabled={editMode}>
               {historyLoading && historyLogs.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>

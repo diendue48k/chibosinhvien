@@ -339,14 +339,14 @@ const DocumentGenerator = () => {
   useEffect(() => {
     if (selectedMember) {
       // Calculate defaults based on profile
-      const defaultUuDiem = 
+      const defaultUuDiem = selectedMember.uu_diem || 
         "- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.\n" +
         "- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.\n" +
         "- Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.\n" +
         "- Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.\n" +
         "- Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.";
 
-      const defaultKhuyetDiem = "Không có khuyết điểm gì lớn";
+      const defaultKhuyetDiem = selectedMember.khuyet_diem || "Không có khuyết điểm gì lớn";
 
       form.setFieldsValue({
         ho_ten: selectedMember.ho_ten,
@@ -446,16 +446,30 @@ const DocumentGenerator = () => {
   const getFormattedValues = async (docType) => {
     const fields = getFieldsToValidate(docType);
     await form.validateFields(fields);
-    const values = form.getFieldsValue();
+    const allValues = form.getFieldsValue(true);
+    
+    const defaultUuDiem = selectedMember?.uu_diem || 
+      "- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.\n" +
+      "- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.\n" +
+      "- Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.\n" +
+      "- Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.\n" +
+      "- Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.";
+
+    const defaultKhuyetDiem = selectedMember?.khuyet_diem || "Không có khuyết điểm gì lớn";
+    const defaultBienPhap = selectedMember?.bien_phap_khac_phuc || "";
+
     return {
-      ...values,
-      ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : '',
-      ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : '',
-      ngay_ky: values.ngay_ky ? values.ngay_ky.format('YYYY-MM-DD') : '',
-      ngay_hop_lop: values.ngay_hop_lop ? values.ngay_hop_lop.format('YYYY-MM-DD') : '',
-      ngay_hop_chi_doan: values.ngay_hop_chi_doan ? values.ngay_hop_chi_doan.format('YYYY-MM-DD') : '',
-      ngay_hop_lcd: values.ngay_hop_lcd ? values.ngay_hop_lcd.format('YYYY-MM-DD') : '',
-      ngay_hop_doan_truong: values.ngay_hop_doan_truong ? values.ngay_hop_doan_truong.format('YYYY-MM-DD') : ''
+      ...allValues,
+      uu_diem: allValues.uu_diem !== undefined && allValues.uu_diem !== null ? allValues.uu_diem : defaultUuDiem,
+      khuyet_diem: allValues.khuyet_diem !== undefined && allValues.khuyet_diem !== null ? allValues.khuyet_diem : defaultKhuyetDiem,
+      bien_phap_khac_phuc: allValues.bien_phap_khac_phuc !== undefined && allValues.bien_phap_khac_phuc !== null ? allValues.bien_phap_khac_phuc : defaultBienPhap,
+      ngay_sinh: allValues.ngay_sinh ? allValues.ngay_sinh.format('YYYY-MM-DD') : '',
+      ngay_vao_dang: allValues.ngay_vao_dang ? allValues.ngay_vao_dang.format('YYYY-MM-DD') : '',
+      ngay_ky: allValues.ngay_ky ? allValues.ngay_ky.format('YYYY-MM-DD') : '',
+      ngay_hop_lop: allValues.ngay_hop_lop ? allValues.ngay_hop_lop.format('YYYY-MM-DD') : '',
+      ngay_hop_chi_doan: allValues.ngay_hop_chi_doan ? allValues.ngay_hop_chi_doan.format('YYYY-MM-DD') : '',
+      ngay_hop_lcd: allValues.ngay_hop_lcd ? allValues.ngay_hop_lcd.format('YYYY-MM-DD') : '',
+      ngay_hop_doan_truong: allValues.ngay_hop_doan_truong ? allValues.ngay_hop_doan_truong.format('YYYY-MM-DD') : ''
     };
   };
 

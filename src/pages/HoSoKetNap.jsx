@@ -62,6 +62,7 @@ const HoSoKetNap = () => {
   const [searchText, setSearchText] = useState("");
   const [filterKhoa, setFilterKhoa] = useState(null);
   const [filterTrangThai, setFilterTrangThai] = useState(null);
+  const [filterIntake, setFilterIntake] = useState(null);
 
   // Import Excel Modal states
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
@@ -761,15 +762,31 @@ const HoSoKetNap = () => {
         matchTrangThai = item.trangthai === filterTrangThai;
       }
 
+      if (filterIntake) {
+        const lop = item.lop || "";
+        const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+        const intake = match ? match[0] : null;
+        if (intake !== filterIntake) return false;
+      }
+
       return matchSearch && matchKhoa && matchTrangThai;
     });
 
     result.sort((a, b) => (b.trangthai || 1) - (a.trangthai || 1));
     return result;
-  }, [data, searchText, filterKhoa, filterTrangThai]);
+  }, [data, searchText, filterKhoa, filterTrangThai, filterIntake]);
 
   const uniqueKhoa = useMemo(() => {
     return [...new Set(data.map(d => d.khoa).filter(Boolean))].sort();
+  }, [data]);
+
+  const uniqueIntakes = useMemo(() => {
+    const intakes = data.map(item => {
+      const lop = item.lop || "";
+      const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+      return match ? match[0] : null;
+    }).filter(Boolean);
+    return [...new Set(intakes)].sort();
   }, [data]);
 
   const handleSearch = debounce((e) => {
@@ -780,6 +797,7 @@ const HoSoKetNap = () => {
     setSearchText("");
     setFilterKhoa(null);
     setFilterTrangThai(null);
+    setFilterIntake(null);
   };
 
   const formatDate = (dateString) => {
@@ -1333,28 +1351,28 @@ const HoSoKetNap = () => {
 
     const ws = XLSX.utils.json_to_sheet(dataToExport.map(item => ({
       "MSSV": item.mssv,
-      "Họ và tên": item.hoten,
+      "Họ và tên": item.hoten || item.ho_ten,
       "Lớp": item.lop,
       "Khoa": item.khoa,
-      "Ngày sinh": formatDate(item.ngaysinh),
-      "Giới tính": item.gioitinh,
-      "Quê quán": item.quequan,
+      "Ngày sinh": formatDate(item.ngaysinh || item.ngay_sinh),
+      "Giới tính": item.gioitinh || item.gioi_tinh,
+      "Quê quán": item.quequan || item.que_quan || [item.chi_tiet_qq_cu, item.xa_phuong_qq || item.xa_phuong_qq_cu, item.tinh_tp_qq || item.tinh_tp_qq_cu].filter(Boolean).join(', '),
       "CCCD": item.cccd,
-      "SĐT": item.sdt,
-      "Email": item.email,
-      "Facebook": item.link_fb,
+      "SĐT": item.sdt || item.so_dien_thoai,
+      "Email": item.email || item.email_sv,
+      "Facebook": item.link_fb || item.facebook,
       "Nguồn dữ liệu": item.nguon_du_lieu === 'auto' ? 'Tự động' : 'Nhập tay',
       "Đảng viên hướng dẫn": item.dangvienhuongdan,
-      "Ngày nhận hồ sơ": formatDate(item.ngaynhanhoso),
+      "Ngày nhận hồ sơ": formatDate(item.ngaynhanhoso || item.ngay_nhan_ho_so),
       "Hạn nộp file mềm": formatDate(item.deadline_file_mem),
       "Hạn viết sổ": formatDate(item.deadline_viet_so),
       "Hạn hoàn thành giấy tờ khác": formatDate(item.deadline_hoanthanhgiayto),
-      "Ngày nộp HS lên VPĐU": formatDate(item.ngay_nop_vpdu),
-      "Ngày nộp HS lên ĐHĐN": formatDate(item.ngay_nop_dhdn),
-      "Trạng thái quy trình (Bước)": item.trangthai,
-      "Ngày vào Đảng": formatDate(item.ngayvaodang),
-      "Số quyết định": item.soqd,
-      "Ngày ký quyết định": formatDate(item.ngaykiqd)
+      "Ngày nộp HS lên VPĐU": formatDate(item.ngay_nop_vpdu || item.ngay_nop_ho_so_vpdu),
+      "Ngày nộp HS lên ĐHĐN": formatDate(item.ngay_nop_dhdn || item.ngay_nop_ho_so_dhdn),
+      "Trạng thái quy trình (Bước)": item.trangthai || item.ho_so_status || 1,
+      "Ngày vào Đảng": formatDate(item.ngayvaodang || item.ngay_vao_dang),
+      "Số quyết định": item.soqd || item.so_qd,
+      "Ngày ký quyết định": formatDate(item.ngaykiqd || item.ngay_ky_qd)
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "HoSoKetNap");
@@ -1535,6 +1553,19 @@ const HoSoKetNap = () => {
           />
         </div>
         
+        <div style={{ flex: 1, minWidth: '120px' }}>
+          <Select 
+            placeholder="Chọn Khóa" 
+            style={{ width: '100%' }} 
+            allowClear 
+            value={filterIntake} 
+            onChange={setFilterIntake}
+            dropdownStyle={{ borderRadius: '6px' }}
+          >
+            {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
+          </Select>
+        </div>
+
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select 
             showSearch
@@ -1566,9 +1597,7 @@ const HoSoKetNap = () => {
           </Select>
         </div>
 
-
-
-        {(filterKhoa || filterTrangThai || searchText) && (
+        {(filterKhoa || filterTrangThai || searchText || filterIntake) && (
           <div style={{ flexShrink: 0 }}>
             <Button 
               type="text" 

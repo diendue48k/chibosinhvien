@@ -12,7 +12,7 @@ import {
   EnvironmentOutlined, DownloadOutlined, EyeOutlined,
   InboxOutlined, FileDoneOutlined, BellOutlined,
   MailOutlined, AppstoreOutlined, UnorderedListOutlined,
-  FileExcelOutlined
+  FileExcelOutlined, PlusOutlined
 } from '@ant-design/icons';
 import { collection, getDocs, addDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -403,6 +403,12 @@ const DangKy213 = () => {
   const [exportingId, setExportingId] = useState(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [bulkExporting, setBulkExporting] = useState(false);
+
+  // === ADMIN ADD 213 STATE ===
+  const [adminAddForm] = Form.useForm();
+  const [isAdminAddModalVisible, setIsAdminAddModalVisible] = useState(false);
+  const [adminAddSelectedCity, setAdminAddSelectedCity] = useState('Đà Nẵng');
+  const [submittingAdminAdd, setSubmittingAdminAdd] = useState(false);
 
   // === EMAIL PREVIEW STATE ===
   const [emailPreviewVisible, setEmailPreviewVisible] = useState(false);
@@ -1205,6 +1211,70 @@ const DangKy213 = () => {
     const fileName = `DangKy213_${dayjs().format('DDMMYYYY_HHmm')}.xlsx`;
     XLSX.writeFile(wb, fileName);
     message.success(`Đã xuất ${dataToExport.length} bản ghi ra file Excel!`);
+  };
+
+  // ================================================================
+  // ADMIN: KHAI BÁO HỘ 213 (TẠO ĐĂNG KÝ MỚI)
+  // ================================================================
+
+  const handleOpenAdminAddModal = () => {
+    adminAddForm.resetFields();
+    setAdminAddSelectedCity('Đà Nẵng');
+    setIsAdminAddModalVisible(true);
+  };
+
+  const handleAdminAddSubmit = async () => {
+    try {
+      const values = await adminAddForm.validateFields();
+      setSubmittingAdminAdd(true);
+      
+      const member = allMembers.find(m => m.id === values.user_id);
+      if (!member) {
+        message.error("Đảng viên không tồn tại trong danh sách!");
+        return;
+      }
+
+      const newRecord = {
+        user_id: values.user_id,
+        loai_dang_ky: values.loai_dang_ky,
+        so_nha: values.so_nha,
+        ten_duong: values.ten_duong,
+        phuong: values.phuong,
+        thanh_pho: values.thanh_pho,
+        chi_bo_noi_cu_tru: values.chi_bo_noi_cu_tru,
+        trang_thai: values.trang_thai || 'da_nhan',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      await addDoc(collection(db, "dangky_213"), newRecord);
+      
+      // Nếu trạng thái trực tiếp chọn là 'da_lam' hoặc 'hoan_thanh' → cập nhật địa chỉ vào hồ sơ
+      if (values.trang_thai === 'da_lam' || values.trang_thai === 'hoan_thanh') {
+        const fullAddress = `${values.so_nha} ${values.ten_duong}, ${values.phuong}, ${values.thanh_pho}`;
+        const updateData = { updated_at: new Date().toISOString() };
+        if (values.loai_dang_ky === 'thuong_tru') {
+          updateData.chi_tiet_dc = fullAddress;
+          updateData.xa_phuong_tt = values.phuong;
+          updateData.tinh_tp_tt = values.thanh_pho;
+        } else if (values.loai_dang_ky === 'tam_tru') {
+          updateData.dia_chi_tam_tru = fullAddress;
+        }
+        await updateDoc(doc(db, "dang_vien", values.user_id), updateData);
+      }
+
+      message.success('Tạo đăng ký 213 cho ' + member.ho_ten + ' thành công!');
+      setIsAdminAddModalVisible(false);
+      await fetchRegistrations();
+      await fetchAllMembers();
+    } catch (e) {
+      console.error(e);
+      if (e.name !== 'ValidationError') {
+        message.error('Lỗi khi tạo đăng ký 213: ' + e.message);
+      }
+    } finally {
+      setSubmittingAdminAdd(false);
+    }
   };
 
   // ================================================================
@@ -2036,6 +2106,14 @@ const DangKy213 = () => {
             <Col>
               <Space>
                 <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={handleOpenAdminAddModal}
+                  style={{ borderRadius: 8, fontWeight: 600, backgroundColor: '#c62828', borderColor: '#c62828' }}
+                >
+                  Tạo đăng ký mới
+                </Button>
+                <Button
                   icon={<FileExcelOutlined />}
                   onClick={handleExportExcel}
                   style={{ borderRadius: 8, fontWeight: 600, color: '#52c41a', borderColor: '#52c41a' }}
@@ -2773,6 +2851,128 @@ const DangKy213 = () => {
             </Descriptions.Item>
           </Descriptions>
         )}
+      </Modal>
+
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
+            <span style={{ fontWeight: 800, fontSize: '18px', color: '#1a1a1a' }}>
+              Khai Báo Hộ Quy Định 213 (Đăng ký hộ)
+            </span>
+          </div>
+        }
+        open={isAdminAddModalVisible}
+        onOk={handleAdminAddSubmit}
+        onCancel={() => setIsAdminAddModalVisible(false)}
+        okText="LƯU ĐĂNG KÝ"
+        cancelText="HỦY BỎ"
+        confirmLoading={submittingAdminAdd}
+        okButtonProps={{ style: { backgroundColor: '#c62828', borderColor: '#c62828', height: 40, fontWeight: 700, borderRadius: '6px' } }}
+        cancelButtonProps={{ style: { height: 40, borderRadius: '6px' } }}
+        width={700}
+      >
+        <Form
+          form={adminAddForm}
+          layout="vertical"
+          initialValues={{ thanh_pho: 'Đà Nẵng', loai_dang_ky: 'thuong_tru', trang_thai: 'da_nhan' }}
+          onValuesChange={(changedValues) => {
+            if (changedValues.thanh_pho) {
+              setAdminAddSelectedCity(changedValues.thanh_pho);
+              adminAddForm.setFieldsValue({ phuong: undefined });
+            }
+          }}
+        >
+          <Form.Item
+            name="user_id"
+            label="Chọn Đảng viên cần khai báo"
+            rules={[{ required: true, message: 'Vui lòng chọn Đảng viên' }]}
+          >
+            <Select
+              showSearch
+              placeholder="Nhập MSSV, Họ tên để tìm kiếm..."
+              optionFilterProp="children"
+              filterOption={(input, option) => {
+                const searchStr = option.searchLabel || '';
+                return searchStr.toLowerCase().includes(input.toLowerCase());
+              }}
+              style={{ width: '100%' }}
+            >
+              {allMembers.map(m => {
+                const label = `${m.ho_ten} - ${m.mssv || 'N/A'} (${m.lop || 'N/A'})`;
+                return (
+                  <Option key={m.id} value={m.id} searchLabel={label}>
+                    {label}
+                  </Option>
+                );
+              })}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="loai_dang_ky"
+            label="Loại đăng ký"
+            rules={[{ required: true }]}
+          >
+            <Radio.Group style={{ display: 'flex', width: '100%', gap: '10px' }}>
+              <Radio.Button value="thuong_tru" style={{ flex: 1, textAlign: 'center', height: 40, lineHeight: '40px', borderRadius: 6, fontWeight: 600 }}>
+                <HomeOutlined style={{ marginRight: 6 }} /> Thường trú
+              </Radio.Button>
+              <Radio.Button value="tam_tru" style={{ flex: 1, textAlign: 'center', height: 40, lineHeight: '40px', borderRadius: 6, fontWeight: 600 }}>
+                <EnvironmentOutlined style={{ marginRight: 6 }} /> Tạm trú
+              </Radio.Button>
+            </Radio.Group>
+          </Form.Item>
+
+          <Divider orientation="left" style={{ color: '#c62828', fontWeight: 700, fontSize: 13, margin: '12px 0' }}>
+            Địa chỉ cư trú
+          </Divider>
+
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="so_nha" label="Số nhà" rules={[{ required: true, message: 'Vui lòng nhập số nhà' }]}>
+                <Input placeholder="VD: 123, 45A, K20/15..." />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="ten_duong" label="Tên đường" rules={[{ required: true, message: 'Vui lòng nhập tên đường' }]}>
+                <Input placeholder="VD: Nguyễn Lương Bằng, Tôn Đức Thắng..." />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="thanh_pho" label="Tỉnh / Thành phố" rules={[{ required: true, message: 'Vui lòng chọn tỉnh / thành phố' }]}>
+                <Select
+                  showSearch
+                  placeholder="Chọn tỉnh / thành phố"
+                  filterOption={(input, option) => option.children?.toString().toLowerCase().includes(input.toLowerCase())}
+                >
+                  {PROVINCES.map(prov => (<Option key={prov} value={prov}>{prov}</Option>))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="phuong" label="Phường / Xã" rules={[{ required: true, message: 'Vui lòng chọn phường / xã' }]}>
+                <AddressWardSelect province={adminAddSelectedCity} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item name="chi_bo_noi_cu_tru" label="Chi bộ nơi cư trú" rules={[{ required: true, message: 'Vui lòng nhập chi bộ nơi cư trú' }]}>
+            <Input placeholder="Nhập tên chi bộ nơi cư trú..." />
+          </Form.Item>
+
+          <Form.Item name="trang_thai" label="Trạng thái ban đầu" rules={[{ required: true }]}>
+            <Select placeholder="Chọn trạng thái ban đầu">
+              <Option value="da_nhan">Đã nhận phiếu đăng ký (Chờ duyệt)</Option>
+              <Option value="da_lam">Đã làm giấy giới thiệu</Option>
+              <Option value="cho_den_nhan">Đã gửi thông báo (Đảng viên chờ đến nhận)</Option>
+              <Option value="hoan_thanh">Đã hoàn thành (Đã nộp phiếu phản hồi về chi bộ)</Option>
+            </Select>
+          </Form.Item>
+        </Form>
       </Modal>
 
       <DetailModal

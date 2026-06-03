@@ -258,6 +258,7 @@ const HoSoDaKetNap = () => {
   const [searchText, setSearchText] = useState("");
   const [filterKhoa, setFilterKhoa] = useState(null);
   const [filterNam, setFilterNam] = useState(null);
+  const [filterIntake, setFilterIntake] = useState(null);
 
   // Import Excel Modal states
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
@@ -890,15 +891,31 @@ const HoSoDaKetNap = () => {
         matchNam = itemYear === filterNam;
       }
 
+      if (filterIntake) {
+        const lop = item.lop || "";
+        const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+        const intake = match ? match[0] : null;
+        if (intake !== filterIntake) return false;
+      }
+
       return matchSearch && matchKhoa && matchNam;
     });
 
     result.sort((a, b) => (b.ngayvaodang || '').localeCompare(a.ngayvaodang || ''));
     return result;
-  }, [data, searchText, filterKhoa, filterNam]);
+  }, [data, searchText, filterKhoa, filterNam, filterIntake]);
 
   const uniqueKhoa = useMemo(() => {
     return [...new Set(data.map(d => d.khoa).filter(Boolean))].sort();
+  }, [data]);
+
+  const uniqueIntakes = useMemo(() => {
+    const intakes = data.map(item => {
+      const lop = item.lop || "";
+      const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
+      return match ? match[0] : null;
+    }).filter(Boolean);
+    return [...new Set(intakes)].sort();
   }, [data]);
 
   const handleSearch = debounce((e) => {
@@ -909,6 +926,7 @@ const HoSoDaKetNap = () => {
     setSearchText("");
     setFilterKhoa(null);
     setFilterNam(null);
+    setFilterIntake(null);
   };
 
   const formatDate = (dateString) => {
@@ -1394,20 +1412,27 @@ const HoSoDaKetNap = () => {
     }
 
     const mappedData = dataToExport.map(item => {
-      // Normalize ho_so_ket_nap fields to standard dang_vien fields
+      // Normalize ho_so_ket_nap fields to standard dang_vien fields with robust fallbacks
       const normItem = {
         ...item,
-        ho_ten: item.hoten || '',
-        so_dien_thoai: item.sdt || '',
-        ngay_sinh: item.ngaysinh || null,
-        que_quan: item.quequan || '',
-        ngay_vao_dang: item.ngayvaodang || null,
-        dvhd: item.dangvienhuongdan || '',
-        so_the_dang: item.soqd || '',
-        ngay_chinh_thuc: item.ngaykiqd || null,
-        dang_vien_du_bi: true,
-        trang_thai: 'dang_sinh_hoat',
-        facebook: item.link_fb || '',
+        ho_ten: item.ho_ten || item.hoten || '',
+        so_dien_thoai: item.so_dien_thoai || item.sdt || '',
+        ngay_sinh: item.ngay_sinh || item.ngaysinh || null,
+        que_quan: item.que_quan || item.quequan || '',
+        ngay_vao_dang: item.ngay_vao_dang || item.ngayvaodang || null,
+        dvhd: item.dvhd || item.dangvienhuongdan || '',
+        so_the_dang: item.so_the_dang || item.soqd || '',
+        ngay_chinh_thuc: item.ngay_chinh_thuc || item.ngaykiqd || null,
+        dang_vien_du_bi: item.dang_vien_du_bi !== undefined ? item.dang_vien_du_bi : true,
+        trang_thai: item.trang_thai || 'dang_sinh_hoat',
+        facebook: item.facebook || item.link_fb || '',
+        email: item.email || item.email_sv || '',
+        email_sv: item.email_sv || item.email || '',
+        tinh_tp_qq: item.tinh_tp_qq || item.tinh_tp_qq_cu || '',
+        xa_phuong_qq: item.xa_phuong_qq || item.xa_phuong_qq_cu || '',
+        tinh_tp_tt: item.tinh_tp_tt || item.tinh_tp_tt_cu || '',
+        xa_phuong_tt: item.xa_phuong_tt || item.xa_phuong_tt_cu || '',
+        chi_tiet_dc: item.chi_tiet_dc || item.chi_tiet_tt_cu || '',
       };
 
       const row = {};
@@ -1624,6 +1649,19 @@ const HoSoDaKetNap = () => {
           />
         </div>
         
+        <div style={{ flex: 1, minWidth: '120px' }}>
+          <Select 
+            placeholder="Chọn Khóa" 
+            style={{ width: '100%' }} 
+            allowClear 
+            value={filterIntake} 
+            onChange={setFilterIntake}
+            dropdownStyle={{ borderRadius: '6px' }}
+          >
+            {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
+          </Select>
+        </div>
+
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select 
             showSearch
@@ -1655,7 +1693,7 @@ const HoSoDaKetNap = () => {
           </Select>
         </div>
 
-        {(filterKhoa || filterNam || searchText) && (
+        {(filterKhoa || filterNam || searchText || filterIntake) && (
           <div style={{ flexShrink: 0 }}>
             <Button 
               type="text" 
@@ -2751,7 +2789,7 @@ const HoSoDaKetNap = () => {
 
           <Divider style={{ margin: '16px 0' }} />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626' }}>
               2. Chọn các Trường Thông tin cần xuất:
             </div>

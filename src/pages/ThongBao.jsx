@@ -157,7 +157,7 @@ const ThongBao = () => {
       <!-- Header Banner -->
       <div class="email-header" style="background-color: #b71c1c; background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%); padding: 24px; text-align: center; border-bottom: 4px solid #fbc02d;">
         <p style="color: #ffffff; margin: 0 0 8px 0; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">Chi bộ Sinh viên - Đảng bộ Trường Đại học Kinh tế, ĐHĐN</p>
-        <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">THÔNG BÀO</h2>
+        <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">THÔNG BÁO</h2>
       </div>
   
       <!-- Content Body -->
@@ -406,7 +406,7 @@ const ThongBao = () => {
       const kw = filterKeyword.toLowerCase();
       const matchKeyword = !kw || n.title?.toLowerCase().includes(kw) || n.created_by?.toLowerCase().includes(kw);
       const matchType = !filterType || n.recipient_type === filterType;
-      
+
       let matchDate = true;
       if (filterDateRange && filterDateRange[0] && filterDateRange[1]) {
         const start = filterDateRange[0].startOf('day');
@@ -414,7 +414,7 @@ const ThongBao = () => {
         const createdAtVal = dayjs(n.created_at);
         matchDate = createdAtVal.isAfter(start) && createdAtVal.isBefore(end);
       }
-      
+
       return matchKeyword && matchType && matchDate;
     });
   }, [notifications, filterKeyword, filterType, filterDateRange]);
@@ -423,15 +423,15 @@ const ThongBao = () => {
   const displayNotifications = useMemo(() => {
     const myId = currentUser?.id;
     const myMssv = currentUser?.mssv || currentUser?.username;
-    
+
     const baseList = isDangVien ? notifications : filteredNotifications;
-    
+
     if (!isDangVien) return baseList;
-    
+
     return baseList.filter(n => {
       // 1. All-members notifications
       if (n.recipient_type === 'tat_ca') return true;
-      
+
       // 2. Personal/Targeted notifications containing current user
       if (n.recipients && Array.isArray(n.recipients)) {
         return n.recipients.some(r => r.id === myId || r.mssv === myMssv);
@@ -617,7 +617,7 @@ const ThongBao = () => {
     try {
       const { title, content, image_url, created_by, deadline, recipients, sender_email, sender_phone, attachments } = sendEmailTarget;
       const result = await doSendEmail(title, content, image_url, created_by, deadline, recipients || [], sender_email, sender_phone, attachments || []);
-      
+
       // Update Firestore document with new email counts
       await updateDoc(doc(db, 'notifications', sendEmailTarget.id), {
         send_email: true,
@@ -625,7 +625,7 @@ const ThongBao = () => {
         email_fail_count: result.failed,
         updated_at: new Date().toISOString()
       });
-      
+
       message.success(`✓ Đã gửi email đến ${result.sent} Đảng viên!`, 5);
       setIsSendEmailModalVisible(false); setSendEmailTarget(null);
       fetchNotifications();
@@ -851,12 +851,12 @@ const ThongBao = () => {
               </Select>
             </Col>
             <Col>
-              <DatePicker.RangePicker 
+              <DatePicker.RangePicker
                 placeholder={['Từ ngày', 'Đến ngày']}
                 value={filterDateRange}
                 onChange={val => setFilterDateRange(val)}
                 format="DD/MM/YYYY"
-                style={{ borderRadius: 8, width: 240 }} 
+                style={{ borderRadius: 8, width: 240 }}
                 allowClear
               />
             </Col>
@@ -877,13 +877,13 @@ const ThongBao = () => {
             Hiển thị <strong>{filteredNotifications.length}</strong> / {notifications.length} thông báo
           </div>
 
-          <Table 
-            columns={tableColumns} 
-            dataSource={filteredNotifications} 
+          <Table
+            columns={tableColumns}
+            dataSource={filteredNotifications}
             loading={loading}
-            rowKey="id" 
-            pagination={{ pageSize: 8, size: 'small' }} 
-            size="middle" 
+            rowKey="id"
+            pagination={{ pageSize: 8, size: 'small' }}
+            size="middle"
             onRow={(record) => ({
               onClick: (event) => {
                 // Skip if clicked on any interactive elements (buttons, menus, popconfirm)
@@ -1087,20 +1087,20 @@ const ThongBao = () => {
       ══════════════════════════════════════════════════════════════════════ */}
       <Modal open={isDetailVisible} onCancel={() => setIsDetailVisible(false)}
         footer={!isDangVien ? [
-          <Button 
-            key="delete" 
-            danger 
-            icon={<DeleteOutlined />} 
+          <Button
+            key="delete"
+            danger
+            icon={<DeleteOutlined />}
             onClick={() => confirmDelete(detailRecord)}
             style={{ float: 'left' }}
           >
             Xóa thông báo
           </Button>,
-          <Button 
-            key="send" 
-            type="primary" 
-            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', fontWeight: 700 }} 
-            icon={<MailOutlined />} 
+          <Button
+            key="send"
+            type="primary"
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', fontWeight: 700 }}
+            icon={<MailOutlined />}
             onClick={() => handleSendEmailFromDetail(detailRecord)}
           >
             Gửi Email

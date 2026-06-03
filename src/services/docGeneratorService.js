@@ -3,24 +3,19 @@ import dayjs from 'dayjs';
 import { DOMParser, XMLSerializer } from '@xmldom/xmldom';
 import { getTemplateUrl } from './templateStorageService';
 
-// ============================================================
-// HELPER: Split Date
-// ============================================================
-const splitDate = (dateStr) => {
-  if (!dateStr) return { d: '', m: '', y: dayjs().format('YYYY') };
-  const dObj = dayjs(dateStr);
-  if (!dObj.isValid()) return { d: '', m: '', y: dayjs().format('YYYY') };
-  return {
-    d: dObj.format('DD'),
-    m: dObj.format('MM'),
-    y: dObj.format('YYYY')
-  };
+
+
+const formatVietnameseDate = (dStr) => {
+  if (!dStr) return 'ngày      tháng      năm ......';
+  const dObj = dayjs(dStr);
+  if (!dObj.isValid()) return 'ngày      tháng      năm ......';
+  return `${dObj.format('DD')} tháng ${dObj.format('MM')} năm ${dObj.format('YYYY')}`;
 };
 
 // ============================================================
 // HELPER: Prepare Template Data
 // ============================================================
-const prepareTemplateData = (data) => {
+const prepareTemplateData = (data, docType) => {
   // Safe helper to extract parts of critical dates (like birthday, party admission)
   const getD = (dStr) => dStr ? dayjs(dStr).format('DD') : '';
   const getM = (dStr) => dStr ? dayjs(dStr).format('MM') : '';
@@ -36,11 +31,18 @@ const prepareTemplateData = (data) => {
     return `ngày ${dObj.format('DD')} tháng ${dObj.format('MM')} năm ${dObj.format('YYYY')}`;
   };
 
+  const isTransfer = docType && docType.startsWith('transfer_');
+  const ngayVaoDangFormatted = isTransfer
+    ? (data.ngay_vao_dang ? dayjs(data.ngay_vao_dang).format('DD/MM/YYYY') : '....................')
+    : formatFullDate(data.ngay_vao_dang);
+
   return {
     ...data,
     khoa_caps: (data.khoa || '').toUpperCase(),
     dang_uy_truong: 'Trường Đại học Kinh tế',
-    tinh_tp: 'Đà Nẵng',
+    tinh_tp: data.tinh_tp || 'Đà Nẵng',
+    chi_bo_sinh_hoat: data.chi_bo_sinh_hoat || 'Sinh viên',
+
     
     // Critical personal dates - strictly populated or shown as dots
     ngay_sinh_d: getD(data.ngay_sinh),
@@ -50,7 +52,7 @@ const prepareTemplateData = (data) => {
     ngay_vao_dang_d: getD(data.ngay_vao_dang),
     ngay_vao_dang_m: getM(data.ngay_vao_dang),
     ngay_vao_dang_y: getY(data.ngay_vao_dang, false),
-    ngay_vao_dang_formatted: formatFullDate(data.ngay_vao_dang),
+    ngay_vao_dang_formatted: ngayVaoDangFormatted,
     
     // Signature Date - strictly dots for all parts if empty
     ngay_ky_d: data.ngay_ky ? dayjs(data.ngay_ky).format('DD') : '',
@@ -100,6 +102,22 @@ const prepareTemplateData = (data) => {
     // Đoàn Trường vote rate (always 100% by default)
     ti_le_doan_truong: 100,
     khong_tan_thanh_doan_truong: data.khong_tan_thanh_doan_truong || 0,
+
+    // Transfer fields
+    ngay_sinh_formatted: data.ngay_sinh ? dayjs(data.ngay_sinh).format('DD/MM/YYYY') : '....................',
+    ngay_chinh_thuc_formatted: (data.dang_vien_du_bi === true || data.loai_dang_vien === 'Dự bị' || data.loai_dang_vien === 'dubi')
+      ? '....................'
+      : (data.ngay_chinh_thuc ? dayjs(data.ngay_chinh_thuc).format('DD/MM/YYYY') : '....................'),
+    nam_sinh: data.ngay_sinh ? dayjs(data.ngay_sinh).format('YYYY') : '........',
+    ngay_vao_dang_formatted_vietnamese: data.ngay_vao_dang ? formatVietnameseDate(data.ngay_vao_dang) : 'ngày      tháng      năm ......',
+    ngay_chinh_thuc_formatted_vietnamese: data.ngay_chinh_thuc ? formatVietnameseDate(data.ngay_chinh_thuc) : 'ngày      tháng      năm ......',
+    
+    // Guider details
+    dvhd: data.dvhd || '',
+    dvhd_ngay_sinh_formatted: data.dvhd_ngay_sinh ? dayjs(data.dvhd_ngay_sinh).format('DD/MM/YYYY') : '....................',
+    dvhd_ngay_vao_dang: data.dvhd_ngay_vao_dang ? dayjs(data.dvhd_ngay_vao_dang).format('DD/MM/YYYY') : '....................',
+    dvhd_ngay_chinh_thuc: data.dvhd_ngay_chinh_thuc ? dayjs(data.dvhd_ngay_chinh_thuc).format('DD/MM/YYYY') : '....................',
+    ngay_phan_cong: data.ngay_phan_cong ? formatVietnameseDate(data.ngay_phan_cong) : 'ngày      tháng      năm ......',
   };
 };
 
@@ -109,6 +127,22 @@ const prepareTemplateData = (data) => {
 const mergeXMLWithDOM = (xmlString, data) => {
   const parser = new DOMParser();
   const doc = parser.parseFromString(xmlString, 'text/xml');
+  
+  // Pre-process paragraphs to de-split placeholders (e.g. {{key}})
+  const paragraphs = Array.from(doc.getElementsByTagName('w:p'));
+  for (const paragraph of paragraphs) {
+    const tNodes = Array.from(paragraph.getElementsByTagName('w:t'));
+    const fullText = tNodes.map(t => t.textContent || '').join('');
+    const placeholderRegex = /\{\{([^}]+)\}\}/g;
+    let match;
+    const matches = [];
+    while ((match = placeholderRegex.exec(fullText)) !== null) {
+      matches.push(match[0]);
+    }
+    for (const placeholder of matches) {
+      replaceTextInParagraph(paragraph, placeholder, placeholder);
+    }
+  }
   
   // Find all <w:t> elements inside document.xml / headers / footers
   const textElements = Array.from(doc.getElementsByTagName('w:t'));
@@ -135,15 +169,30 @@ const mergeXMLWithDOM = (xmlString, data) => {
           }
           
           if (paragraph) {
+            // Keep a clean clone of the paragraph *before* we modify anything
+            const cleanParagraphClone = paragraph.cloneNode(true);
+            
+            const originalTNodes = Array.from(paragraph.getElementsByTagName('w:t'));
+            const textElemIndex = originalTNodes.indexOf(textElem);
+            
+            const partIndex = textContent.indexOf(`{{${key}}}`);
+            const prefix = partIndex !== -1 ? textContent.substring(0, partIndex) : '';
+            const suffix = partIndex !== -1 ? textContent.substring(partIndex + `{{${key}}}`.length) : '';
+
             // Line 1: Replace placeholder directly in the existing <w:t> node
             // This preserves any prefix (e.g., "Ưu điểm: ") and keeps it on the same line
-            textElem.textContent = textContent.replace(`{{${key}}}`, lines[0]);
+            textElem.textContent = prefix + lines[0];
             
-            // Lines 2+: Clone the parent paragraph (<w:p>) to ensure ALL fonts (Times New Roman),
+            // Clear subsequent text elements in the original paragraph to prevent suffix duplication
+            for (let j = textElemIndex + 1; j < originalTNodes.length; j++) {
+              originalTNodes[j].textContent = '';
+            }
+            
+            // Lines 2+: Clone the clean parent paragraph (<w:p>) to ensure ALL fonts (Times New Roman),
             // margin spacing, indentation, and alignment attributes are inherited exactly.
             let currentParagraph = paragraph;
             for (let i = 1; i < lines.length; i++) {
-              const clonedParagraph = paragraph.cloneNode(true);
+              const clonedParagraph = cleanParagraphClone.cloneNode(true);
               
               // Clean up paragraph properties of the cloned paragraph to ensure normal, non-bold text
               // We preserve all native indentation (w:ind) and paragraph spacing (w:spacing) so that
@@ -159,24 +208,28 @@ const mergeXMLWithDOM = (xmlString, data) => {
                 b.parentNode.removeChild(b);
               }
               
-              // 4. Set the text content for the cloned paragraph
+              // Find the target text node in the cloned paragraph by index
               const clonedTextElements = Array.from(clonedParagraph.getElementsByTagName('w:t'));
-              // Tìm node chứa placeholder gốc (paragraph gốc vẫn còn {{key}} khi clone)
-              const targetClonedText = clonedTextElements.find(t =>
-                t.textContent.includes(`{{${key}}}`)
-              ) || clonedTextElements.find(t => t.textContent.includes(lines[0]))
-                || clonedTextElements[clonedTextElements.length - 1];
+              const targetClonedText = textElemIndex !== -1 ? clonedTextElements[textElemIndex] : null;
               
               if (targetClonedText) {
-                // Thay thế placeholder hoặc nội dung dòng đầu bằng nội dung dòng i
-                targetClonedText.textContent = targetClonedText.textContent
-                  .replace(`{{${key}}}`, lines[i])
-                  .replace(lines[0], lines[i]);
+                // Clear all elements BEFORE the target to remove prefix duplication
+                for (let j = 0; j < textElemIndex; j++) {
+                  if (clonedTextElements[j]) {
+                    clonedTextElements[j].textContent = '';
+                  }
+                }
                 
-                // Clear all other text elements in the cloned paragraph to prevent prefix/suffix duplication
-                for (const t of clonedTextElements) {
-                  if (t !== targetClonedText) {
-                    t.textContent = '';
+                if (i === lines.length - 1) {
+                  // Last line: set content with suffix, and keep elements AFTER the target intact
+                  targetClonedText.textContent = lines[i] + suffix;
+                } else {
+                  // Intermediate lines: set content and clear elements AFTER the target to prevent suffix duplication
+                  targetClonedText.textContent = lines[i];
+                  for (let j = textElemIndex + 1; j < clonedTextElements.length; j++) {
+                    if (clonedTextElements[j]) {
+                      clonedTextElements[j].textContent = '';
+                    }
                   }
                 }
               }
@@ -238,7 +291,7 @@ const mergeXMLWithDOM = (xmlString, data) => {
 };
 
 const replaceTagsInDocx = async (defaultPath, rawData, docType) => {
-  const data = prepareTemplateData(rawData);
+  const data = prepareTemplateData(rawData, docType);
   
   // 1. Xác định URL/path sẽ dùng — ưu tiên custom template từ Firebase nếu có
   let fetchUrl = defaultPath;
@@ -295,7 +348,7 @@ const downloadBlob = (blob, filename) => {
 // ============================================================
 // HELPER: Replace text inside a paragraph containing split runs
 // ============================================================
-const replaceTextInParagraph = (pNode, searchText, replaceText) => {
+function replaceTextInParagraph(pNode, searchText, replaceText) {
   const tNodes = Array.from(pNode.getElementsByTagName('w:t'));
   if (tNodes.length === 0) return false;
   
@@ -401,7 +454,7 @@ const processTemplateAndInjectPlaceholders = async (arrayBuffer, mappings) => {
   
   // Lọc và sắp xếp các ánh xạ theo độ dài từ khóa giảm dần (tránh lỗi đè chữ ngắn lên chữ dài)
   const sortedMappings = Object.entries(mappings)
-    .filter(([key, val]) => val && String(val).trim().length > 0)
+    .filter(([, val]) => val && String(val).trim().length > 0)
     .map(([key, val]) => ({ key, val: String(val).trim() }))
     .sort((a, b) => b.val.length - a.val.length);
     
@@ -522,5 +575,72 @@ export const docGeneratorService = {
       mimeType: 'application/zip'
     });
     downloadBlob(content, `Ho_So_Dang_Vien_Chinh_Thuc_${data.ho_ten || 'DVDB'}_${data.mssv || ''}.zip`);
+  },
+
+  // ------------------------------------------------------------
+  // TRANSFER SERVICE METHODS
+  // ------------------------------------------------------------
+  async generateDonXinChuyenDang(data) {
+    const blob = await replaceTagsInDocx('/CHUYEN_SINH_HOAT/mau_1.docx', data, 'transfer_don_xin_chuyen');
+    downloadBlob(blob, `1. Mẫu 1. Don xin chuyen dang - ${data.ho_ten || 'DV'}.docx`);
+  },
+
+  async generateDonXinChuyenDangTamThoi(data) {
+    const blob = await replaceTagsInDocx('/CHUYEN_SINH_HOAT/mau_2.docx', data, 'transfer_don_xin_chuyen_tam_thoi');
+    downloadBlob(blob, `2. Mau 2. Don xin chuyen dang tam thoi - ${data.ho_ten || 'DV'}.docx`);
+  },
+
+  async generateNhanXetDangVienDuBiDTN(data) {
+    const blob = await replaceTagsInDocx('/CHUYEN_SINH_HOAT/mau_3.docx', data, 'transfer_nhan_xet_dtn');
+    downloadBlob(blob, `3. Mẫu 3. Bản nhận xét Đảng viên dự bị ĐTN - ${data.ho_ten || 'DV'}.docx`);
+  },
+
+  async generateNhanXetDangVienDuBiDVHD(data) {
+    const blob = await replaceTagsInDocx('/CHUYEN_SINH_HOAT/mau_5.docx', data, 'transfer_nhan_xet_dvhd');
+    downloadBlob(blob, `4. Mẫu 5. Bản nhận xét Đảng viên dự bị Chuyển SHĐ ĐVHD - ${data.ho_ten || 'DV'}.docx`);
+  },
+
+  async generateKiemDiemChuyenDang(data) {
+    const blob = await replaceTagsInDocx('/CHUYEN_SINH_HOAT/mau_4.docx', data, 'transfer_kiem_diem_chuyen_dang');
+    downloadBlob(blob, `5. Mẫu 4. Kiem diem chuyen dang 2026 - ${data.ho_ten || 'DV'}.docx`);
+  },
+
+  async generateTransferDocumentsZip(data, fileTypes) {
+    const zip = new JSZip();
+    
+    const addFileToZip = async (defaultPath, zipFileName, docType) => {
+      try {
+        const blob = await replaceTagsInDocx(defaultPath, data, docType);
+        zip.file(zipFileName, blob);
+      } catch (e) {
+        console.error(`Lỗi khi tạo file chuyển sinh hoạt ${zipFileName}:`, e);
+        throw e;
+      }
+    };
+
+    const jobs = [];
+    if (fileTypes.includes('mau1')) {
+      jobs.push(addFileToZip('/CHUYEN_SINH_HOAT/mau_1.docx', `1. Mẫu 1. Don xin chuyen dang - ${data.ho_ten || 'DV'}.docx`, 'transfer_don_xin_chuyen'));
+    }
+    if (fileTypes.includes('mau2')) {
+      jobs.push(addFileToZip('/CHUYEN_SINH_HOAT/mau_2.docx', `2. Mau 2. Don xin chuyen dang tam thoi - ${data.ho_ten || 'DV'}.docx`, 'transfer_don_xin_chuyen_tam_thoi'));
+    }
+    if (fileTypes.includes('mau3')) {
+      jobs.push(addFileToZip('/CHUYEN_SINH_HOAT/mau_3.docx', `3. Mẫu 3. Bản nhận xét Đảng viên dự bị ĐTN - ${data.ho_ten || 'DV'}.docx`, 'transfer_nhan_xet_dtn'));
+    }
+    if (fileTypes.includes('mau5') && data.dvhd) {
+      jobs.push(addFileToZip('/CHUYEN_SINH_HOAT/mau_5.docx', `4. Mẫu 5. Bản nhận xét Đảng viên dự bị Chuyển SHĐ ĐVHD - ${data.ho_ten || 'DV'}.docx`, 'transfer_nhan_xet_dvhd'));
+    }
+    if (fileTypes.includes('mau4')) {
+      jobs.push(addFileToZip('/CHUYEN_SINH_HOAT/mau_4.docx', `5. Mẫu 4. Kiem diem chuyen dang 2026 - ${data.ho_ten || 'DV'}.docx`, 'transfer_kiem_diem_chuyen_dang'));
+    }
+
+    await Promise.all(jobs);
+    
+    const content = await zip.generateAsync({
+      type: 'blob',
+      mimeType: 'application/zip'
+    });
+    downloadBlob(content, `Ho_So_Chuyen_Sinh_Hoat_Dang_${data.ho_ten || 'DV'}_${data.mssv || ''}.zip`);
   }
 };
