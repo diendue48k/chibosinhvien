@@ -64,7 +64,8 @@ function App() {
               <Route path="dang-vien-du-bi" element={<Navigate to="/ho-so-chinh-thuc" replace />} />
               <Route path="chuyen-tam-thoi" element={<ProtectedRoute><ChuyenTamThoi /></ProtectedRoute>} />
               <Route path="chuyen-sinh-hoat" element={<ProtectedRoute><ChuyenSinhHoat /></ProtectedRoute>} />
-              <Route path="ho-so-chuyen-ra" element={<ProtectedRoute><HoSoChuyenRa /></ProtectedRoute>} />
+              <Route path="ho-so-chuyen-ra" element={<ProtectedRoute><HoSoChuyenRa forceTab="1" /></ProtectedRoute>} />
+              <Route path="tao-bieu-mau-chuyen-ra" element={<ProtectedRoute><HoSoChuyenRa forceTab="2" /></ProtectedRoute>} />
               <Route path="ho-so-ket-nap" element={<ProtectedRoute><HoSoKetNap /></ProtectedRoute>} />
               <Route path="ho-so-da-ket-nap" element={<ProtectedRoute><HoSoDaKetNap /></ProtectedRoute>} />
               <Route path="thong-ke-ho-so" element={<ProtectedRoute><ThongKeHoSoKetNap /></ProtectedRoute>} />

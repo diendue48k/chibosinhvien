@@ -2,24 +2,26 @@ import { useState, useEffect } from 'react';
 import {
   Card, Row, Col, Typography, Tag, Form,
   Input, Button, message, Space, Radio, Table, Badge,
-  Divider, Alert
+  Divider, Alert, Modal, Tabs, Empty, Result
 } from 'antd';
 import {
   FormOutlined, ClockCircleOutlined, SendOutlined, ReloadOutlined,
   CheckCircleOutlined, FileDoneOutlined, DownloadOutlined
 } from '@ant-design/icons';
-import { collection, getDocs, addDoc, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { docGeneratorService } from '../services/docGeneratorService';
 import dayjs from 'dayjs';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const TRANG_THAI_CONFIG = {
   cho_duyet: { label: 'Chờ duyệt', color: '#faad14', bgColor: '#fffbe6', borderColor: '#ffe58f', Icon: ClockCircleOutlined },
   da_duyet: { label: 'Đã duyệt', color: '#1890ff', bgColor: '#e6f7ff', borderColor: '#91d5ff', Icon: CheckCircleOutlined },
-  hoan_thanh: { label: 'Hoàn thành', color: '#52c41a', bgColor: '#f6ffed', borderColor: '#b7eb8f', Icon: FileDoneOutlined }
+  hoan_thanh: { label: 'Hoàn thành', color: '#52c41a', bgColor: '#f6ffed', borderColor: '#b7eb8f', Icon: FileDoneOutlined },
+  tu_choi: { label: 'Bị từ chối', color: '#ff4d4f', bgColor: '#fff2f0', borderColor: '#ffccc7', Icon: FormOutlined },
+  dieu_chinh: { label: 'Cần điều chỉnh', color: '#faad14', bgColor: '#fffbe6', borderColor: '#ffe58f', Icon: FormOutlined }
 };
 
 export default function DangKyChuyenSinhHoat() {
@@ -29,6 +31,33 @@ export default function DangKyChuyenSinhHoat() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
+  const [justRegisteredRecord, setJustRegisteredRecord] = useState(null);
+  const [isSuccessModalVisible, setIsSuccessModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState('form');
+  const [editingId, setEditingId] = useState(null);
+
+  const activeRegistration = registrations.find(r => ['cho_duyet', 'da_duyet', 'hoan_thanh'].includes(r.trang_thai));
+  
+  const handleEditRecord = (record) => {
+    setEditingId(record.id);
+    let chiBo = '', dangBoCoSo = '', dangBoCapTren = '';
+    if (record.noi_chuyen_den) {
+      const parts = record.noi_chuyen_den.split(',').map(s => s.trim());
+      chiBo = parts[0] || '';
+      dangBoCoSo = parts[1] || '';
+      dangBoCapTren = parts[2] || '';
+    }
+    form.setFieldsValue({
+      loai_chuyen: record.loai_chuyen,
+      noi_chuyen_den_chi_bo: chiBo,
+      noi_chuyen_den_dang_bo_co_so: dangBoCoSo,
+      noi_chuyen_den_dang_bo_cap_tren: dangBoCapTren,
+      ly_do: record.ly_do,
+      uu_diem: record.uu_diem,
+      khuyet_diem: record.khuyet_diem
+    });
+    setActiveTab('form');
+  };
 
   const fetchMemberData = async () => {
     if (!currentUser?.mssv) return;
@@ -56,11 +85,11 @@ export default function DangKyChuyenSinhHoat() {
   };
 
   const fetchRegistrations = async () => {
-    if (!currentUser?.uid) return;
+    if (!memberData?.id) return;
     try {
       const q = query(
         collection(db, "dangky_chuyen_sinh_hoat"),
-        where("user_id", "==", currentUser.uid)
+        where("dang_vien_id", "==", memberData.id)
       );
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -74,9 +103,14 @@ export default function DangKyChuyenSinhHoat() {
   useEffect(() => {
     if (currentUser) {
       fetchMemberData();
-      fetchRegistrations();
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (memberData?.id) {
+      fetchRegistrations();
+    }
+  }, [memberData?.id]);
 
   const onFinish = async (values) => {
     if (!memberData.id) {
@@ -85,23 +119,43 @@ export default function DangKyChuyenSinhHoat() {
     }
     setSubmitting(true);
     try {
+      const combinedNoiChuyenDen = [
+        values.noi_chuyen_den_chi_bo ? values.noi_chuyen_den_chi_bo.trim() : '',
+        values.noi_chuyen_den_dang_bo_co_so ? values.noi_chuyen_den_dang_bo_co_so.trim() : '',
+        values.noi_chuyen_den_dang_bo_cap_tren ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
+      ].filter(Boolean).join(', ');
+
       const newRecord = {
         user_id: currentUser.uid || '',
         dang_vien_id: memberData.id || '',
         ho_ten: memberData.ho_ten || '',
         mssv: memberData.mssv || '',
         loai_chuyen: values.loai_chuyen || '',
-        noi_chuyen_den: values.noi_chuyen_den || '',
+        noi_chuyen_den: combinedNoiChuyenDen,
         ly_do: values.ly_do || '',
         uu_diem: values.uu_diem || '',
         khuyet_diem: values.khuyet_diem || '',
         trang_thai: 'cho_duyet',
-        created_at: new Date().toISOString()
+        updated_at: new Date().toISOString()
       };
-      await addDoc(collection(db, "dangky_chuyen_sinh_hoat"), newRecord);
-      message.success('Đăng ký chuyển sinh hoạt thành công!');
+      
+      let docRefId;
+      if (editingId) {
+        await updateDoc(doc(db, "dangky_chuyen_sinh_hoat", editingId), newRecord);
+        docRefId = editingId;
+      } else {
+        newRecord.created_at = new Date().toISOString();
+        const docRef = await addDoc(collection(db, "dangky_chuyen_sinh_hoat"), newRecord);
+        docRefId = docRef.id;
+      }
+      
+      setJustRegisteredRecord({ id: docRefId, ...newRecord });
+      setIsSuccessModalVisible(true);
+      message.success(editingId ? 'Cập nhật đăng ký thành công!' : 'Đăng ký chuyển sinh hoạt thành công!');
       form.resetFields();
+      setEditingId(null);
       fetchRegistrations();
+      setActiveTab('history');
     } catch (err) {
       console.error(err);
       message.error('Có lỗi xảy ra khi đăng ký!');
@@ -116,7 +170,6 @@ export default function DangKyChuyenSinhHoat() {
     try {
       setDownloadingId(`${record.id}_${type}`);
       
-      // Safe date parser for Firestore Timestamps
       const safeFmt = (val) => {
         if (!val) return '';
         try {
@@ -157,8 +210,12 @@ export default function DangKyChuyenSinhHoat() {
         } else {
            await docGeneratorService.generateDonXinChuyenDang(dataToExport);
         }
+      } else if (type === 'mau3') {
+        await docGeneratorService.generateNhanXetDangVienDuBiDTN(dataToExport);
       } else if (type === 'mau4') {
         await docGeneratorService.generateKiemDiemChuyenDang(dataToExport);
+      } else if (type === 'mau5') {
+        await docGeneratorService.generateNhanXetDangVienDuBiDVHD(dataToExport);
       }
       message.success('Tải biểu mẫu thành công!');
     } catch (e) {
@@ -169,93 +226,6 @@ export default function DangKyChuyenSinhHoat() {
     }
   };
 
-  const columns = [
-    {
-      title: 'Ngày ĐK',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (val) => dayjs(val).format('DD/MM/YYYY HH:mm'),
-      width: 150
-    },
-    {
-      title: 'Loại chuyển',
-      dataIndex: 'loai_chuyen',
-      key: 'loai_chuyen',
-      render: (val) => val === 'chinh_thuc' ? 'Chuyển chính thức' : 'Chuyển tạm thời',
-      width: 160
-    },
-    {
-      title: 'Nơi chuyển đến',
-      dataIndex: 'noi_chuyen_den',
-      key: 'noi_chuyen_den',
-      ellipsis: true
-    },
-    {
-      title: 'Lý do & Ghi chú',
-      key: 'notes',
-      render: (_, record) => (
-        <div style={{ fontSize: '12px' }}>
-          <div><strong>Lý do:</strong> {record.ly_do || '--'}</div>
-          {record.ghi_chu_duyet && (
-            <div style={{ color: '#c62828', marginTop: 4 }}>
-              <strong>Phản hồi:</strong> {record.ghi_chu_duyet}
-            </div>
-          )}
-        </div>
-      )
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'trang_thai',
-      key: 'trang_thai',
-      width: 140,
-      render: (val) => {
-        const conf = TRANG_THAI_CONFIG[val] || TRANG_THAI_CONFIG.cho_duyet;
-        const Icon = conf.Icon;
-        return (
-          <Badge
-            count={
-              <div style={{
-                backgroundColor: conf.bgColor, color: conf.color, border: `1px solid ${conf.borderColor}`,
-                padding: '0 8px', borderRadius: 12, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4
-              }}>
-                <Icon /> {conf.label}
-              </div>
-            }
-          />
-        );
-      }
-    },
-    {
-      title: 'Hành động',
-      key: 'action',
-      width: 250,
-      render: (_, record) => (
-        <Space>
-          <Button
-            size="small"
-            icon={<DownloadOutlined />}
-            loading={downloadingId === `${record.id}_mau1`}
-            onClick={() => handleDownloadDoc(record, 'mau1')}
-            title="Tải Đơn xin chuyển"
-          >
-            Mẫu 1
-          </Button>
-          <Button
-            size="small"
-            icon={<DownloadOutlined />}
-            loading={downloadingId === `${record.id}_mau4`}
-            onClick={() => handleDownloadDoc(record, 'mau4')}
-            title="Tải Bản kiểm điểm"
-          >
-            Mẫu 4
-          </Button>
-        </Space>
-      )
-    }
-  ];
-
-  // Styling
   const cardStyle = { borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: 24 };
   const headStyle = { borderBottom: '1px solid #f0f0f0', backgroundColor: '#fafafa', borderRadius: '12px 12px 0 0', fontWeight: 700 };
   const readOnlyFieldStyle = {
@@ -269,127 +239,381 @@ export default function DangKyChuyenSinhHoat() {
   const readOnlyValueStyle = { fontSize: 15, fontWeight: 600, color: '#262626', wordBreak: 'break-word' };
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 16px' }}>
-      <Title level={2} style={{ marginBottom: 24, fontWeight: 800, color: '#c62828' }}>Đăng Ký Chuyển Sinh Hoạt Đảng</Title>
+    <div className="premium-page-container">
+      <style>{`
+        .premium-page-container {
+          padding: 4px;
+          animation: fadeIn 0.4s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
       
-      <Row gutter={[24, 24]}>
-        <Col xs={24}>
-          <Card title="1. Thông tin Đảng viên" bordered={false} style={cardStyle} styles={{ header: headStyle }}>
-            <Alert
-              message="Thông tin bên dưới được lấy tự động. Vui lòng kiểm tra kỹ trước khi đăng ký."
-              type="info" showIcon style={{ marginBottom: 16, borderRadius: 6 }}
+      <Tabs 
+        activeKey={activeTab} 
+        onChange={setActiveTab} 
+        type="card" 
+        size="large"
+      >
+        <Tabs.TabPane tab={<span><FormOutlined /> Tạo mới hồ sơ</span>} key="form">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 16 }}>
+            <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
+            <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px' }}>
+              {editingId ? 'Cập nhật đăng ký chuyển sinh hoạt' : 'Đăng ký chuyển sinh hoạt Đảng mới'}
+            </Title>
+          </div>
+          {activeRegistration && !editingId ? (
+            <Result
+              status="info"
+              title="Bạn đã có hồ sơ đăng ký đang được xử lý"
+              subTitle={`Hồ sơ đăng ký vào ngày ${dayjs(activeRegistration.created_at).format('DD/MM/YYYY HH:mm')} hiện đang ở trạng thái: ${TRANG_THAI_CONFIG[activeRegistration.trang_thai]?.label || 'Đang xử lý'}.`}
+              extra={
+                <Button type="primary" onClick={() => setActiveTab('history')}>
+                  Xem lịch sử đăng ký
+                </Button>
+              }
             />
-            <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} md={8}>
-                <div style={readOnlyFieldStyle}>
-                  <div style={readOnlyLabelStyle}>Họ và tên</div>
-                  <div style={{ ...readOnlyValueStyle, color: '#c62828', fontWeight: 800 }}>{memberData.ho_ten || '--'}</div>
-                </div>
+          ) : (
+          <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+            <Row gutter={[24, 24]}>
+              <Col xs={24}>
+              <Card 
+                size="small" 
+                title={<span style={{ fontWeight: 700, color: '#c62828', fontSize: '16px' }}>Thông tin Đảng viên (Từ hồ sơ gốc)</span>} 
+                style={{ marginBottom: 20, borderRadius: '8px', backgroundColor: '#fafafa', border: '1px solid #f0f0f0' }}
+              >
+                <Row gutter={[16, 24]}>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Họ và tên:</Text>
+                    <Text strong style={{ display: 'block', color: '#c62828', fontSize: '16px' }}>{memberData.ho_ten}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>MSSV:</Text>
+                    <Text strong style={{ display: 'block', fontFamily: 'monospace', fontSize: '15px' }}>{memberData.mssv || 'N/A'}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Giới tính:</Text>
+                    <Text strong style={{ display: 'block', fontSize: '15px' }}>{memberData.gioi_tinh || 'N/A'}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Ngày sinh:</Text>
+                    <Text strong style={{ display: 'block', fontSize: '15px' }}>{(() => { try { if (!memberData.ngay_sinh) return 'N/A'; if (typeof memberData.ngay_sinh === 'object' && memberData.ngay_sinh.seconds) return dayjs(new Date(memberData.ngay_sinh.seconds * 1000)).format('DD/MM/YYYY'); const d = dayjs(memberData.ngay_sinh); return d.isValid() ? d.format('DD/MM/YYYY') : 'N/A'; } catch { return 'N/A'; } })()}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Ngày vào Đảng:</Text>
+                    <Text strong style={{ display: 'block', fontSize: '15px' }}>{(() => { try { if (!memberData.ngay_vao_dang) return 'N/A'; if (typeof memberData.ngay_vao_dang === 'object' && memberData.ngay_vao_dang.seconds) return dayjs(new Date(memberData.ngay_vao_dang.seconds * 1000)).format('DD/MM/YYYY'); const d = dayjs(memberData.ngay_vao_dang); return d.isValid() ? d.format('DD/MM/YYYY') : 'N/A'; } catch { return 'N/A'; } })()}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Ngày chính thức:</Text>
+                    <Text strong style={{ display: 'block', fontSize: '15px' }}>{(() => { try { if (!memberData.ngay_chinh_thuc) return 'Chưa có'; if (typeof memberData.ngay_chinh_thuc === 'object' && memberData.ngay_chinh_thuc.seconds) return dayjs(new Date(memberData.ngay_chinh_thuc.seconds * 1000)).format('DD/MM/YYYY'); const d = dayjs(memberData.ngay_chinh_thuc); return d.isValid() ? d.format('DD/MM/YYYY') : 'Chưa có'; } catch { return 'Chưa có'; } })()}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Loại Đảng viên:</Text>
+                    <div style={{ display: 'block' }}>
+                      {(memberData.loai_dang_vien === 'Dự bị' || memberData.dang_vien_du_bi === true || memberData.loai_dang_vien === 'dubi') ? (
+                        <Tag color="orange" style={{ fontWeight: 600, margin: 0, fontSize: '14px', padding: '2px 8px' }}>Dự bị</Tag>
+                      ) : (
+                        <Tag color="green" style={{ fontWeight: 600, margin: 0, fontSize: '14px', padding: '2px 8px' }}>Chính thức</Tag>
+                      )}
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Số thẻ Đảng:</Text>
+                    <Text strong style={{ display: 'block', fontSize: '15px' }}>{memberData.so_the_dang || 'Chưa phát thẻ'}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Lớp, Khoa:</Text>
+                    <Text strong style={{ display: 'block', fontSize: '15px' }}>{memberData.lop || '--'} - {memberData.khoa || '--'}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Số điện thoại:</Text>
+                    <Text strong style={{ display: 'block', fontSize: '15px' }}>{memberData.so_dien_thoai || memberData.sdt || 'N/A'}</Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Email:</Text>
+                    <Text strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '15px' }} title={memberData.email || memberData.email_sv || 'N/A'}>
+                      {memberData.email || memberData.email_sv || 'N/A'}
+                    </Text>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>Quê quán:</Text>
+                    <Text strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '15px' }} title={memberData.que_quan || memberData.tinh_tp_qq || 'N/A'}>
+                      {memberData.que_quan || memberData.tinh_tp_qq || 'N/A'}
+                    </Text>
+                  </Col>
+                </Row>
+              </Card>
               </Col>
-              <Col xs={12} sm={6} md={4}>
-                <div style={readOnlyFieldStyle}>
-                  <div style={readOnlyLabelStyle}>MSSV</div>
-                  <div style={readOnlyValueStyle}>{memberData.mssv || '--'}</div>
-                </div>
-              </Col>
-              <Col xs={12} sm={6} md={4}>
-                <div style={readOnlyFieldStyle}>
-                  <div style={readOnlyLabelStyle}>SĐT</div>
-                  <div style={readOnlyValueStyle}>{memberData.so_dien_thoai || '--'}</div>
-                </div>
-              </Col>
-              <Col xs={24} sm={12} md={8}>
-                <div style={readOnlyFieldStyle}>
-                  <div style={readOnlyLabelStyle}>Ngày vào Đảng</div>
-                  <div style={readOnlyValueStyle}>{(() => { try { if (!memberData.ngay_vao_dang) return '--'; if (typeof memberData.ngay_vao_dang === 'object' && memberData.ngay_vao_dang.seconds) return dayjs(new Date(memberData.ngay_vao_dang.seconds * 1000)).format('DD/MM/YYYY'); const d = dayjs(memberData.ngay_vao_dang); return d.isValid() ? d.format('DD/MM/YYYY') : '--'; } catch { return '--'; } })()}</div>
-                </div>
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-
         <Col xs={24}>
           <Card title={<><FormOutlined /> 2. Form Đăng ký</>} bordered={false} style={cardStyle} styles={{ header: headStyle }}>
             <Form form={form} layout="vertical" onFinish={onFinish} size="large">
               <Form.Item
                 name="loai_chuyen"
-                label={<span style={{ fontWeight: 600 }}>Loại chuyển sinh hoạt <span style={{ color: '#ff4d4f' }}>*</span></span>}
+                label={<span style={{ fontWeight: 600 }}>Loại chuyển sinh hoạt</span>}
                 rules={[{ required: true, message: 'Vui lòng chọn loại chuyển sinh hoạt!' }]}
               >
                 <Radio.Group buttonStyle="solid">
-                  <Radio.Button value="chinh_thuc">Chuyển chính thức</Radio.Button>
+                  <Radio.Button value="chinh_thuc">Chuyển ra chính thức</Radio.Button>
                   <Radio.Button value="tam_thoi">Chuyển tạm thời</Radio.Button>
                 </Radio.Group>
               </Form.Item>
-
-              <Form.Item
-                name="noi_chuyen_den"
-                label={<span style={{ fontWeight: 600 }}>Nơi chuyển đến (Chi bộ / Đảng bộ trực thuộc) <span style={{ color: '#ff4d4f' }}>*</span></span>}
-                rules={[{ required: true, message: 'Vui lòng nhập nơi chuyển đến!' }]}
-              >
-                <Input placeholder="VD: Chi bộ thôn Đức Xá, Đảng bộ Xã Vĩnh Thủy, Huyện Vĩnh Linh, Tỉnh Quảng Trị" />
+              <div style={{ marginBottom: 24 }}>
+                <span style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>
+                  Nơi chuyển sinh hoạt Đảng đến <span style={{ color: '#ff4d4f' }}>*</span>
+                </span>
+                <Row gutter={8}>
+                  <Col span={8}>
+                    <Form.Item name="noi_chuyen_den_chi_bo" rules={[{ required: true, message: 'Chi bộ!' }]} style={{ marginBottom: 0 }}>
+                      <Input placeholder="Chi bộ..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="noi_chuyen_den_dang_bo_co_so" rules={[{ required: true, message: 'Đảng bộ cơ sở!' }]} style={{ marginBottom: 0 }}>
+                      <Input placeholder="Đảng bộ cơ sở..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="noi_chuyen_den_dang_bo_cap_tren" rules={[{ required: true, message: 'Đảng bộ cấp trên!' }]} style={{ marginBottom: 0 }}>
+                      <Input placeholder="Đảng bộ cấp trên..." />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+              <Form.Item name="ly_do" label={<span style={{ fontWeight: 600 }}>Lý do chuyển</span>} rules={[{ required: true, message: 'Vui lòng nhập lý do!' }]}>
+                <Input.TextArea rows={3} placeholder="VD: Đã hoàn thành chương trình học..." />
               </Form.Item>
-
-              <Form.Item
-                name="ly_do"
-                label={<span style={{ fontWeight: 600 }}>Lý do chuyển <span style={{ color: '#ff4d4f' }}>*</span></span>}
-                rules={[{ required: true, message: 'Vui lòng nhập lý do!' }]}
-              >
-                <Input.TextArea rows={3} placeholder="VD: Đã hoàn thành chương trình học và tốt nghiệp ra trường..." />
-              </Form.Item>
-
-              <Divider orientation="left" plain style={{ color: '#8c8c8c' }}>Tự kiểm điểm Đảng viên (Dành cho bản kiểm điểm)</Divider>
-              
               <Form.Item 
                 name="uu_diem" 
                 label={<span style={{ fontWeight: 600 }}>Ưu điểm</span>}
-                initialValue={
-                  "- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.\n" +
-                  "- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.\n" +
-                  "- Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.\n" +
-                  "- Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.\n" +
-                  "- Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm."
-                }
+                initialValue="- Có phẩm chất chính trị tốt...\n- Có lối sống đạo đức trong sáng..."
               >
-                <Input.TextArea rows={6} placeholder="Về tư tưởng chính trị, đạo đức lối sống, thực hiện nhiệm vụ..." />
+                <Input.TextArea rows={6} />
               </Form.Item>
-              
-              <Form.Item 
-                name="khuyet_diem" 
-                label={<span style={{ fontWeight: 600 }}>Khuyết điểm</span>}
-                initialValue="- Không có khuyết điểm gì lớn"
-              >
-                <Input.TextArea rows={2} placeholder="Những hạn chế, khuyết điểm trong quá trình sinh hoạt..." />
+              <Form.Item name="khuyet_diem" label={<span style={{ fontWeight: 600 }}>Khuyết điểm</span>} initialValue="- Không có khuyết điểm gì lớn">
+                <Input.TextArea rows={2} />
               </Form.Item>
-
               <Form.Item style={{ marginTop: 24, marginBottom: 0, textAlign: 'right' }}>
-                <Button type="primary" htmlType="submit" icon={<SendOutlined />} loading={submitting} disabled={!memberData.id}
-                  style={{ height: 48, padding: '0 32px', borderRadius: 8, fontWeight: 600, background: 'linear-gradient(90deg, #c62828 0%, #b71c1c 100%)', border: 'none', boxShadow: '0 4px 14px rgba(198, 40, 40, 0.4)' }}
+                <Button type="primary" htmlType="submit" size="large" loading={submitting} 
+                  style={{ padding: '0 40px', borderRadius: 8, height: 44, fontWeight: 600, background: 'linear-gradient(90deg, #c62828 0%, #b71c1c 100%)', border: 'none' }}
                 >
-                  GỬI YÊU CẦU ĐĂNG KÝ
+                  {editingId ? 'Lưu cập nhật' : 'Gửi Đăng Ký'}
                 </Button>
               </Form.Item>
             </Form>
           </Card>
         </Col>
-
+            </Row>
+          </div>
+          )}
+        </Tabs.TabPane>
+        <Tabs.TabPane tab={<span><FileDoneOutlined /> Hồ sơ & Biểu mẫu cần làm</span>} key="history">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 16 }}>
+            <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
+            <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px' }}>
+              Danh sách hồ sơ đăng ký & Biểu mẫu
+            </Title>
+          </div>
+          <Row gutter={[24, 24]}>
         <Col xs={24}>
           <Card
-            title={<><ClockCircleOutlined /> 3. Lịch sử đăng ký</>}
+            title={<><ClockCircleOutlined /> Trạng thái hồ sơ của bạn</>}
             extra={<Button type="text" icon={<ReloadOutlined />} onClick={fetchRegistrations}>Làm mới</Button>}
             bordered={false} style={cardStyle} styles={{ header: headStyle }}
           >
-            <Table
-              columns={columns}
-              dataSource={registrations}
-              rowKey="id"
-              pagination={false}
-              loading={loading && registrations.length === 0}
-              locale={{ emptyText: 'Chưa có lịch sử đăng ký nào.' }}
-            />
+            {registrations.length === 0 ? (
+              <Empty description="Bạn chưa có hồ sơ đăng ký chuyển sinh hoạt nào." />
+            ) : (
+              registrations.map((record) => {
+                const conf = TRANG_THAI_CONFIG[record.trang_thai] || TRANG_THAI_CONFIG.cho_duyet;
+                const StatusIcon = conf.Icon;
+                const isReserve = memberData.loai_dang_vien === 'Dự bị' || memberData.dang_vien_du_bi === true || memberData.loai_dang_vien === 'dubi';
+                const isTamThoi = record.loai_chuyen === 'tam_thoi';
+
+                return (
+                  <Card 
+                    key={record.id} 
+                    type="inner" 
+                    title={
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                        <span style={{ fontWeight: 600, color: '#c62828' }}>
+                          {isTamThoi ? 'Đăng ký Chuyển sinh hoạt tạm thời' : 'Đăng ký Chuyển ra chính thức'}
+                        </span>
+                        <div style={{
+                          backgroundColor: conf.bgColor, color: conf.color, border: `1px solid ${conf.borderColor}`,
+                          padding: '4px 12px', borderRadius: 12, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 'normal'
+                        }}>
+                          <StatusIcon /> {conf.label}
+                        </div>
+                      </div>
+                    }
+                    style={{ marginBottom: 16, border: '1px solid #f0f0f0', borderRadius: 8 }}
+                  >
+                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 16px', marginBottom: '16px' }}>
+                          <div style={{ color: '#595959', fontWeight: 500 }}>Ngày đăng ký:</div>
+                          <div style={{ fontWeight: 500, color: '#1f1f1f' }}>{dayjs(record.created_at).format('DD/MM/YYYY HH:mm')}</div>
+                          <div style={{ color: '#595959', fontWeight: 500 }}>Nơi chuyển đến:</div>
+                          <div style={{ fontWeight: 500, color: '#1f1f1f' }}>{record.noi_chuyen_den}</div>
+                          <div style={{ color: '#595959', fontWeight: 500 }}>Lý do:</div>
+                          <div style={{ fontWeight: 500, color: '#1f1f1f' }}>{record.ly_do}</div>
+                        </div>
+                        {(record.trang_thai === 'tu_choi' || record.trang_thai === 'dieu_chinh') && (
+                          <div style={{ backgroundColor: '#fff2f0', padding: '12px', borderRadius: '6px', border: '1px solid #ffccc7', marginTop: '16px' }}>
+                            <div style={{ color: '#cf1322', fontWeight: 600, marginBottom: '4px' }}>Lý do phản hồi từ tổ chức Đảng:</div>
+                            <div style={{ color: '#cf1322' }}>{record.ghi_chu_duyet || 'Không có ghi chú'}</div>
+                            <Button type="primary" danger size="small" style={{ marginTop: '12px' }} onClick={() => handleEditRecord(record)}>
+                              Sửa lại hồ sơ
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ width: '300px', paddingLeft: 16, borderLeft: '1px solid #f0f0f0' }}>
+                        <div style={{ fontWeight: 600, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <FileDoneOutlined style={{ color: '#1890ff' }} /> Tải biểu mẫu:
+                        </div>
+                        <Space direction="vertical" style={{ width: '100%' }}>
+                          <Button block icon={<DownloadOutlined />} loading={downloadingId === `${record.id}_mau1`} onClick={() => handleDownloadDoc(record, 'mau1')}>
+                            {isTamThoi ? 'Đơn chuyển tạm thời (Mẫu 2)' : 'Đơn chuyển chính thức (Mẫu 1)'}
+                          </Button>
+                          <Button block icon={<DownloadOutlined />} loading={downloadingId === `${record.id}_mau4`} onClick={() => handleDownloadDoc(record, 'mau4')}>
+                            Bản tự kiểm điểm (Mẫu 4)
+                          </Button>
+                          {isReserve && !isTamThoi && (
+                            <>
+                              <Button block icon={<DownloadOutlined />} loading={downloadingId === `${record.id}_mau3`} onClick={() => handleDownloadDoc(record, 'mau3')}>
+                                Nhận xét ĐVDB (Đoàn - Mẫu 3)
+                              </Button>
+                              <Button block icon={<DownloadOutlined />} loading={downloadingId === `${record.id}_mau5`} onClick={() => handleDownloadDoc(record, 'mau5')}>
+                                Nhận xét ĐVDB (ĐVHD - Mẫu 5)
+                              </Button>
+                            </>
+                          )}
+                        </Space>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })
+            )}
           </Card>
         </Col>
       </Row>
+    </Tabs.TabPane>
+  </Tabs>
+
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '22px' }} />
+            <span style={{ fontWeight: 800, fontSize: '18px', color: '#1a1a1a' }}>
+              Đăng ký chuyển sinh hoạt Đảng thành công!
+            </span>
+          </div>
+        }
+        open={isSuccessModalVisible}
+        onOk={() => {
+          setIsSuccessModalVisible(false);
+          setJustRegisteredRecord(null);
+        }}
+        onCancel={() => {
+          setIsSuccessModalVisible(false);
+          setJustRegisteredRecord(null);
+        }}
+        okText="ĐỒNG Ý"
+        cancelText="ĐÓNG"
+        width={650}
+        okButtonProps={{ style: { backgroundColor: '#52c41a', borderColor: '#52c41a', height: 40, fontWeight: 700, borderRadius: '6px' } }}
+        cancelButtonProps={{ style: { height: 40, borderRadius: '6px' } }}
+      >
+        <div style={{ marginTop: 15, marginBottom: 20 }}>
+          <Alert
+            message="Yêu cầu đăng ký chuyển sinh hoạt Đảng của đồng chí đã được gửi thành công và đang chờ duyệt từ Ban Chi ủy."
+            type="success"
+            showIcon
+            style={{ marginBottom: 20, borderRadius: '8px' }}
+          />
+
+          <div style={{ fontWeight: 700, fontSize: '15px', color: '#1e293b', marginBottom: 12 }}>
+            Vui lòng tải xuống các biểu mẫu hồ sơ dưới đây, in ra và nộp lại cho Chi bộ:
+          </div>
+
+          {justRegisteredRecord && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: '#f8fafc', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+              {/* Document 1: Don xin chuyen */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                  {justRegisteredRecord.loai_chuyen === 'tam_thoi' ? '1. Mẫu 2. Đơn xin chuyển sinh hoạt Đảng tạm thời' : '1. Mẫu 1. Đơn xin chuyển sinh hoạt Đảng (chính thức)'}
+                </span>
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  loading={downloadingId === `${justRegisteredRecord.id}_mau1`}
+                  onClick={() => handleDownloadDoc(justRegisteredRecord, 'mau1')}
+                >
+                  Tải Mẫu {justRegisteredRecord.loai_chuyen === 'tam_thoi' ? '2' : '1'}
+                </Button>
+              </div>
+
+              {/* Document 2: Ban tu kiem diem */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                  2. Mẫu 4. Bản tự kiểm điểm chuyển sinh hoạt Đảng
+                </span>
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  loading={downloadingId === `${justRegisteredRecord.id}_mau4`}
+                  onClick={() => handleDownloadDoc(justRegisteredRecord, 'mau4')}
+                >
+                  Tải Mẫu 4
+                </Button>
+              </div>
+
+              {/* For Reserve Party members (Chính thức transfer out) */}
+              {(memberData.loai_dang_vien === 'Dự bị' || memberData.dang_vien_du_bi === true || memberData.loai_dang_vien === 'dubi') && justRegisteredRecord.loai_chuyen !== 'tam_thoi' && (
+                <>
+                  {/* Document 3: Nhan xet DTN */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                      3. Mẫu 3. Bản nhận xét Đảng viên dự bị của Đoàn Thanh niên
+                    </span>
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<DownloadOutlined />}
+                      loading={downloadingId === `${justRegisteredRecord.id}_mau3`}
+                      onClick={() => handleDownloadDoc(justRegisteredRecord, 'mau3')}
+                    >
+                      Tải Mẫu 3
+                    </Button>
+                  </div>
+
+                  {/* Document 4: Nhan xet DVHD */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                      4. Mẫu 5. Bản nhận xét Đảng viên dự bị của ĐVHD
+                    </span>
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<DownloadOutlined />}
+                      loading={downloadingId === `${justRegisteredRecord.id}_mau5`}
+                      onClick={() => handleDownloadDoc(justRegisteredRecord, 'mau5')}
+                    >
+                      Tải Mẫu 5
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1406,33 +1406,34 @@ const HoSoKetNap = () => {
       render: (_, __, index) => index + 1
     },
     { 
-      title: 'MSSV', 
-      dataIndex: 'mssv', 
-      key: 'mssv',
-      sorter: (a, b) => (a.mssv || '').localeCompare(b.mssv || '')
-    },
-    { 
-      title: 'Họ tên', 
-      dataIndex: 'hoten', 
-      key: 'hoten',
+      title: 'Họ tên & MSSV', 
+      key: 'hoten_mssv',
       sorter: (a, b) => (a.hoten || '').localeCompare(b.hoten || ''),
-      render: (text, record) => (
-        <Text style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 500 }} onClick={() => handleEdit(record)}>
-          {text}
-        </Text>
+      render: (_, record) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text style={{ color: '#1890ff', fontWeight: 600, fontSize: '14px' }}>
+            {record.hoten || '--'}
+          </Text>
+          <Text type="secondary" style={{ fontSize: '13px' }}>
+            {record.mssv || '--'}
+          </Text>
+        </div>
       )
     },
     { 
-      title: 'Lớp', 
-      dataIndex: 'lop', 
-      key: 'lop',
-      sorter: (a, b) => (a.lop || '').localeCompare(b.lop || '')
-    },
-    { 
-      title: 'Khoa', 
-      dataIndex: 'khoa', 
-      key: 'khoa',
-      sorter: (a, b) => (a.khoa || '').localeCompare(b.khoa || '')
+      title: 'Lớp & Khoa', 
+      key: 'lop_khoa',
+      sorter: (a, b) => (a.lop || '').localeCompare(b.lop || ''),
+      render: (_, record) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text style={{ fontWeight: 500, color: '#262626', fontSize: '14px' }}>
+            {record.lop || '--'}
+          </Text>
+          <Text type="secondary" style={{ fontSize: '13px' }}>
+            {record.khoa || '--'}
+          </Text>
+        </div>
+      )
     },
     { 
       title: 'Tiến trình', 
@@ -1461,19 +1462,6 @@ const HoSoKetNap = () => {
       dataIndex: 'ghi_chu_ho_so',
       key: 'ghi_chu_ho_so',
       render: (text) => text ? <span style={{ fontSize: '12px' }}>{text}</span> : '--'
-    },
-    {
-      title: 'Hành động',
-      key: 'action',
-      width: 150,
-      render: (_, record) => (
-        <Space size="middle">
-          <Button type="text" icon={<EditOutlined style={{ color: '#1890ff' }} />} onClick={() => handleEdit(record)} title="Xem/Sửa" />
-          <Popconfirm title="Xóa vĩnh viễn hồ sơ này?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
-            <Button type="text" icon={<DeleteOutlined style={{ color: '#ff4d4f' }} />} danger />
-          </Popconfirm>
-        </Space>
-      )
     }
   ];
 
@@ -1638,6 +1626,10 @@ const HoSoKetNap = () => {
         dataSource={filteredData} 
         loading={loading}
         rowKey="id"
+        onRow={(record) => ({
+          onClick: () => handleEdit(record),
+          style: { cursor: 'pointer' }
+        })}
         pagination={{
           defaultPageSize: 10,
           showSizeChanger: true,
@@ -1658,9 +1650,21 @@ const HoSoKetNap = () => {
         width={1000}
         destroyOnClose
         footer={
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '10px 16px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
-            <Button onClick={() => setIsModalVisible(false)}>Hủy</Button>
-            <Button type="primary" onClick={handleSave} style={{ backgroundColor: '#c62828', borderColor: '#c62828' }} loading={loading}>Lưu</Button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
+            <div>
+              {editingId && (
+                <Popconfirm title="Xóa vĩnh viễn hồ sơ này?" onConfirm={() => {
+                  handleDelete(editingId);
+                  setIsModalVisible(false);
+                }} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
+                  <Button danger icon={<DeleteOutlined />}>Xóa hồ sơ</Button>
+                </Popconfirm>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button onClick={() => setIsModalVisible(false)}>Hủy</Button>
+              <Button type="primary" onClick={handleSave} style={{ backgroundColor: '#c62828', borderColor: '#c62828' }} loading={loading}>Lưu</Button>
+            </div>
           </div>
         }
       >
@@ -1771,7 +1775,7 @@ const HoSoKetNap = () => {
 
           <Row gutter={16}>
             {/* CARD 1: THÔNG TIN SINH VIÊN */}
-            <Col span={14}>
+            <Col span={24}>
               <Card title="Thông tin Sinh viên" size="small" style={{ marginBottom: 16, borderRadius: '8px' }}>
                 <Row gutter={12}>
                   <Col span={8}>
@@ -1863,7 +1867,7 @@ const HoSoKetNap = () => {
             </Col>
 
             {/* CARD 2: TIẾN ĐỘ & ĐẢNG VIÊN HƯỚNG DẪN */}
-            <Col span={10}>
+            <Col span={24}>
               <Card title="Quy trình & Tiến độ hồ sơ" size="small" style={{ marginBottom: 16, borderRadius: '8px' }}>
                 <Form.Item name="trangthai" label="Trạng thái hiện tại" rules={[{ required: true }]} initialValue={1}>
                   <Select placeholder="Chọn trạng thái">

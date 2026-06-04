@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Typography, message, Space, Input, Button, Modal, Form, Select, DatePicker, Popconfirm, Tag, Tooltip, Dropdown, Menu, Badge, Drawer, Alert, Empty, Row, Col, Card, Upload, Divider, Checkbox, Switch, Collapse, Radio, Steps } from 'antd';
+import { Table, Typography, message, Space, Input, Button, Modal, Form, Select, DatePicker, Popconfirm, Tag, Tooltip, Dropdown, Menu, Badge, Drawer, Alert, Empty, Row, Col, Card, Upload, Divider, Checkbox, Switch, Collapse, Radio, Steps, Tabs } from 'antd';
 import { 
   PlusOutlined, ArrowRightOutlined, CheckOutlined, DeleteOutlined, 
   SearchOutlined, FilterOutlined, CloseOutlined, CalendarOutlined, 
   DownloadOutlined, UploadOutlined, FileTextOutlined, FileZipOutlined, 
-  StarOutlined, ExportOutlined, InfoCircleOutlined 
+  StarOutlined, ExportOutlined, InfoCircleOutlined, EditOutlined 
 } from '@ant-design/icons';
 import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -30,7 +30,9 @@ const EXPORT_FIELDS = [
   { key: 'facebook', label: 'Facebook', group: 'contact' },
   { key: 'noi_thuong_tru', label: 'Chi tiết ĐC thường trú', group: 'address' },
   { key: 'noi_tam_tru', label: 'Địa chỉ tạm trú', group: 'contact' },
-  { key: 'ngay_nop_ho_so', label: 'Ngày nộp hồ sơ', group: 'transfer', isDate: true },
+  { key: 'ngay_nop_ho_so', label: 'Ngày nhận hồ sơ', group: 'transfer', isDate: true },
+  { key: 'ngay_hoan_thien_gui_vpdu', label: 'Ngày nộp VPĐU', group: 'transfer', isDate: true },
+  { key: 'ngay_gui_dhdn', label: 'Ngày nộp ĐHĐN', group: 'transfer', isDate: true },
   { key: 'buoc', label: 'Bước hiện tại', group: 'transfer', isSpecial: 'buoc' },
   { key: 'ho_ten_nguoi_than', label: 'Họ tên người thân', group: 'family' },
   { key: 'sdt_nguoi_than', label: 'SĐT người thân', group: 'family' }
@@ -117,7 +119,7 @@ const generateDefaultEmailTemplate = (record, values) => {
   return { subject, html };
 };
 
-const HoSoChuyenRa = () => {
+const HoSoChuyenRa = ({ forceTab }) => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   
@@ -158,6 +160,13 @@ const HoSoChuyenRa = () => {
   const [selectedProcessForCompletion, setSelectedProcessForCompletion] = useState(null);
   const [submittingAdd, setSubmittingAdd] = useState(false);
   const [submittingComplete, setSubmittingComplete] = useState(false);
+  
+  // Registration review state
+  const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [rejectingRecord, setRejectingRecord] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectLoading, setRejectLoading] = useState(false);
+  const [rejectActionType, setRejectActionType] = useState('tu_choi'); // 'tu_choi' or 'dieu_chinh'
 
   // Filters
   const [searchText, setSearchText] = useState("");
@@ -192,7 +201,16 @@ const HoSoChuyenRa = () => {
   const [docForm] = Form.useForm();
 
   // Document Generator States
-  const [isDocModalVisible, setIsDocModalVisible] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState(forceTab || '1');
+
+  useEffect(() => {
+    if (forceTab) {
+      setActiveTabKey(forceTab);
+    }
+  }, [forceTab]);
+  const [selectedDocMemberId, setSelectedDocMemberId] = useState(null);
+  const [stepDate, setStepDate] = useState(dayjs());
+  const [selectedMemberId, setSelectedMemberId] = useState(null);
   const [docRecord, setDocRecord] = useState(null);
   const [transferType, setTransferType] = useState(null);
   const [isProbationary, setIsProbationary] = useState(false);
@@ -201,7 +219,155 @@ const HoSoChuyenRa = () => {
   const [generating, setGenerating] = useState(false);
   const [previewDocKey, setPreviewDocKey] = useState('mau4'); // Default preview
 
-  // List of official party members for guider selection
+  // Edit Process state variables
+  const [isEditProcessModalVisible, setIsEditProcessModalVisible] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingProcessRecord, setEditingProcessRecord] = useState(null);
+  const [submittingEdit, setSubmittingEdit] = useState(false);
+  const [editProcessForm] = Form.useForm();
+
+  const handleOpenEditProcessModal = (record) => {
+    setIsEditMode(false);
+    setEditingProcessRecord(record);
+    
+    let chiBo = '';
+    let dangBoCoSo = '';
+    let dangBoCapTren = '';
+    if (record.noi_chuyen_den) {
+      const parts = record.noi_chuyen_den.split(',').map(s => s.trim());
+      chiBo = parts[0] || '';
+      dangBoCoSo = parts[1] || '';
+      dangBoCapTren = parts[2] || '';
+    }
+
+    editProcessForm.setFieldsValue({
+      buoc: record.buoc || 1,
+      loai_chuyen_sh: record.loai_chuyen || 'chuyen_ra',
+      ngay_nop_ho_so: safeDate(record.ngay_nop_ho_so),
+      ghi_chu: record.ghi_chu || record.ghi_chu_buoc_1 || record.ghi_chu_buoc_2 || record.ghi_chu_buoc_3 || '',
+      ngay_hoan_thien_gui_vpdu: safeDate(record.ngay_hoan_thien_gui_vpdu),
+      ngay_gui_dhdn: safeDate(record.ngay_gui_dhdn),
+      noi_chuyen_den_chi_bo: chiBo,
+      noi_chuyen_den_dang_bo_co_so: dangBoCoSo,
+      noi_chuyen_den_dang_bo_cap_tren: dangBoCapTren,
+      ly_do_chuyen: record.ly_do_chuyen || record.ghi_chu || ''
+    });
+    
+    setIsEditProcessModalVisible(true);
+  };
+
+  const handleEditProcessSubmit = async () => {
+    if (!editingProcessRecord) return;
+    try {
+      const values = await editProcessForm.validateFields();
+      setSubmittingEdit(true);
+
+      const combinedNoiChuyenDen = [
+        values.noi_chuyen_den_chi_bo ? values.noi_chuyen_den_chi_bo.trim() : '',
+        values.noi_chuyen_den_dang_bo_co_so ? values.noi_chuyen_den_dang_bo_co_so.trim() : '',
+        values.noi_chuyen_den_dang_bo_cap_tren ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
+      ].filter(Boolean).join(', ');
+
+      const recordRef = doc(db, "chuyen_sinh_hoat", editingProcessRecord.id);
+      
+      const updateData = {
+        buoc: values.buoc,
+        loai_chuyen: values.loai_chuyen_sh,
+        ngay_nop_ho_so: values.ngay_nop_ho_so ? values.ngay_nop_ho_so.format('YYYY-MM-DD') : '',
+        ghi_chu: values.ghi_chu || '',
+        noi_chuyen_den: combinedNoiChuyenDen,
+        ly_do_chuyen: values.ly_do_chuyen || '',
+        updated_at: new Date().toISOString()
+      };
+
+      if (values.buoc >= 2) {
+        updateData.ngay_hoan_thien_gui_vpdu = values.ngay_hoan_thien_gui_vpdu ? values.ngay_hoan_thien_gui_vpdu.format('YYYY-MM-DD') : '';
+      } else {
+        updateData.ngay_hoan_thien_gui_vpdu = null;
+      }
+
+      if (values.buoc >= 3) {
+        updateData.ngay_gui_dhdn = values.ngay_gui_dhdn ? values.ngay_gui_dhdn.format('YYYY-MM-DD') : '';
+      } else {
+        updateData.ngay_gui_dhdn = null;
+      }
+
+      const baseHistory = editingProcessRecord.history || [];
+      const newHistory = [];
+      
+      const step1Hist = baseHistory.find(h => h.step === 1) || { step: 1, time: new Date().toISOString() };
+      newHistory.push({
+        ...step1Hist,
+        note: values.ghi_chu_buoc_1 || "Khởi tạo tiến trình chuyển sinh hoạt"
+      });
+
+      if (values.buoc >= 2) {
+        const step2Hist = baseHistory.find(h => h.step === 2) || { step: 2, time: new Date().toISOString() };
+        newHistory.push({
+          ...step2Hist,
+          note: values.ghi_chu_buoc_2 || ""
+        });
+      }
+
+      if (values.buoc >= 3) {
+        const step3Hist = baseHistory.find(h => h.step === 3) || { step: 3, time: new Date().toISOString() };
+        newHistory.push({
+          ...step3Hist,
+          note: values.ghi_chu_buoc_3 || ""
+        });
+      }
+
+      updateData.history = newHistory;
+
+      await updateDoc(recordRef, updateData);
+      message.success("Cập nhật thông tin tiến trình thành công!");
+      setIsEditProcessModalVisible(false);
+      setEditingProcessRecord(null);
+      await fetchActiveMembersAndProcesses();
+    } catch (err) {
+      console.error(err);
+      if (!err.errorFields) message.error("Lỗi khi cập nhật tiến trình: " + err.message);
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
+
+  const selectedMemberForAdd = useMemo(() => {
+    return activeMembers.find(m => m.id === selectedMemberId);
+  }, [activeMembers, selectedMemberId]);
+
+  // Compute if selected member for add is probationary
+  const isProbationaryAdd = useMemo(() => {
+    if (!selectedMemberForAdd) return false;
+    return selectedMemberForAdd.loai_dang_vien === 'Dự bị' || selectedMemberForAdd.dang_vien_du_bi === true || selectedMemberForAdd.loai_dang_vien === 'dubi';
+  }, [selectedMemberForAdd]);
+
+  // List of eligible official party members for guider selection
+  const eligibleGuidesAdd = useMemo(() => {
+    if (!selectedMemberForAdd || !selectedMemberForAdd.ngay_vao_dang) return [];
+    
+    const safeParse = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object' && val.seconds) return dayjs(new Date(val.seconds * 1000));
+      const d = dayjs(val);
+      return d.isValid() ? d : null;
+    };
+    
+    const transferDate = safeParse(selectedMemberForAdd.ngay_vao_dang);
+    if (!transferDate) return [];
+
+    return activeMembers.filter(m => {
+      const isChinhThuc = m.loai_dang_vien === 'Chính thức' || m.loai_dang_vien === 'chinh_thuc' || m.dang_vien_du_bi === false;
+      if (!isChinhThuc) return false;
+
+      const guideDate = safeParse(m.ngay_chinh_thuc);
+      if (!guideDate) return false;
+
+      return guideDate.isBefore(transferDate);
+    }).sort((a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || ''));
+  }, [activeMembers, selectedMemberForAdd]);
+
+  // List of official party members for general guider selection (legacy)
   const officialMembers = useMemo(() => {
     return activeMembers.filter(m => 
       m.ho_ten && 
@@ -262,36 +428,41 @@ const HoSoChuyenRa = () => {
     const list = [];
     if (transferType === 'chuyen_ra') {
       list.push({ key: 'mau1', label: '1. Mẫu 1. Đơn xin chuyển sinh hoạt Đảng (chính thức)', code: 'Mẫu 1' });
+      list.push({ key: 'mau2', label: '2. Mẫu 2. Đơn xin chuyển tạm thời', code: 'Mẫu 2' });
       if (isProbationary) {
-        list.push({ key: 'mau3', label: '2. Mẫu 3. Bản nhận xét Đảng viên dự bị của Đoàn Thanh niên', code: 'Mẫu 3' });
+        list.push({ key: 'mau3', label: '3. Mẫu 3. Bản nhận xét Đảng viên dự bị ĐTN', code: 'Mẫu 3' });
+        if (generateGuiderDoc) {
+          list.push({ key: 'mau5', label: '4. Mẫu 5. Bản nhận xét Đảng viên dự bị Chuyển SHĐ ĐVHD', code: 'Mẫu 5' });
+        }
+        list.push({ key: 'mau8', label: '8. Mẫu 13. Nghị quyết đề nghị chính thức chi bộ', code: 'Mẫu 8' });
+      } else {
+        list.push({ key: 'mau4', label: '5. Mẫu 4. Bản kiểm điểm Đảng viên (chính thức)', code: 'Mẫu 4' });
       }
     } else {
       list.push({ key: 'mau2', label: '1. Mẫu 2. Đơn xin chuyển sinh hoạt Đảng tạm thời', code: 'Mẫu 2' });
     }
     
-    list.push({ 
-      key: 'mau4', 
-      label: `${transferType === 'chuyen_ra' ? (isProbationary ? '3' : '2') : '2'}. Mẫu 4. Bản tự kiểm điểm chuyển sinh hoạt Đảng`, 
-      code: 'Mẫu 4' 
-    });
-
-    if (isProbationary && generateGuiderDoc) {
-      list.push({ key: 'mau5', label: '4. Mẫu 5. Bản nhận xét Đảng viên dự bị của ĐVHD', code: 'Mẫu 5' });
-    }
-
     return list;
   }, [docRecord, transferType, isProbationary, generateGuiderDoc]);
 
-  const handleOpenDocModal = (record) => {
+  const handleSelectMemberForDocTab = (recordOrId) => {
+    let record = null;
+    if (typeof recordOrId === 'string') {
+      record = activeProcesses.find(p => p.id === recordOrId);
+    } else {
+      record = recordOrId;
+    }
+    if (!record) return;
+
+    setSelectedDocMemberId(record.id);
     setDocRecord(record);
     const isReserve = record.dang_vien_du_bi === true || record.loai_dang_vien === 'Dự bị' || record.loai_dang_vien === 'dubi';
     setIsProbationary(isReserve);
     
     const defaultType = record.loai_chuyen === 'chuyen_tam_thoi' ? 'chuyen_tam_thoi' : 'chuyen_ra';
     setTransferType(defaultType);
-    setGenerateGuiderDoc(isReserve); // Enable by default for reserve members
+    setGenerateGuiderDoc(isReserve); 
 
-    // Set initial form fields
     const defaultUuDiem = record.uu_diem || 
       "- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.\n" +
       "- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.\n" +
@@ -305,6 +476,7 @@ const HoSoChuyenRa = () => {
       ? "Tôi đã hoàn thành chương trình học và đã tốt nghiệp ra trường. Cần chuyển đến tổ chức Đảng mới để tiếp tục hoàn thành nhiệm vụ Đảng viên."
       : "Tôi hiện đang đi thực tập ở quê nên cần phải chuyển sinh hoạt tạm thời về quê để đảm bảo sinh hoạt Đảng đầy đủ, đúng quy định.";
 
+    const parts = (record.noi_chuyen_den || '').split(',').map(s => s.trim());
     docForm.setFieldsValue({
       loai_chuyen_sh: defaultType,
       ho_ten: record.ho_ten,
@@ -316,11 +488,13 @@ const HoSoChuyenRa = () => {
       ngay_vao_dang: safeDate(record.ngay_vao_dang),
       ngay_chinh_thuc: safeDate(record.ngay_chinh_thuc),
       que_quan: record.que_quan || record.tinh_tp_qq || '',
-      dia_chi: record.chi_tiet_dc || record.tinh_tp_tt || record.dia_chi_thuong_tru || '',
+      dia_chi: record.chi_tiet_dc || record.dia_chi_thuong_tru || '',
       so_the_dang: record.so_the_dang || record.so_quyet_dinh_dvct || record.so_qd || '',
       so_dien_thoai: record.so_dien_thoai || record.sdt || '',
       nhiem_vu_dang: record.nhiem_vu_dang || 'Đảng viên',
-      noi_chuyen_den: record.noi_chuyen_den || '',
+      noi_chuyen_den_chi_bo: parts[0] || '',
+      noi_chuyen_den_dang_bo_co_so: parts[1] || '',
+      noi_chuyen_den_dang_bo_cap_tren: parts[2] || '',
       ly_do_chuyen: defaultReason,
       uu_diem: defaultUuDiem,
       khuyet_diem: defaultKhuyetDiem,
@@ -336,7 +510,6 @@ const HoSoChuyenRa = () => {
 
     setGuiderFound(null);
 
-    // Look up guider profile in official members
     if (isReserve && record.dvhd) {
       const guider = activeMembers.find(m => 
         m.ho_ten && m.ho_ten.trim().toLowerCase() === record.dvhd.trim().toLowerCase() && 
@@ -347,14 +520,17 @@ const HoSoChuyenRa = () => {
           dvhd_id: guider.id,
           dvhd_ngay_sinh: safeDate(guider.ngay_sinh),
           dvhd_ngay_vao_dang: safeDate(guider.ngay_vao_dang),
-          dvhd_ngay_chinh_thuc: safeDate(guider.ngay_chinh_thuc),
+          dvhd_ngay_chinh_thuc: safeDate(guider.dvhd_ngay_chinh_thuc || guider.ngay_chinh_thuc),
         });
         setGuiderFound('found');
       } else {
         setGuiderFound('not_found');
       }
     }
+  };
 
+  const handleOpenDocModal = (record) => {
+    handleSelectMemberForDocTab(record);
     setIsDocModalVisible(true);
   };
 
@@ -394,36 +570,47 @@ const HoSoChuyenRa = () => {
     await docForm.validateFields();
     const values = docForm.getFieldsValue();
     
+    let combinedNoiChuyenDen = '';
+    if (values.noi_chuyen_den_chi_bo === undefined && values.noi_chuyen_den_dang_bo_co_so === undefined && values.noi_chuyen_den_dang_bo_cap_tren === undefined) {
+      combinedNoiChuyenDen = docRecord.noi_chuyen_den || '';
+    } else {
+      const parts = (docRecord.noi_chuyen_den || '').split(',').map(s => s.trim());
+      const chiBo = values.noi_chuyen_den_chi_bo !== undefined ? values.noi_chuyen_den_chi_bo.trim() : (parts[0] || '');
+      const dangBoCoSo = values.noi_chuyen_den_dang_bo_co_so !== undefined ? values.noi_chuyen_den_dang_bo_co_so.trim() : (parts[1] || '');
+      const dangBoCapTren = values.noi_chuyen_den_dang_bo_cap_tren !== undefined ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : (parts[2] || '');
+      combinedNoiChuyenDen = [chiBo, dangBoCoSo, dangBoCapTren].filter(Boolean).join(', ');
+    }
+
     return {
       ...docRecord,
       ...values,
-      ho_ten: values.ho_ten || docRecord.ho_ten || '',
-      mssv: values.mssv || docRecord.mssv || '',
-      gioi_tinh: values.gioi_tinh || docRecord.gioi_tinh || 'Nam',
-      lop: values.lop || docRecord.lop || '',
-      khoa: values.khoa || docRecord.khoa || '',
-      que_quan: values.que_quan || docRecord.que_quan || '',
-      dia_chi: values.dia_chi || docRecord.chi_tiet_dc || docRecord.dia_chi_thuong_tru || '',
-      so_the_dang: values.so_the_dang || docRecord.so_the_dang || '',
-      so_dien_thoai: values.so_dien_thoai || docRecord.so_dien_thoai || '',
-      nhiem_vu_dang: values.nhiem_vu_dang || docRecord.nhiem_vu_dang || 'Đảng viên',
-      dvhd: values.dvhd || docRecord.dvhd || '',
-      noi_chuyen_den: values.noi_chuyen_den || docRecord.noi_chuyen_den || '',
-      uu_diem: values.uu_diem || docRecord.uu_diem || '',
-      khuyet_diem: values.khuyet_diem || docRecord.khuyet_diem || '',
-      loai_chuyen_sh: values.loai_chuyen_sh || docRecord.loai_chuyen || 'chuyen_ra',
+      ho_ten: values.ho_ten !== undefined ? values.ho_ten : (docRecord.ho_ten || ''),
+      mssv: values.mssv !== undefined ? values.mssv : (docRecord.mssv || ''),
+      gioi_tinh: values.gioi_tinh !== undefined ? values.gioi_tinh : (docRecord.gioi_tinh || 'Nam'),
+      lop: values.lop !== undefined ? values.lop : (docRecord.lop || ''),
+      khoa: values.khoa !== undefined ? values.khoa : (docRecord.khoa || ''),
+      que_quan: values.que_quan !== undefined ? values.que_quan : (docRecord.que_quan || ''),
+      dia_chi: values.dia_chi !== undefined ? values.dia_chi : (docRecord.chi_tiet_dc || docRecord.dia_chi_thuong_tru || ''),
+      so_the_dang: values.so_the_dang !== undefined ? values.so_the_dang : (docRecord.so_the_dang || ''),
+      so_dien_thoai: values.so_dien_thoai !== undefined ? values.so_dien_thoai : (docRecord.so_dien_thoai || ''),
+      nhiem_vu_dang: values.nhiem_vu_dang !== undefined ? values.nhiem_vu_dang : (docRecord.nhiem_vu_dang || 'Đảng viên'),
+      dvhd: values.dvhd !== undefined ? values.dvhd : (docRecord.dvhd || ''),
+      noi_chuyen_den: combinedNoiChuyenDen,
+      uu_diem: values.uu_diem !== undefined ? values.uu_diem : (docRecord.uu_diem || ''),
+      khuyet_diem: values.khuyet_diem !== undefined ? values.khuyet_diem : (docRecord.khuyet_diem || ''),
+      loai_chuyen_sh: values.loai_chuyen_sh !== undefined ? values.loai_chuyen_sh : (docRecord.loai_chuyen || 'chuyen_ra'),
       dang_vien_du_bi: docRecord.dang_vien_du_bi || false,
       loai_dang_vien: docRecord.loai_dang_vien || '',
-      tinh_tp: values.tinh_tp || 'Đà Nẵng',
+      tinh_tp: values.tinh_tp !== undefined ? values.tinh_tp : (docRecord.tinh_tp || 'Đà Nẵng'),
       // Override all date fields with formatted strings to prevent Timestamp objects
-      ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : '',
-      ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : '',
-      ngay_chinh_thuc: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : '',
-      ngay_ky: values.ngay_ky ? values.ngay_ky.format('YYYY-MM-DD') : '',
-      ngay_phan_cong: values.ngay_phan_cong ? values.ngay_phan_cong.format('YYYY-MM-DD') : '',
-      dvhd_ngay_sinh: values.dvhd_ngay_sinh ? values.dvhd_ngay_sinh.format('YYYY-MM-DD') : '',
-      dvhd_ngay_vao_dang: values.dvhd_ngay_vao_dang ? values.dvhd_ngay_vao_dang.format('YYYY-MM-DD') : '',
-      dvhd_ngay_chinh_thuc: values.dvhd_ngay_chinh_thuc ? values.dvhd_ngay_chinh_thuc.format('YYYY-MM-DD') : '',
+      ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_sinh) ? safeDate(docRecord.ngay_sinh).format('YYYY-MM-DD') : ''),
+      ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_vao_dang) ? safeDate(docRecord.ngay_vao_dang).format('YYYY-MM-DD') : ''),
+      ngay_chinh_thuc: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_chinh_thuc) ? safeDate(docRecord.ngay_chinh_thuc).format('YYYY-MM-DD') : ''),
+      ngay_ky: values.ngay_ky ? values.ngay_ky.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_ky) ? safeDate(docRecord.ngay_ky).format('YYYY-MM-DD') : ''),
+      ngay_phan_cong: values.ngay_phan_cong ? values.ngay_phan_cong.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_phan_cong) ? safeDate(docRecord.ngay_phan_cong).format('YYYY-MM-DD') : ''),
+      dvhd_ngay_sinh: values.dvhd_ngay_sinh ? values.dvhd_ngay_sinh.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_sinh) ? safeDate(docRecord.dvhd_ngay_sinh).format('YYYY-MM-DD') : ''),
+      dvhd_ngay_vao_dang: values.dvhd_ngay_vao_dang ? values.dvhd_ngay_vao_dang.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_vao_dang) ? safeDate(docRecord.dvhd_ngay_vao_dang).format('YYYY-MM-DD') : ''),
+      dvhd_ngay_chinh_thuc: values.dvhd_ngay_chinh_thuc ? values.dvhd_ngay_chinh_thuc.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_chinh_thuc) ? safeDate(docRecord.dvhd_ngay_chinh_thuc).format('YYYY-MM-DD') : ''),
     };
   };
 
@@ -435,45 +622,74 @@ const HoSoChuyenRa = () => {
       
       const isReserve = docRecord.dang_vien_du_bi === true || docRecord.loai_dang_vien === 'Dự bị' || docRecord.loai_dang_vien === 'dubi';
 
+      let combinedNoiChuyenDen = '';
+      if (values.noi_chuyen_den_chi_bo === undefined && values.noi_chuyen_den_dang_bo_co_so === undefined && values.noi_chuyen_den_dang_bo_cap_tren === undefined) {
+        combinedNoiChuyenDen = docRecord.noi_chuyen_den || '';
+      } else {
+        const parts = (docRecord.noi_chuyen_den || '').split(',').map(s => s.trim());
+        const chiBo = values.noi_chuyen_den_chi_bo !== undefined ? values.noi_chuyen_den_chi_bo.trim() : (parts[0] || '');
+        const dangBoCoSo = values.noi_chuyen_den_dang_bo_co_so !== undefined ? values.noi_chuyen_den_dang_bo_co_so.trim() : (parts[1] || '');
+        const dangBoCapTren = values.noi_chuyen_den_dang_bo_cap_tren !== undefined ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : (parts[2] || '');
+        combinedNoiChuyenDen = [chiBo, dangBoCoSo, dangBoCapTren].filter(Boolean).join(', ');
+      }
+
       // 1. Update dang_vien collection
       const memberRef = doc(db, "dang_vien", docRecord.dang_vien_id || docRecord.id);
       const memberUpdateData = {
-        gioi_tinh: values.gioi_tinh || 'Nam',
-        lop: values.lop || '',
-        khoa: values.khoa || '',
-        ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : '',
-        so_dien_thoai: values.so_dien_thoai || '',
-        que_quan: values.que_quan || '',
-        dia_chi_thuong_tru: values.dia_chi || '',
-        nhiem_vu_dang: values.nhiem_vu_dang || 'Đảng viên',
-        uu_diem: values.uu_diem || '',
-        khuyet_diem: values.khuyet_diem || '',
+        gioi_tinh: values.gioi_tinh !== undefined ? values.gioi_tinh : (docRecord.gioi_tinh || 'Nam'),
+        lop: values.lop !== undefined ? values.lop : (docRecord.lop || ''),
+        khoa: values.khoa !== undefined ? values.khoa : (docRecord.khoa || ''),
+        ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_sinh) ? safeDate(docRecord.ngay_sinh).format('YYYY-MM-DD') : ''),
+        so_dien_thoai: values.so_dien_thoai !== undefined ? values.so_dien_thoai : (docRecord.so_dien_thoai || ''),
+        que_quan: values.que_quan !== undefined ? values.que_quan : (docRecord.que_quan || ''),
+        dia_chi_thuong_tru: values.dia_chi !== undefined ? values.dia_chi : (docRecord.chi_tiet_dc || docRecord.dia_chi_thuong_tru || ''),
+        nhiem_vu_dang: values.nhiem_vu_dang !== undefined ? values.nhiem_vu_dang : (docRecord.nhiem_vu_dang || 'Đảng viên'),
+        uu_diem: values.uu_diem !== undefined ? values.uu_diem : (docRecord.uu_diem || ''),
+        khuyet_diem: values.khuyet_diem !== undefined ? values.khuyet_diem : (docRecord.khuyet_diem || ''),
         updated_at: new Date().toISOString()
       };
 
-      if (values.so_the_dang) memberUpdateData.so_the_dang = values.so_the_dang;
-      if (values.ngay_vao_dang) memberUpdateData.ngay_vao_dang = values.ngay_vao_dang.format('YYYY-MM-DD');
-      if (values.ngay_chinh_thuc && !isReserve) memberUpdateData.ngay_chinh_thuc = values.ngay_chinh_thuc.format('YYYY-MM-DD');
-      if (values.dvhd) memberUpdateData.dvhd = values.dvhd;
-      if (values.dvhd_ngay_sinh) memberUpdateData.dvhd_ngay_sinh = values.dvhd_ngay_sinh.format('YYYY-MM-DD');
-      if (values.dvhd_ngay_vao_dang) memberUpdateData.dvhd_ngay_vao_dang = values.dvhd_ngay_vao_dang.format('YYYY-MM-DD');
-      if (values.dvhd_ngay_chinh_thuc) memberUpdateData.dvhd_ngay_chinh_thuc = values.dvhd_ngay_chinh_thuc.format('YYYY-MM-DD');
-      if (values.ngay_phan_cong) memberUpdateData.ngay_phan_cong = values.ngay_phan_cong.format('YYYY-MM-DD');
+      if (values.so_the_dang !== undefined) {
+        memberUpdateData.so_the_dang = values.so_the_dang;
+      } else if (docRecord.so_the_dang || docRecord.so_quyet_dinh_dvct || docRecord.so_qd) {
+        memberUpdateData.so_the_dang = docRecord.so_the_dang || docRecord.so_quyet_dinh_dvct || docRecord.so_qd;
+      }
+
+      const formNgayVaoDang = values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_vao_dang) ? safeDate(docRecord.ngay_vao_dang).format('YYYY-MM-DD') : '');
+      if (formNgayVaoDang) memberUpdateData.ngay_vao_dang = formNgayVaoDang;
+
+      const formNgayChinhThuc = values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_chinh_thuc) ? safeDate(docRecord.ngay_chinh_thuc).format('YYYY-MM-DD') : '');
+      if (formNgayChinhThuc && !isReserve) memberUpdateData.ngay_chinh_thuc = formNgayChinhThuc;
+
+      if (values.dvhd !== undefined) memberUpdateData.dvhd = values.dvhd;
+      else if (docRecord.dvhd) memberUpdateData.dvhd = docRecord.dvhd;
+
+      const formDvhdNgaySinh = values.dvhd_ngay_sinh ? values.dvhd_ngay_sinh.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_sinh) ? safeDate(docRecord.dvhd_ngay_sinh).format('YYYY-MM-DD') : '');
+      if (formDvhdNgaySinh) memberUpdateData.dvhd_ngay_sinh = formDvhdNgaySinh;
+
+      const formDvhdNgayVaoDang = values.dvhd_ngay_vao_dang ? values.dvhd_ngay_vao_dang.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_vao_dang) ? safeDate(docRecord.dvhd_ngay_vao_dang).format('YYYY-MM-DD') : '');
+      if (formDvhdNgayVaoDang) memberUpdateData.dvhd_ngay_vao_dang = formDvhdNgayVaoDang;
+
+      const formDvhdNgayChinhThuc = values.dvhd_ngay_chinh_thuc ? values.dvhd_ngay_chinh_thuc.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_chinh_thuc) ? safeDate(docRecord.dvhd_ngay_chinh_thuc).format('YYYY-MM-DD') : '');
+      if (formDvhdNgayChinhThuc) memberUpdateData.dvhd_ngay_chinh_thuc = formDvhdNgayChinhThuc;
+
+      const formNgayPhanCong = values.ngay_phan_cong ? values.ngay_phan_cong.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_phan_cong) ? safeDate(docRecord.ngay_phan_cong).format('YYYY-MM-DD') : '');
+      if (formNgayPhanCong) memberUpdateData.ngay_phan_cong = formNgayPhanCong;
 
       await updateDoc(memberRef, memberUpdateData);
 
       // 2. Update chuyen_sinh_hoat collection
       const transferRef = doc(db, "chuyen_sinh_hoat", docRecord.id);
       const transferUpdateData = {
-        ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : '',
-        lop: values.lop || '',
-        khoa: values.khoa || '',
-        so_dien_thoai: values.so_dien_thoai || '',
-        noi_thuong_tru: values.dia_chi || '',
-        noi_chuyen_den: values.noi_chuyen_den || '',
-        ly_do_chuyen: values.ly_do_chuyen || '',
-        loai_chuyen: values.loai_chuyen_sh || 'chuyen_ra',
-        ghi_chu: values.ghi_chu || '',
+        ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_sinh) ? safeDate(docRecord.ngay_sinh).format('YYYY-MM-DD') : ''),
+        lop: values.lop !== undefined ? values.lop : (docRecord.lop || ''),
+        khoa: values.khoa !== undefined ? values.khoa : (docRecord.khoa || ''),
+        so_dien_thoai: values.so_dien_thoai !== undefined ? values.so_dien_thoai : (docRecord.so_dien_thoai || ''),
+        noi_thuong_tru: values.dia_chi !== undefined ? values.dia_chi : (docRecord.chi_tiet_dc || docRecord.dia_chi_thuong_tru || ''),
+        noi_chuyen_den: combinedNoiChuyenDen,
+        ly_do_chuyen: values.ly_do_chuyen !== undefined ? values.ly_do_chuyen : (docRecord.ly_do_chuyen || ''),
+        loai_chuyen: values.loai_chuyen_sh !== undefined ? values.loai_chuyen_sh : (docRecord.loai_chuyen || 'chuyen_ra'),
+        ghi_chu: values.ghi_chu !== undefined ? values.ghi_chu : (docRecord.ghi_chu || ''),
         updated_at: new Date().toISOString()
       };
       
@@ -495,19 +711,19 @@ const HoSoChuyenRa = () => {
         so_the_dang: values.so_the_dang || docRecord.so_the_dang || '',
         so_dien_thoai: values.so_dien_thoai || docRecord.so_dien_thoai || '',
         nhiem_vu_dang: values.nhiem_vu_dang || docRecord.nhiem_vu_dang || 'Đảng viên',
-        noi_chuyen_den: values.noi_chuyen_den || docRecord.noi_chuyen_den || '',
+        noi_chuyen_den: combinedNoiChuyenDen,
         dvhd: values.dvhd || docRecord.dvhd || '',
         uu_diem: values.uu_diem || docRecord.uu_diem || '',
         khuyet_diem: values.khuyet_diem || docRecord.khuyet_diem || '',
         loai_chuyen_sh: values.loai_chuyen_sh || docRecord.loai_chuyen || 'chuyen_ra',
-        ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : '',
-        ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : '',
-        ngay_chinh_thuc: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : '',
-        ngay_ky: values.ngay_ky ? values.ngay_ky.format('YYYY-MM-DD') : '',
-        ngay_phan_cong: values.ngay_phan_cong ? values.ngay_phan_cong.format('YYYY-MM-DD') : '',
-        dvhd_ngay_sinh: values.dvhd_ngay_sinh ? values.dvhd_ngay_sinh.format('YYYY-MM-DD') : '',
-        dvhd_ngay_vao_dang: values.dvhd_ngay_vao_dang ? values.dvhd_ngay_vao_dang.format('YYYY-MM-DD') : '',
-        dvhd_ngay_chinh_thuc: values.dvhd_ngay_chinh_thuc ? values.dvhd_ngay_chinh_thuc.format('YYYY-MM-DD') : '',
+        ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_sinh) ? safeDate(docRecord.ngay_sinh).format('YYYY-MM-DD') : ''),
+        ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_vao_dang) ? safeDate(docRecord.ngay_vao_dang).format('YYYY-MM-DD') : ''),
+        ngay_chinh_thuc: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_chinh_thuc) ? safeDate(docRecord.ngay_chinh_thuc).format('YYYY-MM-DD') : ''),
+        ngay_ky: values.ngay_ky ? values.ngay_ky.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_ky) ? safeDate(docRecord.ngay_ky).format('YYYY-MM-DD') : ''),
+        ngay_phan_cong: values.ngay_phan_cong ? values.ngay_phan_cong.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_phan_cong) ? safeDate(docRecord.ngay_phan_cong).format('YYYY-MM-DD') : ''),
+        dvhd_ngay_sinh: values.dvhd_ngay_sinh ? values.dvhd_ngay_sinh.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_sinh) ? safeDate(docRecord.dvhd_ngay_sinh).format('YYYY-MM-DD') : ''),
+        dvhd_ngay_vao_dang: values.dvhd_ngay_vao_dang ? values.dvhd_ngay_vao_dang.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_vao_dang) ? safeDate(docRecord.dvhd_ngay_vao_dang).format('YYYY-MM-DD') : ''),
+        dvhd_ngay_chinh_thuc: values.dvhd_ngay_chinh_thuc ? values.dvhd_ngay_chinh_thuc.format('YYYY-MM-DD') : (safeDate(docRecord.dvhd_ngay_chinh_thuc) ? safeDate(docRecord.dvhd_ngay_chinh_thuc).format('YYYY-MM-DD') : ''),
         dang_vien_du_bi: isReserve,
         tinh_tp: values.tinh_tp || 'Đà Nẵng'
       };
@@ -544,6 +760,9 @@ const HoSoChuyenRa = () => {
         case 'mau4':
           await docGeneratorService.generateKiemDiemChuyenDang(data);
           break;
+        case 'mau8':
+          await docGeneratorService.generateNghiQuyetDeNghiChinhThuc(data);
+          break;
         default:
           message.error("Biểu mẫu không tồn tại");
       }
@@ -579,6 +798,68 @@ const HoSoChuyenRa = () => {
 
   // === 3-STEP TRANSFER-OUT ACTIONS ===
   
+  const handleSelectMemberForAdd = (memberId, registrationData = null) => {
+    try {
+      setSelectedMemberId(memberId);
+      const m = activeMembers.find(x => x.id === memberId);
+      if (!m) return;
+
+      const defaultUuDiem = m.uu_diem || "- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.\n- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.\n- Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.\n- Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.\n- Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.";
+      const defaultKhuyetDiem = m.khuyet_diem || "Không có khuyết điểm gì lớn";
+      
+      const loaiChuyen = registrationData 
+        ? (registrationData.loai_chuyen === 'chinh_thuc' ? 'chuyen_ra' : 'chuyen_tam_thoi')
+        : 'chuyen_ra';
+        
+      const defaultReason = registrationData?.ly_do || (loaiChuyen === 'chuyen_ra'
+        ? "Tôi đã hoàn thành chương trình học và đã tốt nghiệp ra trường. Cần chuyển đến tổ chức Đảng mới để tiếp tục hoàn thành nhiệm vụ Đảng viên."
+        : "Tôi hiện đang đi thực tập ở quê nên cần phải chuyển sinh hoạt tạm thời về quê để đảm bảo sinh hoạt Đảng đầy đủ, đúng quy định.");
+
+      let chiBo = '';
+      let dangBoCoSo = '';
+      let dangBoCapTren = '';
+      
+      const sourceNoiChuyenDen = registrationData?.noi_chuyen_den || m.noi_chuyen_den || '';
+      if (sourceNoiChuyenDen) {
+        const parts = sourceNoiChuyenDen.split(',').map(s => s.trim());
+        chiBo = parts[0] || '';
+        dangBoCoSo = parts[1] || '';
+        dangBoCapTren = parts[2] || '';
+      }
+
+      setSelectedMemberId(m.id);
+      addForm.setFieldsValue({
+        dang_vien_select: m.id,
+        loai_chuyen_sh: loaiChuyen,
+        mssv: m.mssv || '',
+        gioi_tinh: m.gioi_tinh || 'Nam',
+        lop: m.lop || '',
+        khoa: m.khoa || '',
+        ngay_sinh: safeDate(m.ngay_sinh),
+        ngay_vao_dang: safeDate(m.ngay_vao_dang),
+        ngay_chinh_thuc: safeDate(m.ngay_chinh_thuc),
+        so_dien_thoai: m.so_dien_thoai || m.sdt || '',
+        so_the_dang: m.so_the_dang || m.so_quyet_dinh_dvct || m.so_qd || '',
+        que_quan: m.que_quan || m.tinh_tp_qq || '',
+        dia_chi: m.chi_tiet_dc || m.tinh_tp_tt || m.dia_chi_thuong_tru || '',
+        nhiem_vu_dang: m.nhiem_vu_dang || 'Đảng viên',
+        noi_chuyen_den_chi_bo: chiBo,
+        noi_chuyen_den_dang_bo_co_so: dangBoCoSo,
+        noi_chuyen_den_dang_bo_cap_tren: dangBoCapTren,
+        tinh_tp: 'Đà Nẵng',
+        ly_do_chuyen: defaultReason,
+        uu_diem: registrationData?.uu_diem || defaultUuDiem,
+        khuyet_diem: registrationData?.khuyet_diem || defaultKhuyetDiem,
+        ghi_chu: m.ghi_chu || '',
+        ngay_ky: dayjs(),
+        _registrationId: registrationData?.id || null
+      });
+    } catch (err) {
+      console.error("Error setting fields value:", err);
+      message.error("Lỗi khi tự động điền dữ liệu. Xin hãy nhập thủ công.");
+    }
+  };
+
   const handleAddTransferSubmit = async () => {
     try {
       const values = await addForm.validateFields();
@@ -592,6 +873,12 @@ const HoSoChuyenRa = () => {
       
       const isReserve = member.loai_dang_vien === "Dự bị" || member.dang_vien_du_bi === true || member.loai_dang_vien === "dubi";
       const fullAddressStr = values.dia_chi || '';
+
+      const combinedNoiChuyenDen = [
+        values.noi_chuyen_den_chi_bo ? values.noi_chuyen_den_chi_bo.trim() : '',
+        values.noi_chuyen_den_dang_bo_co_so ? values.noi_chuyen_den_dang_bo_co_so.trim() : '',
+        values.noi_chuyen_den_dang_bo_cap_tren ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
+      ].filter(Boolean).join(', ');
       
       const newRecord = {
         dang_vien_id: member.id,
@@ -607,12 +894,16 @@ const HoSoChuyenRa = () => {
         noi_tam_tru: member.dia_chi_tam_tru || '',
         sdt_nguoi_than: member.sdt_nguoi_than || '',
         ho_ten_nguoi_than: member.ho_ten_nguoi_than || '',
-        ngay_nop_ho_so: values.ngay_ky ? values.ngay_ky.format('YYYY-MM-DD') : new Date().toISOString().split('T')[0],
+        ngay_nop_ho_so: values.ngay_nop_ho_so ? values.ngay_nop_ho_so.format('YYYY-MM-DD') : new Date().toISOString().split('T')[0],
         buoc: 1,
         loai_chuyen: values.loai_chuyen_sh || 'chuyen_ra',
-        ghi_chu: values.ly_do_chuyen || '',
+        ghi_chu: values.ghi_chu || '',
+        ghi_chu_buoc_1: values.ghi_chu || '',
         status: 'processing',
         created_at: new Date().toISOString(),
+        lop: values.lop || member.lop || '',
+        khoa: values.khoa || member.khoa || '',
+        noi_chuyen_den: combinedNoiChuyenDen,
         history: [{
           step: 1,
           time: new Date().toISOString(),
@@ -672,6 +963,7 @@ const HoSoChuyenRa = () => {
                 dvhd_ngay_sinh: values.dvhd_ngay_sinh ? values.dvhd_ngay_sinh.format('YYYY-MM-DD') : '',
                 dvhd_ngay_vao_dang: values.dvhd_ngay_vao_dang ? values.dvhd_ngay_vao_dang.format('YYYY-MM-DD') : '',
                 dvhd_ngay_chinh_thuc: values.dvhd_ngay_chinh_thuc ? values.dvhd_ngay_chinh_thuc.format('YYYY-MM-DD') : '',
+                noi_chuyen_den: combinedNoiChuyenDen,
              };
              
              const list = [];
@@ -709,6 +1001,50 @@ const HoSoChuyenRa = () => {
     setIsStepModalVisible(true);
   };
 
+  const handleCompleteClick = (record) => {
+    setSelectedProcessForCompletion(record);
+    
+    const isTamThoi = record.loai_chuyen === 'chuyen_tam_thoi';
+    let chiBo = '', dangBoCoSo = '', dangBoCapTren = '';
+    
+    if (record.noi_chuyen_den) {
+      const parts = record.noi_chuyen_den.split(',').map(s => s.trim());
+      chiBo = parts[0] || '';
+      dangBoCoSo = parts[1] || '';
+      dangBoCapTren = parts[2] || '';
+    }
+    
+    const initialVals = isTamThoi ? {
+      ngay_chuyen_tam_thoi: dayjs(),
+      thoi_gian_ve: record.thoi_gian_ve || '',
+      noi_chuyen_den_chi_bo: chiBo,
+      noi_chuyen_den_dang_bo_co_so: dangBoCoSo,
+      noi_chuyen_den_dang_bo_cap_tren: dangBoCapTren,
+      ghi_chu: ''
+    } : {
+      ngay_chuyen_ra: dayjs(),
+      noi_chuyen_den_chi_bo: chiBo,
+      noi_chuyen_den_dang_bo_co_so: dangBoCoSo,
+      noi_chuyen_den_dang_bo_cap_tren: dangBoCapTren,
+      ghi_chu: ''
+    };
+    
+    completeForm.setFieldsValue(initialVals);
+    
+    const defaultEmail = generateDefaultEmailTemplate(record, {
+      ...initialVals,
+      noi_chuyen_ra: record.noi_chuyen_den || '',
+      noi_chuyen_den_tam_thoi: record.noi_chuyen_den || ''
+    });
+    
+    setEmailSubject(defaultEmail.subject);
+    setEmailHtml(defaultEmail.html);
+    setSendEmailChecked(true);
+    setIsEmailEditedManually(false);
+    
+    setIsCompleteModalVisible(true);
+  };
+
   const submitAdvanceStep = async () => {
     if (!transitioningRecord) return;
     setStepLoading(true);
@@ -723,6 +1059,8 @@ const HoSoChuyenRa = () => {
         updated_by: currentUser?.email || currentUser?.username || "Admin"
       }];
 
+      const dateStr = stepDate ? stepDate.format('YYYY-MM-DD') : new Date().toISOString().split('T')[0];
+
       const updateFields = {
         buoc: nextBuoc,
         history: newHistory,
@@ -730,9 +1068,11 @@ const HoSoChuyenRa = () => {
       };
 
       if (nextBuoc === 2) {
-        updateFields.ngay_hoan_thien_gui_vpdu = new Date().toISOString().split('T')[0];
+        updateFields.ngay_hoan_thien_gui_vpdu = dateStr;
+        updateFields.ghi_chu_buoc_2 = stepNote || "";
       } else if (nextBuoc === 3) {
-        updateFields.ngay_gui_dhdn = new Date().toISOString().split('T')[0];
+        updateFields.ngay_gui_dhdn = dateStr;
+        updateFields.ghi_chu_buoc_3 = stepNote || "";
       }
 
       await updateDoc(doc(db, "chuyen_sinh_hoat", record.id), updateFields);
@@ -758,10 +1098,15 @@ const HoSoChuyenRa = () => {
       const record = selectedProcessForCompletion;
       const isTamThoi = record.loai_chuyen === 'chuyen_tam_thoi';
 
+      const noiChuyenStr = [
+        values.noi_chuyen_den_chi_bo ? values.noi_chuyen_den_chi_bo.trim() : '',
+        values.noi_chuyen_den_dang_bo_co_so ? values.noi_chuyen_den_dang_bo_co_so.trim() : '',
+        values.noi_chuyen_den_dang_bo_cap_tren ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
+      ].filter(Boolean).join(', ');
+
       if (isTamThoi) {
         const ngayChuyenStr = values.ngay_chuyen_tam_thoi.format('YYYY-MM-DD');
         const thoiGianVeStr = values.thoi_gian_ve;
-        const noiChuyenStr = values.noi_chuyen_den_tam_thoi;
         const ghiChuStr = values.ghi_chu || '';
 
         const newHistory = [...(record.history || []), {
@@ -783,9 +1128,13 @@ const HoSoChuyenRa = () => {
           completed_at: new Date().toISOString()
         });
 
-        // 2. Set temporary state of member to 'dang_di' in dang_vien
+        // 2. Set permanent state of member to 'da_chuyen' and temporary status to 'dang_di'
         await updateDoc(doc(db, "dang_vien", record.dang_vien_id), {
+          trang_thai: 'da_chuyen',
           trang_thai_tam_thoi: 'dang_di',
+          ngay_chuyen_ra: ngayChuyenStr,
+          noi_chuyen_ra: noiChuyenStr,
+          ghi_chu_chuyen: ghiChuStr,
           updated_at: new Date().toISOString()
         });
 
@@ -829,7 +1178,6 @@ const HoSoChuyenRa = () => {
 
       } else {
         const ngayChuyenStr = values.ngay_chuyen_ra.format('YYYY-MM-DD');
-        const noiChuyenStr = values.noi_chuyen_ra;
         const ghiChuStr = values.ghi_chu || '';
 
         const newHistory = [...(record.history || []), {
@@ -1161,7 +1509,14 @@ const HoSoChuyenRa = () => {
           buoc: row.buoc,
           loai_chuyen: row.loai_chuyen || 'chuyen_ra',
           status: 'processing',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          history: [{
+            step: row.buoc,
+            time: new Date().toISOString(),
+            date: row.ngay_nop_ho_so,
+            note: "Nhập từ Excel",
+            updated_by: currentUser?.email || currentUser?.username || "Admin"
+          }]
         };
 
         await addDoc(collection(db, "chuyen_sinh_hoat"), newRecord);
@@ -1205,7 +1560,10 @@ const HoSoChuyenRa = () => {
       render: (text, record) => (
         <span 
           style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 600, transition: 'color 0.15s', whiteSpace: 'nowrap' }} 
-          onClick={() => handleRowClick(record)}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleOpenEditProcessModal(record);
+          }}
           className="hover-underline"
         >
           {text}
@@ -1246,28 +1604,16 @@ const HoSoChuyenRa = () => {
         );
       }
     },
-    { 
-      title: 'Ngày nộp', 
-      dataIndex: 'ngay_nop_ho_so', 
-      key: 'ngay_nop_ho_so',
-      width: 95,
-      sorter: (a, b) => (a.ngay_nop_ho_so || '').localeCompare(b.ngay_nop_ho_so || ''),
-      render: (date) => (
-        <Space size={4} style={{ color: '#475569', fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' }}>
-          <CalendarOutlined style={{ color: '#94a3b8' }} />
-          <span>{date ? dayjs(date).format('DD/MM/YYYY') : '--'}</span>
-        </Space>
-      )
-    },
+
     { 
       title: 'Tiến trình (3 bước)', 
       key: 'tien_trinh',
       width: 190,
       render: (_, record) => {
         const steps = [
-          { label: 'Nộp HS', color: '#1890ff' },
-          { label: 'VPĐU', color: '#722ed1' },
-          { label: 'ĐHĐN', color: '#52c41a' }
+          { label: 'Nhận HS', field: 'ngay_nop_ho_so', fullLabel: 'Đã nhận hồ sơ', color: '#1890ff' },
+          { label: 'VPĐU', field: 'ngay_hoan_thien_gui_vpdu', fullLabel: 'Đã nộp hồ sơ lên VPĐU Trường', color: '#722ed1' },
+          { label: 'ĐHĐN', field: 'ngay_gui_dhdn', fullLabel: 'Đã nộp hồ sơ lên ĐHĐN', color: '#52c41a' }
         ];
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1291,20 +1637,30 @@ const HoSoChuyenRa = () => {
                 text = '#52c41a';
               }
               
+              const stepDateVal = record[step.field];
+              const historyForStep = (record.history || []).find(h => h.step === index + 1);
+              const noteText = historyForStep?.note ? `\nGhi chú: ${historyForStep.note}` : '';
+              const dateText = stepDateVal ? `\nNgày: ${dayjs(stepDateVal).format('DD/MM/YYYY')}` : '';
+              const updatedByText = historyForStep?.updated_by ? `\nNgười thực hiện: ${historyForStep.updated_by}` : '';
+              
+              const tooltipTitle = `${step.fullLabel}${dateText}${noteText}${updatedByText}`;
+              
               return (
                 <React.Fragment key={index}>
-                  <div style={{
-                    padding: '2px 6px',
-                    borderRadius: '12px',
-                    fontSize: '11px',
-                    backgroundColor: bg,
-                    border: border,
-                    color: text,
-                    fontWeight: weight,
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {step.label}
-                  </div>
+                  <Tooltip title={<div style={{ whiteSpace: 'pre-line' }}>{tooltipTitle}</div>}>
+                    <div style={{
+                      padding: '2px 6px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      backgroundColor: bg,
+                      border: border,
+                      color: text,
+                      fontWeight: weight,
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {step.label}
+                    </div>
+                  </Tooltip>
                   {index < 2 && <span style={{ color: '#cbd5e1', fontSize: '10px' }}>➔</span>}
                 </React.Fragment>
               );
@@ -1321,101 +1677,7 @@ const HoSoChuyenRa = () => {
       ellipsis: true,
       render: (text) => text ? <span style={{ fontSize: '12px', color: '#64748b' }}>{text}</span> : <span style={{ color: '#cbd5e1' }}>--</span>
     },
-    { 
-      title: 'Thao tác', 
-      key: 'actions',
-      width: 200,
-      align: 'center',
-      render: (_, record) => (
-        <Space size="small" style={{ whiteSpace: 'nowrap' }}>
-          <Button 
-            type="default" 
-            size="small"
-            icon={<DownloadOutlined />}
-            onClick={(e) => { e.stopPropagation(); handleOpenDocModal(record); }}
-            style={{ borderRadius: '20px', fontWeight: 600, fontSize: '11px', padding: '0 8px', height: '24px', color: '#c62828', borderColor: '#c62828' }}
-          >
-            Biểu mẫu
-          </Button>
-          {record.buoc === 1 && (
-            <Button 
-              type="primary" 
-              size="small"
-              icon={<ArrowRightOutlined />}
-              onClick={(e) => { e.stopPropagation(); handleAdvanceStep(record); }}
-              style={{ backgroundColor: '#2f54eb', borderColor: '#2f54eb', borderRadius: '20px', fontWeight: 600, fontSize: '11px', padding: '0 8px', height: '24px', boxShadow: '0 2px 4px rgba(47, 84, 235, 0.15)' }}
-            >
-              Gửi VPĐU
-            </Button>
-          )}
-          {record.buoc === 2 && (
-            <Button 
-              type="primary" 
-              size="small"
-              icon={<ArrowRightOutlined />}
-              onClick={(e) => { e.stopPropagation(); handleAdvanceStep(record); }}
-              style={{ backgroundColor: '#722ed1', borderColor: '#722ed1', borderRadius: '20px', fontWeight: 600, fontSize: '11px', padding: '0 8px', height: '24px', boxShadow: '0 2px 4px rgba(114, 46, 209, 0.15)' }}
-            >
-              Gửi ĐHĐN
-            </Button>
-          )}
-          {record.buoc === 3 && (
-            <Button 
-              type="primary" 
-              size="small"
-              icon={<CheckOutlined />}
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                setSelectedProcessForCompletion(record);
-                
-                const isTamThoi = record.loai_chuyen === 'chuyen_tam_thoi';
-                const initialVals = isTamThoi ? {
-                  ngay_chuyen_tam_thoi: dayjs(),
-                  thoi_gian_ve: '',
-                  noi_chuyen_den_tam_thoi: '',
-                  ghi_chu: ''
-                } : {
-                  ngay_chuyen_ra: dayjs(),
-                  noi_chuyen_ra: '',
-                  ghi_chu: ''
-                };
-                
-                completeForm.setFieldsValue(initialVals);
-                
-                // Pre-generate dynamic email mockup content
-                const defaultEmail = generateDefaultEmailTemplate(record, initialVals);
-                setEmailSubject(defaultEmail.subject);
-                setEmailHtml(defaultEmail.html);
-                setSendEmailChecked(true);
-                setIsEmailEditedManually(false);
-                
-                setIsCompleteModalVisible(true);
-              }}
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: '20px', fontWeight: 600, fontSize: '11px', padding: '0 8px', height: '24px', boxShadow: '0 2px 4px rgba(82, 196, 26, 0.15)' }}
-            >
-              Hoàn tất
-            </Button>
-          )}
-          <Popconfirm
-            title="Bạn có chắc muốn hủy tiến trình chuyển đi của đảng viên này không?"
-            onConfirm={(e) => { e.stopPropagation(); handleCancelProcess(record.id); }}
-            onCancel={(e) => e.stopPropagation()}
-            okText="Hủy"
-            cancelText="Đóng"
-            okButtonProps={{ danger: true }}
-          >
-            <Button 
-              type="text" 
-              danger 
-              size="small"
-              icon={<DeleteOutlined />} 
-              onClick={(e) => e.stopPropagation()} 
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
-            />
-          </Popconfirm>
-        </Space>
-      )
-    }
+
   ], [activeMembers, activeProcesses]);
 
   return (
@@ -1435,236 +1697,1183 @@ const HoSoChuyenRa = () => {
           text-decoration: underline;
         }
       `}</style>
-      
-      {/* Row 1: Page Header & Primary Actions - Styled fully uniform with the app */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', minWidth: '280px' }}>
-          <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px' }}>
-            Quản lý quy trình hồ sơ chuyển sinh hoạt Đảng
-          </Title>
-        </div>
-        
-        <Space size="middle">
-          <Button 
-            icon={<UploadOutlined />} 
-            onClick={() => {
-              setValidationResults([]);
-              setIsImportModalVisible(true);
-            }}
-            style={{ borderRadius: '6px', fontWeight: 500 }}
-          >
-            Nhập từ Excel
-          </Button>
-          <Button 
-            icon={<DownloadOutlined />} 
-            onClick={handleOpenExportModal}
-            style={{ borderRadius: '6px', fontWeight: 500 }}
-          >
-            Xuất Excel
-          </Button>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              addForm.resetFields();
-              addForm.setFieldsValue({
-                ngay_nop_ho_so: dayjs()
-              });
-              setIsAddModalVisible(true);
-            }}
-            style={{ backgroundColor: '#c62828', borderColor: '#c62828', borderRadius: '6px', fontWeight: 600 }}
-          >
-            Khởi tạo hồ sơ
-          </Button>
-        </Space>
-      </div>
 
-      {/* Row 2: Fluid Search & Dynamic Filters Strip */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        gap: '12px', 
-        marginBottom: 16, 
-        background: '#fafafa', 
-        padding: '10px 16px', 
-        borderRadius: '8px', 
-        border: '1px solid #f0f0f0',
-        flexWrap: 'wrap',
-        width: '100%'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#8c8c8c', fontSize: '13px', marginRight: '4px', fontWeight: 500, flexShrink: 0 }}>
-          <FilterOutlined style={{ color: '#c62828' }} /> <span>Bộ lọc tiến trình:</span>
-        </div>
-        
-        <div style={{ flex: 1.5, minWidth: '200px' }}>
-          <Input 
-            placeholder="Tìm kiếm theo MSSV hoặc họ tên..." 
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-            style={{ width: '100%', borderRadius: '6px' }} 
-            allowClear
-          />
-        </div>
-        
-        <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select 
-            placeholder="Lọc theo Bước Quy trình" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterStep} 
-            onChange={setFilterStep}
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            <Option value={1}>Bước 1: Đã nộp hồ sơ</Option>
-            <Option value={2}>Bước 2: Gửi Văn phòng Đảng ủy</Option>
-            <Option value={3}>Bước 3: Gửi Đại học Đà Nẵng</Option>
-          </Select>
-        </div>
-        
-        <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select 
-            placeholder="Lọc theo Loại chuyển" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterLoaiChuyen} 
-            onChange={setFilterLoaiChuyen}
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            <Option value="chuyen_chinh_thuc">Chuyển chính thức</Option>
-            <Option value="chuyen_du_bi">Chuyển dự bị</Option>
-            <Option value="chuyen_tam_thoi">Chuyển tạm thời</Option>
-          </Select>
-        </div>
-
-        <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select 
-            showSearch
-            placeholder="Lọc theo Nhóm sinh hoạt" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterNhom} 
-            onChange={setFilterNhom}
-            optionFilterProp="children"
-            filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            {uniqueNhom.map(n => <Option key={n} value={n}>{n}</Option>)}
-          </Select>
-        </div>
-
-        <div style={{ flex: 1, minWidth: '120px' }}>
-          <Select 
-            placeholder="Lọc theo Khóa" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterIntake} 
-            onChange={setFilterIntake}
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
-          </Select>
-        </div>
-
-        {(filterStep || filterNhom || searchText || filterLoaiChuyen || filterIntake) && (
-          <div style={{ flexShrink: 0 }}>
-            <Button 
-              type="text" 
-              danger 
-              onClick={resetFilters} 
-              icon={<CloseOutlined />}
-              style={{ display: 'flex', alignItems: 'center', fontWeight: 500 }}
-              size="small"
-            >
-              Xóa lọc
-            </Button>
+      <Tabs 
+        activeKey={activeTabKey} 
+        onChange={setActiveTabKey} 
+        type="card" 
+        size="large"
+        renderTabBar={forceTab ? () => <></> : undefined}
+      >
+        <Tabs.TabPane tab={<span><FileTextOutlined /> Quản lý hồ sơ</span>} key="1">
+          {/* Row 1: Page Header & Primary Actions - Styled fully uniform with the app */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: '1 1 auto', minWidth: '280px' }}>
+              <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
+              <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px' }}>
+                Quản lý quy trình hồ sơ chuyển sinh hoạt Đảng
+              </Title>
+            </div>
+            
+            <Space size="middle">
+              <Button 
+                icon={<UploadOutlined />} 
+                onClick={() => {
+                  setValidationResults([]);
+                  setIsImportModalVisible(true);
+                }}
+                style={{ borderRadius: '6px', fontWeight: 500 }}
+              >
+                Nhập từ Excel
+              </Button>
+              <Button 
+                icon={<DownloadOutlined />} 
+                onClick={handleOpenExportModal}
+                style={{ borderRadius: '6px', fontWeight: 500 }}
+              >
+                Xuất Excel
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  addForm.resetFields();
+                  addForm.setFieldsValue({
+                    ngay_nop_ho_so: dayjs()
+                  });
+                  setIsAddModalVisible(true);
+                }}
+                style={{ backgroundColor: '#c62828', borderColor: '#c62828', borderRadius: '6px', fontWeight: 600 }}
+              >
+                Khởi tạo hồ sơ
+              </Button>
+            </Space>
           </div>
-        )}
-      </div>
 
-      {/* Danh sách yêu cầu đăng ký chờ duyệt (nếu có) */}
-      {pendingRegistrations.length > 0 && (
-        <Card
-          title={<><Alert message={`Có ${pendingRegistrations.length} yêu cầu đăng ký chuyển sinh hoạt đang chờ duyệt`} type="warning" showIcon style={{ border: 'none', padding: '4px 12px', background: 'transparent' }} /></>}
-          bordered={false}
-          style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(250, 173, 20, 0.15)' }}
-          styles={{ header: { borderBottom: '1px solid #ffe58f', backgroundColor: '#fffbe6', borderRadius: '12px 12px 0 0' }, body: { padding: 0 } }}
-        >
-          <Table
-            columns={[
-              { title: 'Ngày ĐK', dataIndex: 'created_at', render: (val) => dayjs(val).format('DD/MM/YYYY HH:mm'), width: 140 },
-              { title: 'Họ tên', dataIndex: 'ho_ten', fontWeight: 600 },
-              { title: 'MSSV', dataIndex: 'mssv', width: 100 },
-              { title: 'Loại chuyển', dataIndex: 'loai_chuyen', render: (val) => val === 'chinh_thuc' ? <Tag color="blue">Chuyển chính thức</Tag> : <Tag color="orange">Chuyển tạm thời</Tag> },
-              { title: 'Nơi chuyển đến', dataIndex: 'noi_chuyen_den' },
-              { title: 'Thao tác', key: 'action', width: 120, align: 'center', render: (_, reg) => (
-                <Button type="primary" size="small" style={{ background: '#52c41a', borderColor: '#52c41a' }}
-                  onClick={() => {
-                    const m = activeMembers.find(x => x.id === reg.dang_vien_id);
-                    if (!m) return message.error('Không tìm thấy dữ liệu Đảng viên!');
-                    
-                    addForm.resetFields();
-                    addForm.setFieldsValue({
-                      dang_vien_select: m.id,
-                      loai_chuyen_sh: reg.loai_chuyen === 'chinh_thuc' ? 'chuyen_ra' : 'chuyen_tam_thoi',
-                      ngay_nop_ho_so: dayjs(),
-                      noi_chuyen_den: reg.noi_chuyen_den,
-                      ly_do: reg.ly_do,
-                      uu_diem: reg.uu_diem,
-                      khuyet_diem: reg.khuyet_diem,
-                      _registrationId: reg.id // Save this to update later
-                    });
-                    setIsAddModalVisible(true);
-                  }}
+          {/* Row 2: Fluid Search & Dynamic Filters Strip */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginBottom: 16, 
+            background: '#fafafa', 
+            padding: '10px 16px', 
+            borderRadius: '8px', 
+            border: '1px solid #f0f0f0',
+            flexWrap: 'wrap',
+            width: '100%'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#8c8c8c', fontSize: '13px', marginRight: '4px', fontWeight: 500, flexShrink: 0 }}>
+              <FilterOutlined style={{ color: '#c62828' }} /> <span>Bộ lọc tiến trình:</span>
+            </div>
+            
+            <div style={{ flex: 1.5, minWidth: '200px' }}>
+              <Input 
+                placeholder="Tìm kiếm theo MSSV hoặc họ tên..." 
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                style={{ width: '100%', borderRadius: '6px' }} 
+                allowClear
+              />
+            </div>
+            
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <Select 
+                placeholder="Lọc theo Bước Quy trình" 
+                style={{ width: '100%' }} 
+                allowClear 
+                value={filterStep} 
+                onChange={setFilterStep}
+                dropdownStyle={{ borderRadius: '6px' }}
+              >
+                <Option value={1}>Bước 1: Đã nộp hồ sơ</Option>
+                <Option value={2}>Bước 2: Gửi Văn phòng Đảng ủy</Option>
+                <Option value={3}>Bước 3: Gửi Đại học Đà Nẵng</Option>
+              </Select>
+            </div>
+            
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <Select 
+                placeholder="Lọc theo Loại chuyển" 
+                style={{ width: '100%' }} 
+                allowClear 
+                value={filterLoaiChuyen} 
+                onChange={setFilterLoaiChuyen}
+                dropdownStyle={{ borderRadius: '6px' }}
+              >
+                <Option value="chuyen_chinh_thuc">Chuyển chính thức</Option>
+                <Option value="chuyen_du_bi">Chuyển dự bị</Option>
+                <Option value="chuyen_tam_thoi">Chuyển tạm thời</Option>
+              </Select>
+            </div>
+
+            <div style={{ flex: 1, minWidth: '150px' }}>
+              <Select 
+                showSearch
+                placeholder="Lọc theo Nhóm sinh hoạt" 
+                style={{ width: '100%' }} 
+                allowClear 
+                value={filterNhom} 
+                onChange={setFilterNhom}
+                optionFilterProp="children"
+                filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                dropdownStyle={{ borderRadius: '6px' }}
+              >
+                {uniqueNhom.map(n => <Option key={n} value={n}>{n}</Option>)}
+              </Select>
+            </div>
+
+            <div style={{ flex: 1, minWidth: '120px' }}>
+              <Select 
+                placeholder="Lọc theo Khóa" 
+                style={{ width: '100%' }} 
+                allowClear 
+                value={filterIntake} 
+                onChange={setFilterIntake}
+                dropdownStyle={{ borderRadius: '6px' }}
+              >
+                {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
+              </Select>
+            </div>
+
+            {(filterStep || filterNhom || searchText || filterLoaiChuyen || filterIntake) && (
+              <div style={{ flexShrink: 0 }}>
+                <Button 
+                  type="text" 
+                  danger 
+                  onClick={resetFilters} 
+                  icon={<CloseOutlined />}
+                  style={{ display: 'flex', alignItems: 'center', fontWeight: 500 }}
+                  size="small"
                 >
-                  Tạo hồ sơ
+                  Xóa lọc
                 </Button>
-              )}
-            ]}
-            dataSource={pendingRegistrations}
-            rowKey="id"
-            pagination={false}
-            size="small"
-          />
-        </Card>
-      )}
+              </div>
+            )}
+          </div>
 
-      <Table
-        rowSelection={{
-          selectedRowKeys,
-          onChange: (newSelectedRowKeys) => {
-            setSelectedRowKeys(newSelectedRowKeys);
+          <Tabs defaultActiveKey="danh-sach-dang-lam" type="card" style={{ marginTop: '20px' }} className="premium-tabs">
+            <Tabs.TabPane tab={<span style={{ fontWeight: 600 }}>1. Danh sách hồ sơ chuyển ra đang làm</span>} key="danh-sach-dang-lam">
+              {/* 1. Danh sách hồ sơ chuyển ra đang làm */}
+              <Card 
+                title={
+              <Space>
+                <span style={{ display: 'inline-block', width: '4px', height: '16px', backgroundColor: '#c62828', borderRadius: '2px' }} />
+                <span style={{ fontWeight: 700, fontSize: '16px', color: '#1e293b' }}>1. Danh sách hồ sơ chuyển ra đang làm</span>
+              </Space>
+            }
+            bordered={false}
+            style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)' }}
+            styles={{ header: { borderBottom: '1px solid #f0f0f0', backgroundColor: '#fcfcfc', borderRadius: '12px 12px 0 0' } }}
+          >
+            <Table
+              rowSelection={{
+                selectedRowKeys,
+                onChange: (newSelectedRowKeys) => {
+                  setSelectedRowKeys(newSelectedRowKeys);
+                }
+              }}
+              columns={activeProcessColumns}
+              dataSource={filteredProcesses}
+              loading={loading}
+              rowKey="id"
+              onRow={(record) => ({
+                onClick: () => handleOpenEditProcessModal(record)
+              })}
+              locale={{
+                emptyText: (
+                  <Empty 
+                    description={
+                      <div style={{ color: '#94a3b8', fontSize: '14px', marginTop: '8px' }}>
+                        Không tìm thấy hồ sơ chuyển đi nào phù hợp với bộ lọc hiện tại
+                      </div>
+                    } 
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                )
+              }}
+              pagination={{
+                defaultPageSize: 10,
+                showSizeChanger: true,
+                pageSizeOptions: ['5', '10', '20', '50'],
+                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ chuyển đi đang xử lý`
+              }}
+              scroll={{ x: 'max-content' }}
+              style={{ cursor: 'pointer' }}
+            />
+            </Card>
+            </Tabs.TabPane>
+
+            <Tabs.TabPane tab={<span style={{ fontWeight: 600 }}>2. Danh sách đăng ký chuyển sinh hoạt Đảng</span>} key="danh-sach-dang-ky">
+              <Card
+            title={
+              <Space style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                <Space>
+                  <span style={{ display: 'inline-block', width: '4px', height: '16px', backgroundColor: '#fa8c16', borderRadius: '2px' }} />
+                  <span style={{ fontWeight: 700, fontSize: '16px', color: '#1e293b' }}>2. Danh sách đăng ký chuyển sinh hoạt Đảng</span>
+                </Space>
+                {pendingRegistrations.length > 0 && <Badge count={pendingRegistrations.length} style={{ backgroundColor: '#fa8c16' }} />}
+              </Space>
+            }
+            bordered={false}
+            style={{ marginBottom: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)' }}
+            styles={{ header: { borderBottom: '1px solid #f0f0f0', backgroundColor: '#fcfcfc', borderRadius: '12px 12px 0 0' } }}
+          >
+            <Table
+              columns={[
+                { title: 'Ngày ĐK', dataIndex: 'created_at', render: (val) => dayjs(val).format('DD/MM/YYYY HH:mm'), width: 140 },
+                { title: 'Họ tên', dataIndex: 'ho_ten', fontWeight: 600 },
+                { title: 'MSSV', dataIndex: 'mssv', width: 100 },
+                { title: 'Loại chuyển', dataIndex: 'loai_chuyen', render: (val) => val === 'chinh_thuc' ? <Tag color="blue">Chuyển chính thức</Tag> : <Tag color="orange">Chuyển tạm thời</Tag> },
+                { title: 'Nơi chuyển đến', dataIndex: 'noi_chuyen_den' },
+                { title: 'Thao tác', key: 'action', width: 200, align: 'center', render: (_, reg) => (
+                  <Space>
+                    <Tooltip title="Tiếp nhận">
+                      <Button type="primary" size="small" style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                        onClick={() => {
+                          const m = activeMembers.find(x => x.id === reg.dang_vien_id);
+                          if (!m) return message.error('Không tìm thấy dữ liệu Đảng viên!');
+                          
+                          addForm.resetFields();
+                          handleSelectMemberForAdd(m.id, reg);
+                          setIsAddModalVisible(true);
+                        }}
+                      >
+                        Tiếp nhận
+                      </Button>
+                    </Tooltip>
+                    
+                    <Tooltip title="Yêu cầu điều chỉnh">
+                      <Button size="small" style={{ color: '#fa8c16', borderColor: '#fa8c16' }}
+                        onClick={() => {
+                          setRejectActionType('dieu_chinh');
+                          setRejectingRecord(reg);
+                          setRejectReason('');
+                          setRejectModalVisible(true);
+                        }}
+                      >
+                        Điều chỉnh
+                      </Button>
+                    </Tooltip>
+
+                    <Tooltip title="Từ chối">
+                      <Button size="small" danger
+                        onClick={() => {
+                          setRejectActionType('tu_choi');
+                          setRejectingRecord(reg);
+                          setRejectReason('');
+                          setRejectModalVisible(true);
+                        }}
+                      >
+                        Từ chối
+                      </Button>
+                    </Tooltip>
+                  </Space>
+                )}
+              ]}
+              dataSource={pendingRegistrations}
+              rowKey="id"
+              pagination={pendingRegistrations.length > 5 ? { pageSize: 5 } : false}
+              size="small"
+              locale={{
+                emptyText: (
+                  <Empty 
+                    description={
+                      <div style={{ color: '#94a3b8', fontSize: '13px', marginTop: '8px' }}>
+                        Không có yêu cầu đăng ký nào đang chờ duyệt
+                      </div>
+                    } 
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  />
+                )
+              }}
+            />
+          </Card>
+            </Tabs.TabPane>
+          </Tabs>
+        </Tabs.TabPane>
+
+
+        <Tabs.TabPane tab={<span><FileTextOutlined /> Tạo biểu mẫu hồ sơ chuyển sinh hoạt</span>} key="2">
+          <div style={{ background: '#ffffff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.02)' }}>
+            <div style={{ fontWeight: 700, fontSize: '15px', color: '#1e293b', marginBottom: '8px' }}>
+              Chọn Đảng viên chuyển sinh hoạt để cấu hình và tạo biểu mẫu:
+            </div>
+            <Select
+              showSearch
+              placeholder="Nhập họ tên hoặc MSSV để tìm trong tiến trình chuyển đi..."
+              optionFilterProp="children"
+              filterOption={(input, option) => 
+                (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              }
+              value={selectedDocMemberId}
+              onChange={(val) => {
+                handleSelectMemberForDocTab(val);
+              }}
+              style={{ width: '100%', marginBottom: '20px' }}
+              dropdownStyle={{ borderRadius: '6px' }}
+              options={activeProcesses.map(p => ({
+                value: p.id,
+                label: `${p.ho_ten} - MSSV: ${p.mssv || 'N/A'} (Lớp: ${p.lop || 'N/A'}) - ${p.loai_chuyen === 'chuyen_tam_thoi' ? 'Tạm thời' : 'Ra ngoài'}`
+              }))}
+            />
+
+            {!selectedDocMemberId ? (
+              <Empty
+                description={
+                  <div style={{ color: '#94a3b8', fontSize: '14px', marginTop: '8px' }}>
+                    Vui lòng chọn một Đảng viên ở trên để bắt đầu cấu hình biểu mẫu
+                  </div>
+                }
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                style={{ padding: '60px 0' }}
+              />
+            ) : (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, background: '#f8fafc', padding: '12px 20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <div>
+                    <span style={{ fontSize: '14px', color: '#64748b' }}>Đang cấu hình hồ sơ cho:</span>
+                    <strong style={{ fontSize: '16px', color: '#1e293b', marginLeft: 8 }}>{docRecord?.ho_ten}</strong>
+                  </div>
+                  {transferType && (
+                    <Button
+                      type="primary"
+                      icon={<FileZipOutlined />}
+                      onClick={downloadDocModalAllAsZip}
+                      loading={generating}
+                      style={{
+                        backgroundColor: '#c62828',
+                        borderColor: '#c62828',
+                        borderRadius: '6px',
+                        fontWeight: 700
+                      }}
+                    >
+                      TẢI TRỌN BỘ HỒ SƠ (.ZIP)
+                    </Button>
+                  )}
+                </div>
+
+                <Form form={docForm} layout="vertical">
+                  <Row gutter={24}>
+                    {/* Left inputs column */}
+                    <Col xs={24} lg={10} style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '16px' }}>
+                      
+                      {/* Transfer Type Cards */}
+                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b', marginBottom: '12px' }}>
+                        Loại chuyển sinh hoạt
+                      </div>
+                      <Form.Item
+                        name="loai_chuyen_sh"
+                        rules={[{ required: true, message: 'Vui lòng chọn loại chuyển sinh hoạt Đảng' }]}
+                      >
+                        <div style={{ display: 'none' }}>
+                          <Input />
+                        </div>
+                        <Row gutter={[12, 12]}>
+                          <Col xs={24} sm={12}>
+                            <div
+                              onClick={() => handleDocTransferTypeChange('chuyen_ra')}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '10px',
+                                border: transferType === 'chuyen_ra' ? '2px solid #c62828' : '1px solid #e2e8f0',
+                                backgroundColor: transferType === 'chuyen_ra' ? '#fef2f2' : '#ffffff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                boxShadow: transferType === 'chuyen_ra' ? '0 4px 10px rgba(198, 40, 40, 0.06)' : 'none',
+                              }}
+                              className="custom-select-card"
+                            >
+                              <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                backgroundColor: transferType === 'chuyen_ra' ? '#c62828' : '#f1f5f9',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: transferType === 'chuyen_ra' ? '#ffffff' : '#64748b',
+                                fontSize: '15px',
+                                flexShrink: 0
+                              }}>
+                                <ExportOutlined />
+                              </div>
+                              <div style={{ flexGrow: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, color: transferType === 'chuyen_ra' ? '#c62828' : '#1e293b', fontSize: '13px' }}>
+                                  Chuyển ra ngoài
+                                </div>
+                                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
+                                  Vĩnh viễn (ra trường, đi làm...)
+                                </div>
+                              </div>
+                            </div>
+                          </Col>
+                          
+                          <Col xs={24} sm={12}>
+                            <div
+                              onClick={() => handleDocTransferTypeChange('chuyen_tam_thoi')}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '10px',
+                                border: transferType === 'chuyen_tam_thoi' ? '2px solid #c62828' : '1px solid #e2e8f0',
+                                backgroundColor: transferType === 'chuyen_tam_thoi' ? '#fef2f2' : '#ffffff',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                boxShadow: transferType === 'chuyen_tam_thoi' ? '0 4px 10px rgba(198, 40, 40, 0.06)' : 'none',
+                              }}
+                              className="custom-select-card"
+                            >
+                              <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '50%',
+                                backgroundColor: transferType === 'chuyen_tam_thoi' ? '#c62828' : '#f1f5f9',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: transferType === 'chuyen_tam_thoi' ? '#ffffff' : '#64748b',
+                                fontSize: '15px',
+                                flexShrink: 0
+                              }}>
+                                <CalendarOutlined />
+                              </div>
+                              <div style={{ flexGrow: 1, minWidth: 0 }}>
+                                <div style={{ fontWeight: 700, color: transferType === 'chuyen_tam_thoi' ? '#c62828' : '#1e293b', fontSize: '13px' }}>
+                                  Chuyển tạm thời
+                                </div>
+                                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
+                                  Tạm thời (thực tập, học quân sự...)
+                                </div>
+                              </div>
+                            </div>
+                          </Col>
+                        </Row>
+                      </Form.Item>
+
+                      {transferType && (
+                        <>
+                          <Divider style={{ margin: '15px 0' }} />
+                          <div style={{ fontWeight: 800, fontSize: '14px', color: '#1e293b', marginBottom: '15px' }}>
+                            Thông tin bổ sung cho hồ sơ
+                          </div>
+
+                          <Collapse defaultActiveKey={['1', '2', '3', '4']} bordered={false} style={{ backgroundColor: 'transparent' }} items={[
+                            {
+                              key: '1',
+                              label: <div style={{ fontWeight: 700, color: '#1e293b' }}>1. Thông tin Cá nhân</div>,
+                              children: (
+                                <>
+                                  <Row gutter={16}>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="gioi_tinh" label="Giới tính" rules={[{ required: true }]}>
+                                        <Select>
+                                          <Option value="Nam">Nam</Option>
+                                          <Option value="Nữ">Nữ</Option>
+                                        </Select>
+                                      </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="ngay_sinh" label="Ngày sinh" rules={[{ required: true }]}>
+                                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
+                                  <Row gutter={16}>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="que_quan" label="Quê quán" rules={[{ required: true }]}>
+                                        <Input placeholder="Xã..., Huyện..., Tỉnh..." />
+                                      </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="dia_chi" label="Địa chỉ cư trú hiện nay" rules={[{ required: true }]}>
+                                        <Input placeholder="Thôn..., Xã..., Huyện..., Tỉnh..." />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
+                                  <Form.Item name="so_dien_thoai" label="Số điện thoại liên hệ" rules={[{ required: true }]}>
+                                    <Input />
+                                  </Form.Item>
+                                </>
+                              )
+                            },
+                            {
+                              key: '2',
+                              label: <div style={{ fontWeight: 700, color: '#1e293b' }}>2. Thông tin Đảng tịch & Đoàn thể</div>,
+                              children: (
+                                <>
+                                  <Row gutter={16}>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="ngay_vao_dang" label="Ngày vào Đảng" rules={[{ required: true }]}>
+                                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                                      </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="ngay_chinh_thuc" label="Ngày chính thức (bỏ trống nếu Dự bị)">
+                                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} disabled={isProbationary} />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
+                                  <Row gutter={16}>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="so_the_dang" label="Số thẻ Đảng viên (nếu có)">
+                                        <Input placeholder="Nhập số thẻ Đảng..." />
+                                      </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="nhiem_vu_dang" label="Nhiệm vụ được giao trong Đảng" rules={[{ required: true }]}>
+                                        <Input placeholder="Ví dụ: Đảng viên, Phó Bí thư Chi bộ..." />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
+                                  <Row gutter={16}>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="lop" label="Lớp học tập" rules={[{ required: true }]}>
+                                        <Input />
+                                      </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="khoa" label="Khoa quản lý" rules={[{ required: true }]}>
+                                        <Input />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
+                                </>
+                              )
+                            },
+                            {
+                              key: '3',
+                              label: <div style={{ fontWeight: 700, color: '#1e293b' }}>3. Chi tiết Đơn chuyển sinh hoạt</div>,
+                              children: (
+                                <>
+                                  <Row gutter={16}>
+                                    <Col xs={24}>
+                                      <div style={{ marginBottom: 24 }}>
+                                        <span style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>
+                                          Nơi chuyển sinh hoạt Đảng đến <span style={{ color: '#ff4d4f' }}>*</span>
+                                        </span>
+                                        <Row gutter={[8, 8]}>
+                                          <Col xs={24}>
+                                            <Form.Item
+                                              name="noi_chuyen_den_chi_bo"
+                                              rules={[{ required: true, message: 'Vui lòng nhập Chi bộ!' }]}
+                                              style={{ marginBottom: 0 }}
+                                            >
+                                              <Input placeholder="Chi bộ (VD: thôn Đức Xá)..." />
+                                            </Form.Item>
+                                          </Col>
+                                          <Col xs={24}>
+                                            <Form.Item
+                                              name="noi_chuyen_den_dang_bo_co_so"
+                                              rules={[{ required: true, message: 'Vui lòng nhập Đảng bộ cơ sở!' }]}
+                                              style={{ marginBottom: 0 }}
+                                            >
+                                              <Input placeholder="Đảng bộ cơ sở (VD: xã Vĩnh Thủy)..." />
+                                            </Form.Item>
+                                          </Col>
+                                          <Col xs={24}>
+                                            <Form.Item
+                                              name="noi_chuyen_den_dang_bo_cap_tren"
+                                              rules={[{ required: true, message: 'Vui lòng nhập Đảng bộ cấp trên!' }]}
+                                              style={{ marginBottom: 0 }}
+                                            >
+                                              <Input placeholder="Đảng bộ cấp trên (VD: tỉnh Quảng Trị)..." />
+                                            </Form.Item>
+                                          </Col>
+                                        </Row>
+                                      </div>
+                                    </Col>
+                                  </Row>
+                                  <Row gutter={16}>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="ngay_ky" label="Ngày ký hồ sơ" rules={[{ required: true }]}>
+                                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                                      </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="tinh_tp" label="Tỉnh/Thành phố ký hồ sơ" rules={[{ required: true }]}>
+                                        <Input />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
+                                  <Form.Item name="ly_do_chuyen" label="Lý do xin chuyển sinh hoạt Đảng" rules={[{ required: true }]}>
+                                    <Input.TextArea rows={2} />
+                                  </Form.Item>
+                                  <Form.Item name="ghi_chu" label="Ghi chú hồ sơ nội bộ">
+                                    <Input.TextArea rows={2} placeholder="Nhập ghi chú hoặc nhắc nhở về hồ sơ này..." />
+                                  </Form.Item>
+                                </>
+                              )
+                            },
+                            {
+                              key: '4',
+                              label: <div style={{ fontWeight: 700, color: '#1e293b' }}>4. Nội dung Tự Kiểm Điểm</div>,
+                              children: (
+                                <>
+                                  <Form.Item name="uu_diem" label="Tự nhận xét Ưu điểm" rules={[{ required: true }]}>
+                                    <Input.TextArea rows={4} />
+                                  </Form.Item>
+                                  <Form.Item name="khuyet_diem" label="Tự nhận xét Khuyết điểm, Hạn chế" rules={[{ required: true }]}>
+                                    <Input.TextArea rows={2} />
+                                  </Form.Item>
+                                </>
+                              )
+                            }
+                          ]} />
+
+                          {/* Probationary member extra guider inputs */}
+                          {isProbationary && (
+                            <div style={{ marginTop: '20px', padding: '16px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                              <div style={{ fontWeight: 800, fontSize: '14px', color: '#166534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <StarOutlined /> Ý kiến đánh giá của Đảng viên hướng dẫn (ĐVHD)
+                              </div>
+
+                              <Row gutter={16}>
+                                <Col xs={24} sm={14}>
+                                  <Form.Item name="dvhd_id" label={<span style={{ color: '#166534', fontWeight: 600 }}>Chọn Đảng viên hướng dẫn từ danh sách</span>}>
+                                    <Select 
+                                      placeholder="Chọn Đảng viên chính thức đang sinh hoạt..."
+                                      onChange={handleDocGuiderSelect}
+                                      showSearch
+                                      optionFilterProp="children"
+                                    >
+                                      {officialMembers.map(m => (
+                                        <Option key={m.id} value={m.id}>{m.ho_ten} - {m.mssv || 'N/A'}</Option>
+                                      ))}
+                                    </Select>
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={10} style={{ display: 'none' }}>
+                                  <Form.Item name="dvhd">
+                                    <Input />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={10} style={{ display: 'flex', alignItems: 'center', height: '82px' }}>
+                                  {guiderFound === 'found' ? (
+                                    <Alert message="Lấy thông tin thành công" type="success" showIcon style={{ padding: '6px 12px', fontSize: '12px' }} />
+                                  ) : (
+                                    <Alert message="Vui lòng chọn để điền tự động" type="info" showIcon style={{ padding: '6px 12px', fontSize: '12px' }} />
+                                  )}
+                                </Col>
+                              </Row>
+
+                              <div style={{ marginBottom: '15px' }}>
+                                <Checkbox
+                                  checked={generateGuiderDoc}
+                                  onChange={(e) => setGenerateGuiderDoc(e.target.checked)}
+                                  style={{ fontWeight: 700, color: '#166534' }}
+                                >
+                                  Tích chọn để kèm Bản nhận xét của ĐVHD (Mẫu 5) vào bộ hồ sơ
+                                </Checkbox>
+                              </div>
+
+                              {generateGuiderDoc && (
+                                <div style={{ marginTop: '10px', borderTop: '1px dashed #bbf7d0', paddingTop: '15px' }}>
+                                  <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '10px', color: '#166534' }}>
+                                    Thông tin chi tiết về Đảng viên hướng dẫn (cần thiết cho Mẫu 5):
+                                  </Text>
+                                  <Row gutter={16}>
+                                    <Col xs={24} sm={8}>
+                                      <Form.Item name="dvhd_ngay_sinh" label={<span style={{ color: '#166534' }}>Ngày sinh ĐVHD</span>} rules={[{ required: generateGuiderDoc }]}>
+                                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                                      </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={8}>
+                                      <Form.Item name="dvhd_ngay_vao_dang" label={<span style={{ color: '#166534' }}>Ngày kết nạp ĐVHD</span>} rules={[{ required: generateGuiderDoc }]}>
+                                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                                      </Form.Item>
+                                    </Col>
+                                    <Col xs={24} sm={8}>
+                                      <Form.Item name="dvhd_ngay_chinh_thuc" label={<span style={{ color: '#166534' }}>Ngày chính thức ĐVHD</span>} rules={[{ required: generateGuiderDoc }]}>
+                                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
+                                  <Row gutter={16}>
+                                    <Col xs={24} sm={12}>
+                                      <Form.Item name="ngay_phan_cong" label={<span style={{ color: '#166534' }}>Ngày Chi bộ phân công giúp đỡ</span>} rules={[{ required: generateGuiderDoc }]}>
+                                        <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                                      </Form.Item>
+                                    </Col>
+                                  </Row>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Mẫu 8 extra info for probationary */}
+                          {isProbationary && (
+                            <div style={{ marginTop: '20px', padding: '16px', borderRadius: '10px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                              <div style={{ fontWeight: 800, fontSize: '14px', color: '#1d4ed8', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <FileTextOutlined /> Thông tin phục vụ Mẫu 8 (Nghị quyết đề nghị chính thức chi bộ)
+                              </div>
+                              <Alert message="Số lượng Đảng viên được tính toán tự động dựa trên danh sách. Bạn có thể sửa tên chủ trì và thư ký." type="info" showIcon style={{ padding: '6px 12px', fontSize: '12px', marginBottom: 12 }} />
+                              <Row gutter={16}>
+                                <Col xs={24} sm={8}>
+                                  <Form.Item name="tong_so_dv" label="Tổng số Đảng viên" initialValue={activeMembers.length}>
+                                    <Input type="number" />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                  <Form.Item name="tong_so_dv_chinh_thuc" label="Số ĐV Chính thức" initialValue={activeMembers.filter(m => !m.dang_vien_du_bi).length}>
+                                    <Input type="number" />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                  <Form.Item name="tong_so_dv_du_bi" label="Số ĐV Dự bị" initialValue={activeMembers.filter(m => m.dang_vien_du_bi).length}>
+                                    <Input type="number" />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+                              <Row gutter={16}>
+                                <Col xs={24} sm={8}>
+                                  <Form.Item name="chu_tri" label="Người chủ trì" initialValue="Bùi Trung Hiệp">
+                                    <Input />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                  <Form.Item name="chuc_vu_chu_tri" label="Chức vụ chủ trì" initialValue="Bí thư Chi bộ">
+                                    <Input />
+                                  </Form.Item>
+                                </Col>
+                                <Col xs={24} sm={8}>
+                                  <Form.Item name="thu_ky" label="Thư ký" initialValue="Lê Vĩnh Diện">
+                                    <Input />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Downloads Section */}
+                      <Card
+                        className="premium-glass-card"
+                        style={{
+                          borderRadius: '12px',
+                          border: '1px solid rgba(226, 232, 240, 0.8)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+                          backgroundColor: '#f8fafc',
+                          marginTop: '20px',
+                          marginBottom: '20px'
+                        }}
+                      >
+                        <div style={{ fontWeight: 800, fontSize: '15px', color: '#1e293b', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <DownloadOutlined style={{ color: '#c62828' }} /> Danh mục biểu mẫu & Tải lẻ
+                        </div>
+
+                        {!transferType ? (
+                          <div style={{ textAlign: 'center', padding: '30px 10px', color: '#94a3b8' }}>
+                            <InfoCircleOutlined style={{ fontSize: '24px', marginBottom: '8px', display: 'block', margin: '0 auto 8px' }} />
+                            Vui lòng chọn loại chuyển sinh hoạt Đảng để xem danh mục biểu mẫu
+                          </div>
+                        ) : (
+                          <div>
+                            <Alert
+                              message={
+                                <span style={{ fontSize: '11px', color: '#475569' }}>
+                                  Cơ chế sinh mẫu tự động điền các thông tin của {docRecord?.ho_ten} và ĐVHD (nếu có).
+                                </span>
+                              }
+                              type="info"
+                              showIcon
+                              style={{ marginBottom: '15px' }}
+                            />
+
+                            {/* Document items list */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {docModalDocumentList.map(doc => (
+                                <div
+                                  key={doc.key}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '8px 12px',
+                                    backgroundColor: '#ffffff',
+                                    borderRadius: '8px',
+                                    border: '1px solid #e2e8f0',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '60%' }}>
+                                    <FileTextOutlined style={{ color: '#3b82f6', fontSize: '15px' }} />
+                                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {doc.label}
+                                    </span>
+                                  </div>
+                                  <Space size="small">
+                                    <Tooltip title="Xem trước trên giao diện">
+                                      <Button
+                                        size="small"
+                                        type={previewDocKey === doc.key ? 'primary' : 'default'}
+                                        icon={<InfoCircleOutlined />}
+                                        onClick={() => setPreviewDocKey(doc.key)}
+                                        style={{ borderRadius: '6px', fontSize: '11px' }}
+                                      >
+                                        Xem
+                                      </Button>
+                                    </Tooltip>
+                                    <Tooltip title={`Tải riêng lẻ ${doc.code}`}>
+                                      <Button
+                                        type="text"
+                                        icon={<DownloadOutlined style={{ color: '#10b981' }} />}
+                                        onClick={() => downloadDocModalSingleDoc(doc.key)}
+                                        disabled={generating}
+                                        size="small"
+                                      />
+                                    </Tooltip>
+                                  </Space>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </Card>
+
+                    </Col>
+
+                    {/* Right column: Live A4 Preview */}
+                    <Col xs={24} lg={14}>
+                      <Card
+                        className="premium-glass-card"
+                        style={{
+                          borderRadius: '12px',
+                          border: '1px solid rgba(226, 232, 240, 0.8)',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
+                          backgroundColor: '#e2e8f0',
+                          height: '75vh',
+                          overflowY: 'auto'
+                        }}
+                        styles={{ body: { padding: 0 } }}
+                      >
+                        <div style={{ padding: '12px 16px', borderBottom: '1px solid #cbd5e1', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
+                          <div style={{ fontWeight: 700, color: '#334155' }}>
+                            <FileTextOutlined style={{ marginRight: 8, color: '#c62828' }} />
+                            Bản xem trước A4 - {docModalDocumentList.find(d => d.key === previewDocKey)?.code || 'Chọn mẫu để xem'}
+                          </div>
+                          <Tag color="green">Live Preview</Tag>
+                        </div>
+                        
+                        <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
+                          <Form.Item noStyle shouldUpdate>
+                            {() => {
+                              const currentValues = docForm.getFieldsValue();
+                              const previewData = {
+                                ...docRecord,
+                                ...currentValues,
+                                ngay_sinh: currentValues.ngay_sinh ? currentValues.ngay_sinh.format('YYYY-MM-DD') : '',
+                                ngay_vao_dang: currentValues.ngay_vao_dang ? currentValues.ngay_vao_dang.format('YYYY-MM-DD') : '',
+                                ngay_chinh_thuc: currentValues.ngay_chinh_thuc ? currentValues.ngay_chinh_thuc.format('YYYY-MM-DD') : '',
+                                ngay_ky: currentValues.ngay_ky ? currentValues.ngay_ky.format('YYYY-MM-DD') : ''
+                              };
+                              return (
+                                <div style={{ transform: 'scale(0.85)', transformOrigin: 'top center', width: '100%' }}>
+                                  <DocumentPreview 
+                                    data={previewData} 
+                                    docType={previewDocKey} 
+                                  />
+                                </div>
+                              );
+                            }}
+                          </Form.Item>
+                        </div>
+                      </Card>
+                    </Col>
+                  </Row>
+                </Form>
+              </div>
+            )}
+          </div>
+        </Tabs.TabPane>
+      </Tabs>
+
+      {/* Reject / Adjust Modal for Registration */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '4px', height: '24px', backgroundColor: rejectActionType === 'tu_choi' ? '#f5222d' : '#fa8c16', borderRadius: '2px' }} />
+            <span style={{ fontWeight: 800, fontSize: '18px', color: '#1a1a1a' }}>
+              {rejectActionType === 'tu_choi' ? 'Từ chối đăng ký' : 'Yêu cầu điều chỉnh'}
+            </span>
+          </div>
+        }
+        open={rejectModalVisible}
+        onOk={async () => {
+          if (!rejectReason.trim()) {
+            message.error('Vui lòng nhập lý do!');
+            return;
+          }
+          setRejectLoading(true);
+          try {
+            await updateDoc(doc(db, "dangky_chuyen_sinh_hoat", rejectingRecord.id), {
+              trang_thai: rejectActionType === 'tu_choi' ? 'tu_choi' : 'cho_duyet',
+              ghi_chu_duyet: rejectReason
+            });
+            message.success(rejectActionType === 'tu_choi' ? 'Đã từ chối hồ sơ' : 'Đã lưu yêu cầu điều chỉnh');
+            setRejectModalVisible(false);
+            fetchActiveMembersAndProcesses(); // Refresh data
+          } catch (err) {
+            console.error(err);
+            message.error('Lỗi khi cập nhật trạng thái');
+          } finally {
+            setRejectLoading(false);
           }
         }}
-        columns={activeProcessColumns}
-        dataSource={filteredProcesses}
-        loading={loading}
-        rowKey="id"
-        onRow={(record) => ({
-          onClick: () => handleRowClick(record)
-        })}
-        locale={{
-          emptyText: (
-            <Empty 
-              description={
-                <div style={{ color: '#94a3b8', fontSize: '14px', marginTop: '8px' }}>
-                  Không tìm thấy hồ sơ chuyển đi nào phù hợp với bộ lọc hiện tại
-                </div>
-              } 
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            />
-          )
+        onCancel={() => setRejectModalVisible(false)}
+        confirmLoading={rejectLoading}
+        okText="Xác nhận"
+        cancelText="Hủy"
+        okButtonProps={{ danger: rejectActionType === 'tu_choi' }}
+      >
+        <div style={{ marginBottom: 12 }}>
+          Bạn đang {rejectActionType === 'tu_choi' ? 'từ chối' : 'yêu cầu điều chỉnh'} hồ sơ đăng ký của <strong>{rejectingRecord?.ho_ten}</strong>.
+        </div>
+        <Input.TextArea
+          rows={4}
+          placeholder="Nhập lý do hoặc thông tin cần điều chỉnh (bắt buộc)..."
+          value={rejectReason}
+          onChange={e => setRejectReason(e.target.value)}
+        />
+      </Modal>
+
+      {/* Drawer: Edit Transfer Process */}
+      <Drawer
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
+            <span style={{ fontWeight: 800, fontSize: '18px', color: '#1a1a1a' }}>
+              Chỉnh sửa Tiến trình Chuyển sinh hoạt
+            </span>
+          </div>
+        }
+        open={isEditProcessModalVisible}
+        onClose={() => {
+          setIsEditProcessModalVisible(false);
+          setEditingProcessRecord(null);
         }}
-        pagination={{
-          defaultPageSize: 10,
-          showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50'],
-          showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ chuyển đi đang xử lý`
-        }}
-        scroll={{ x: 'max-content' }}
-        style={{ cursor: 'pointer' }}
-      />
+        width={700}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            <div>
+              {!isEditMode && editingProcessRecord && (
+                <Space size="small">
+                  {editingProcessRecord.buoc === 1 && (
+                    <Button type="primary" size="small" icon={<ArrowRightOutlined />} onClick={(e) => { e.stopPropagation(); setIsEditProcessModalVisible(false); handleAdvanceStep(editingProcessRecord); }} style={{ backgroundColor: '#2f54eb', borderColor: '#2f54eb', borderRadius: '20px', fontWeight: 600, fontSize: '11px', padding: '0 8px', height: '24px' }}>Gửi VPĐU</Button>
+                  )}
+                  {editingProcessRecord.buoc === 2 && (
+                    <Button type="primary" size="small" icon={<ArrowRightOutlined />} onClick={(e) => { e.stopPropagation(); setIsEditProcessModalVisible(false); handleAdvanceStep(editingProcessRecord); }} style={{ backgroundColor: '#722ed1', borderColor: '#722ed1', borderRadius: '20px', fontWeight: 600, fontSize: '11px', padding: '0 8px', height: '24px' }}>Gửi ĐHĐN</Button>
+                  )}
+                  {editingProcessRecord.buoc === 3 && (
+                    <Button type="primary" size="small" icon={<CheckOutlined />} onClick={(e) => { e.stopPropagation(); setIsEditProcessModalVisible(false); handleCompleteClick(editingProcessRecord); }} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: '20px', fontWeight: 600, fontSize: '11px', padding: '0 8px', height: '24px' }}>Hoàn tất</Button>
+                  )}
+                  <Popconfirm title="Bạn có chắc muốn hủy tiến trình chuyển đi này?" onConfirm={(e) => { e.stopPropagation(); setIsEditProcessModalVisible(false); handleCancelProcess(editingProcessRecord.id); }} onCancel={(e) => e.stopPropagation()} okText="Hủy" cancelText="Đóng" okButtonProps={{ danger: true }}>
+                    <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} />
+                  </Popconfirm>
+                </Space>
+              )}
+            </div>
+            <div style={{ textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              {isEditMode ? (
+                <>
+                  <Button onClick={() => setIsEditMode(false)} style={{ height: 40, borderRadius: '6px' }}>HỦY CHỈNH SỬA</Button>
+                  <Button type="primary" onClick={handleEditProcessSubmit} loading={submittingEdit} style={{ backgroundColor: '#c62828', borderColor: '#c62828', height: 40, fontWeight: 700, borderRadius: '6px' }}>LƯU THAY ĐỔI</Button>
+                </>
+              ) : (
+                <Button type="primary" onClick={() => setIsEditMode(true)} style={{ backgroundColor: '#1890ff', borderColor: '#1890ff', height: 40, fontWeight: 700, borderRadius: '6px' }} icon={<EditOutlined />}>CHỈNH SỬA</Button>
+              )}
+            </div>
+          </div>
+        }
+      >
+        {editingProcessRecord && (
+          <Card 
+            size="small" 
+            title={<span style={{ fontWeight: 700, color: '#c62828' }}>Thông tin Đảng viên (Từ hồ sơ gốc)</span>} 
+            style={{ marginBottom: 20, borderRadius: '8px', backgroundColor: '#fafafa', border: '1px solid #f0f0f0' }}
+          >
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Họ và tên: </Text>
+                <Text strong style={{ display: 'block', color: '#c62828' }}>{editingProcessRecord.ho_ten}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">MSSV: </Text>
+                <Text strong style={{ display: 'block', fontFamily: 'monospace' }}>{editingProcessRecord.mssv || 'N/A'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Giới tính: </Text>
+                <Text strong style={{ display: 'block' }}>{editingProcessRecord.gioi_tinh || 'N/A'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Ngày sinh: </Text>
+                <Text strong style={{ display: 'block' }}>{editingProcessRecord.ngay_sinh && dayjs(editingProcessRecord.ngay_sinh).isValid() ? dayjs(editingProcessRecord.ngay_sinh).format('DD/MM/YYYY') : 'N/A'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Ngày vào Đảng: </Text>
+                <Text strong style={{ display: 'block' }}>{editingProcessRecord.ngay_vao_dang && dayjs(editingProcessRecord.ngay_vao_dang).isValid() ? dayjs(editingProcessRecord.ngay_vao_dang).format('DD/MM/YYYY') : 'N/A'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Ngày chính thức: </Text>
+                <Text strong style={{ display: 'block' }}>{editingProcessRecord.ngay_chinh_thuc && dayjs(editingProcessRecord.ngay_chinh_thuc).isValid() ? dayjs(editingProcessRecord.ngay_chinh_thuc).format('DD/MM/YYYY') : 'Chưa có'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Loại Đảng viên: </Text>
+                <Text strong style={{ display: 'block' }}>
+                  {editingProcessRecord.dang_vien_du_bi ? (
+                    <Tag color="orange" style={{ fontWeight: 600, margin: 0 }}>Dự bị</Tag>
+                  ) : (
+                    <Tag color="green" style={{ fontWeight: 600, margin: 0 }}>Chính thức</Tag>
+                  )}
+                </Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Số thẻ Đảng: </Text>
+                <Text strong style={{ display: 'block' }}>{editingProcessRecord.so_the_dang || 'Chưa có'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Lớp, Khoa: </Text>
+                <Text strong style={{ display: 'block' }}>{editingProcessRecord.lop || '--'} - {editingProcessRecord.khoa || '--'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Số điện thoại: </Text>
+                <Text strong style={{ display: 'block' }}>{editingProcessRecord.so_dien_thoai || editingProcessRecord.sdt || 'N/A'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Email: </Text>
+                <Text strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{editingProcessRecord.email || editingProcessRecord.email_sv || 'N/A'}</Text>
+              </Col>
+              <Col xs={24} sm={8}>
+                <Text type="secondary">Quê quán: </Text>
+                <Text strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={editingProcessRecord.que_quan || editingProcessRecord.tinh_tp_qq || 'N/A'}>
+                  {editingProcessRecord.que_quan || editingProcessRecord.tinh_tp_qq || 'N/A'}
+                </Text>
+              </Col>
+            </Row>
+          </Card>
+        )}
+
+        <Form form={editProcessForm} layout="vertical" style={{ marginTop: 20 }} disabled={!isEditMode}>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="buoc" label={<span style={{ fontWeight: 600 }}>Bước tiến trình hiện tại:</span>} rules={[{ required: true }]}>
+                <Select onChange={(val) => {
+                  editProcessForm.setFieldsValue({ buoc: val });
+                  setEditingProcessRecord(prev => ({ ...prev, buoc: val }));
+                }}>
+                  <Option value={1}>Bước 1: Đã nhận hồ sơ</Option>
+                  <Option value={2}>Bước 2: Đã nộp hồ sơ lên VPĐU Trường</Option>
+                  <Option value={3}>Bước 3: Đã nộp hồ sơ lên ĐHĐN</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="loai_chuyen_sh" label={<span style={{ fontWeight: 600 }}>Loại chuyển sinh hoạt:</span>} rules={[{ required: true }]}>
+                <Radio.Group>
+                  <Radio value="chuyen_ra">Chuyển ra ngoài</Radio>
+                  <Radio value="chuyen_tam_thoi">Chuyển tạm thời</Radio>
+                </Radio.Group>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider orientation="left" style={{ margin: '12px 0', fontSize: '14px' }}>Thông tin Các Bước Tiến Trình</Divider>
+          
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item name="ghi_chu" label={<span style={{ fontWeight: 600 }}>Ghi chú chung:</span>}>
+                <Input.TextArea rows={2} placeholder="Nhập ghi chú chung cho hồ sơ này..." />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="ngay_nop_ho_so" label={<span style={{ fontWeight: 600 }}>Ngày nhận hồ sơ (Bước 1):</span>} rules={[{ required: true }]}>
+                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item noStyle shouldUpdate>
+            {() => {
+              const currentBuoc = editProcessForm.getFieldValue('buoc') || 1;
+              if (currentBuoc < 2) return null;
+              return (
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="ngay_hoan_thien_gui_vpdu" label={<span style={{ fontWeight: 600 }}>Ngày nộp lên VPĐU (Bước 2):</span>} rules={[{ required: true, message: 'Vui lòng nhập ngày nộp lên VPĐU!' }]}>
+                      <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              );
+            }}
+          </Form.Item>
+
+          <Form.Item noStyle shouldUpdate>
+            {() => {
+              const currentBuoc = editProcessForm.getFieldValue('buoc') || 1;
+              if (currentBuoc < 3) return null;
+              return (
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="ngay_gui_dhdn" label={<span style={{ fontWeight: 600 }}>Ngày nộp lên ĐHĐN (Bước 3):</span>} rules={[{ required: true, message: 'Vui lòng nhập ngày nộp lên ĐHĐN!' }]}>
+                      <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              );
+            }}
+          </Form.Item>
+
+          <Divider orientation="left" style={{ margin: '12px 0', fontSize: '14px' }}>Thông tin Nơi chuyển đến</Divider>
+
+          <div style={{ marginBottom: 20 }}>
+            <span style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>
+              Nơi chuyển sinh hoạt Đảng đến <span style={{ color: '#ff4d4f' }}>*</span>
+            </span>
+            <Row gutter={8}>
+              <Col span={8}>
+                <Form.Item
+                  name="noi_chuyen_den_chi_bo"
+                  rules={[{ required: true, message: 'Vui lòng nhập Chi bộ!' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Input placeholder="Chi bộ (VD: thôn Đức Xá)..." />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="noi_chuyen_den_dang_bo_co_so"
+                  rules={[{ required: true, message: 'Vui lòng nhập Đảng bộ cơ sở!' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Input placeholder="Đảng bộ cơ sở (VD: xã Vĩnh Thủy)..." />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  name="noi_chuyen_den_dang_bo_cap_tren"
+                  rules={[{ required: true, message: 'Vui lòng nhập Đảng bộ cấp trên!' }]}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Input placeholder="Đảng bộ cấp trên (VD: tỉnh Quảng Trị)..." />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
+
+          <Form.Item name="ly_do_chuyen" label={<span style={{ fontWeight: 600 }}>Lý do chuyển sinh hoạt:</span>} rules={[{ required: true }]}>
+            <Input.TextArea rows={2} />
+          </Form.Item>
+        </Form>
+      </Drawer>
 
       <ProfileDrawer 
         open={isDrawerVisible} 
@@ -1673,7 +2882,6 @@ const HoSoChuyenRa = () => {
         onUpdate={fetchActiveMembersAndProcesses} 
       />
 
-      {/* Modal Chuyển bước Quy trình kèm Ghi chú */}
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1699,6 +2907,17 @@ const HoSoChuyenRa = () => {
       >
         <div style={{ marginTop: 15, marginBottom: 15 }}>
           <p>Bạn đang chuyển tiến trình của đồng chí <strong>{transitioningRecord?.ho_ten}</strong> sang <strong>Bước {(transitioningRecord?.buoc || 1) + 1}</strong>.</p>
+          
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>
+            {transitioningRecord?.buoc === 1 ? 'Ngày nộp lên VPĐU Trường:' : 'Ngày nộp lên ĐHĐN:'}
+          </div>
+          <DatePicker
+            format="DD/MM/YYYY"
+            value={stepDate}
+            onChange={date => setStepDate(date)}
+            style={{ width: '100%', marginBottom: 15, borderRadius: '6px' }}
+          />
+
           <div style={{ fontWeight: 600, marginBottom: 8 }}>Nhập ghi chú cho bước này (nếu có):</div>
           <Input.TextArea
             rows={3}
@@ -1751,47 +2970,95 @@ const HoSoChuyenRa = () => {
                     label: `${m.ho_ten} - MSSV: ${m.mssv || 'N/A'} (Lớp: ${m.lop || 'N/A'}) - ${m.loai_dang_vien || (m.dang_vien_du_bi ? 'Dự bị' : 'Chính thức')}`
                   }))}
                   onChange={(val) => {
-                    try {
-                      const m = activeMembers.find(x => x.id === val);
-                      if (m) {
-                        const isReserve = m.loai_dang_vien === "Dự bị" || m.dang_vien_du_bi === true || m.loai_dang_vien === "dubi";
-                        const defaultUuDiem = m.uu_diem || "- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.\n- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.\n- Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.\n- Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.\n- Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.";
-                        const defaultKhuyetDiem = m.khuyet_diem || "Không có khuyết điểm gì lớn";
-                        const defaultReason = "Tôi đã hoàn thành chương trình học và đã tốt nghiệp ra trường. Cần chuyển đến tổ chức Đảng mới để tiếp tục hoàn thành nhiệm vụ Đảng viên.";
-
-                        addForm.setFieldsValue({
-                          loai_chuyen_sh: 'chuyen_ra',
-                          mssv: m.mssv || '',
-                          gioi_tinh: m.gioi_tinh || 'Nam',
-                          lop: m.lop || '',
-                          khoa: m.khoa || '',
-                          ngay_sinh: safeDate(m.ngay_sinh),
-                          ngay_vao_dang: safeDate(m.ngay_vao_dang),
-                          ngay_chinh_thuc: safeDate(m.ngay_chinh_thuc),
-                          so_dien_thoai: m.so_dien_thoai || m.sdt || '',
-                          so_the_dang: m.so_the_dang || m.so_quyet_dinh_dvct || m.so_qd || '',
-                          que_quan: m.que_quan || m.tinh_tp_qq || '',
-                          dia_chi: m.chi_tiet_dc || m.tinh_tp_tt || m.dia_chi_thuong_tru || '',
-                          nhiem_vu_dang: m.nhiem_vu_dang || 'Đảng viên',
-                          noi_chuyen_den: m.noi_chuyen_den || '',
-                          tinh_tp: 'Đà Nẵng',
-                          ly_do_chuyen: defaultReason,
-                          uu_diem: defaultUuDiem,
-                          khuyet_diem: defaultKhuyetDiem,
-                          ghi_chu: m.ghi_chu || '',
-                          ngay_ky: dayjs()
-                        });
-                      }
-                    } catch (err) {
-                      console.error("Error setting fields value:", err);
-                      message.error("Lỗi khi tự động điền dữ liệu. Xin hãy nhập thủ công.");
-                    }
+                    handleSelectMemberForAdd(val);
                   }}
                   dropdownStyle={{ borderRadius: '6px' }}
                 />
               </Form.Item>
             </Col>
           </Row>
+
+          {selectedMemberForAdd && (
+            <Card 
+              size="small" 
+              title={<span style={{ fontWeight: 700, color: '#c62828' }}>Thông tin Đảng viên (Từ hồ sơ gốc)</span>} 
+              style={{ marginBottom: 20, borderRadius: '8px', backgroundColor: '#fafafa', border: '1px solid #f0f0f0' }}
+            >
+              <Row gutter={[16, 12]}>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Họ và tên: </Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.ho_ten}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">MSSV: </Text>
+                  <Text strong style={{ display: 'block', fontFamily: 'monospace' }}>{selectedMemberForAdd.mssv || 'N/A'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Giới tính: </Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.gioi_tinh || 'N/A'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Ngày sinh: </Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.ngay_sinh ? dayjs(selectedMemberForAdd.ngay_sinh).format('DD/MM/YYYY') : 'N/A'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Ngày vào Đảng: </Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.ngay_vao_dang ? dayjs(selectedMemberForAdd.ngay_vao_dang).format('DD/MM/YYYY') : 'N/A'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Ngày chính thức: </Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.ngay_chinh_thuc ? dayjs(selectedMemberForAdd.ngay_chinh_thuc).format('DD/MM/YYYY') : 'N/A'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Loại Đảng viên: </Text>
+                  <Text strong style={{ display: 'block' }}>
+                    {selectedMemberForAdd.dang_vien_du_bi ? (
+                      <Tag color="orange" style={{ fontWeight: 600, margin: 0 }}>Dự bị</Tag>
+                    ) : (
+                      <Tag color="green" style={{ fontWeight: 600, margin: 0 }}>Chính thức</Tag>
+                    )}
+                  </Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Số thẻ Đảng: </Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.so_the_dang || 'Chưa có'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Lớp, Khoa: </Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.lop || '--'} - {selectedMemberForAdd.khoa || '--'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Số điện thoại: </Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.so_dien_thoai || selectedMemberForAdd.sdt || 'N/A'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Email: </Text>
+                  <Text strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedMemberForAdd.email || selectedMemberForAdd.email_sv || 'N/A'}</Text>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <Text type="secondary">Quê quán: </Text>
+                  <Text strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={selectedMemberForAdd.que_quan || selectedMemberForAdd.tinh_tp_qq || 'N/A'}>
+                    {selectedMemberForAdd.que_quan || selectedMemberForAdd.tinh_tp_qq || 'N/A'}
+                  </Text>
+                </Col>
+              </Row>
+            </Card>
+          )}
+
+          {/* Hidden fields for standard form validation & parsing */}
+          <div style={{ display: 'none' }}>
+            <Form.Item name="gioi_tinh"><Input /></Form.Item>
+            <Form.Item name="lop"><Input /></Form.Item>
+            <Form.Item name="khoa"><Input /></Form.Item>
+            <Form.Item name="ngay_sinh"><DatePicker format="DD/MM/YYYY" /></Form.Item>
+            <Form.Item name="so_dien_thoai"><Input /></Form.Item>
+            <Form.Item name="ngay_vao_dang"><DatePicker format="DD/MM/YYYY" /></Form.Item>
+            <Form.Item name="ngay_chinh_thuc"><DatePicker format="DD/MM/YYYY" /></Form.Item>
+            <Form.Item name="so_the_dang"><Input /></Form.Item>
+            <Form.Item name="que_quan"><Input /></Form.Item>
+            <Form.Item name="dia_chi"><Input /></Form.Item>
+            <Form.Item name="nhiem_vu_dang"><Input /></Form.Item>
+          </div>
           
           <Row gutter={16}>
             <Col span={12}>
@@ -1803,60 +3070,50 @@ const HoSoChuyenRa = () => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="gioi_tinh" label="Giới tính" rules={[{ required: true }]}>
-                <Select>
-                  <Option value="Nam">Nam</Option>
-                  <Option value="Nữ">Nữ</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="lop" label="Lớp học tập" rules={[{ required: true }]}><Input /></Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="khoa" label="Khoa quản lý" rules={[{ required: true }]}><Input /></Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="ngay_sinh" label="Ngày sinh" rules={[{ required: true }]}><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="so_dien_thoai" label="Số điện thoại liên hệ" rules={[{ required: true }]}><Input /></Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item name="ngay_vao_dang" label="Ngày vào Đảng" rules={[{ required: true }]}><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item name="ngay_chinh_thuc" label="Ngày chính thức"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item>
-            </Col>
-            <Col span={8}>
-               <Form.Item name="so_the_dang" label="Số thẻ Đảng viên (nếu có)"><Input /></Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="que_quan" label="Quê quán" rules={[{ required: true }]}><Input placeholder="Xã..., Huyện..., Tỉnh..." /></Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="dia_chi" label="Địa chỉ cư trú hiện nay" rules={[{ required: true }]}><Input placeholder="Thôn..., Xã..., Huyện..., Tỉnh..." /></Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="nhiem_vu_dang" label="Nhiệm vụ trong Đảng" rules={[{ required: true }]}><Input /></Form.Item>
-            </Col>
-            <Col span={12}>
               <Form.Item name="tinh_tp" label="Tỉnh/Thành phố ký hồ sơ" rules={[{ required: true }]}><Input /></Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
+            <Col xs={24}>
+              <div style={{ marginBottom: 16 }}>
+                <span style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>
+                  Nơi chuyển sinh hoạt Đảng đến <span style={{ color: '#ff4d4f' }}>*</span>
+                </span>
+                <Row gutter={[8, 8]}>
+                  <Col xs={24} sm={8}>
+                    <Form.Item
+                      name="noi_chuyen_den_chi_bo"
+                      rules={[{ required: true, message: 'Vui lòng nhập Chi bộ!' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input placeholder="Chi bộ (VD: thôn Đức Xá)..." />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item
+                      name="noi_chuyen_den_dang_bo_co_so"
+                      rules={[{ required: true, message: 'Vui lòng nhập Đảng bộ cơ sở!' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input placeholder="Đảng bộ cơ sở (VD: xã Vĩnh Thủy)..." />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Form.Item
+                      name="noi_chuyen_den_dang_bo_cap_tren"
+                      rules={[{ required: true, message: 'Vui lòng nhập Đảng bộ cấp trên!' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input placeholder="Đảng bộ cấp trên (VD: tỉnh Quảng Trị)..." />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+            </Col>
+          </Row>
+          <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="noi_chuyen_den" label="Nơi chuyển sinh hoạt Đảng đến" rules={[{ required: true }]}><Input /></Form.Item>
+              <Form.Item name="ngay_nop_ho_so" label="Ngày nhận hồ sơ" rules={[{ required: true }]}><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item name="ngay_ky" label="Ngày ký hồ sơ" rules={[{ required: true }]}><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item>
@@ -1867,16 +3124,59 @@ const HoSoChuyenRa = () => {
           <Form.Item name="khuyet_diem" label="Tự nhận xét Khuyết điểm" rules={[{ required: true }]}><Input.TextArea rows={2} /></Form.Item>
           <Form.Item name="ghi_chu" label="Ghi chú hồ sơ"><Input.TextArea rows={2} placeholder="Nhập ghi chú hoặc nhắc nhở về hồ sơ này..." /></Form.Item>
           
-          <Divider orientation="left">Dành cho Đảng viên Dự bị (Mẫu 5)</Divider>
-          <Row gutter={16}>
-            <Col span={12}><Form.Item name="dvhd" label="Tên Đảng viên hướng dẫn"><Input /></Form.Item></Col>
-            <Col span={12}><Form.Item name="ngay_phan_cong" label="Ngày phân công HD"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item></Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={8}><Form.Item name="dvhd_ngay_sinh" label="Ngày sinh ĐVHD"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="dvhd_ngay_vao_dang" label="Ngày vào Đảng ĐVHD"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item></Col>
-            <Col span={8}><Form.Item name="dvhd_ngay_chinh_thuc" label="Ngày chính thức ĐVHD"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item></Col>
-          </Row>
+          {isProbationaryAdd && (
+            <>
+              <Divider orientation="left">Dành cho Đảng viên Dự bị (Mẫu 5)</Divider>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="dvhd" label="Tên Đảng viên hướng dẫn">
+                    <Select
+                      showSearch
+                      allowClear
+                      placeholder="Chọn Đảng viên hướng dẫn..."
+                      optionFilterProp="children"
+                      filterOption={(input, option) => 
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={eligibleGuidesAdd.map(m => ({
+                        value: m.ho_ten,
+                        label: `${m.ho_ten} (MSSV: ${m.mssv || 'N/A'}) - CT: ${m.ngay_chinh_thuc ? dayjs(m.ngay_chinh_thuc).format('DD/MM/YYYY') : 'N/A'}`,
+                        memberInfo: m
+                      }))}
+                      onChange={(val, option) => {
+                        if (option && option.memberInfo) {
+                          const m = option.memberInfo;
+                          const safeDate = (dateVal) => {
+                            if (!dateVal) return null;
+                            if (typeof dateVal === 'object' && dateVal.seconds) return dayjs(new Date(dateVal.seconds * 1000));
+                            const d = dayjs(dateVal);
+                            return d.isValid() ? d : null;
+                          };
+                          addForm.setFieldsValue({
+                            dvhd_ngay_sinh: safeDate(m.ngay_sinh),
+                            dvhd_ngay_vao_dang: safeDate(m.ngay_vao_dang),
+                            dvhd_ngay_chinh_thuc: safeDate(m.ngay_chinh_thuc)
+                          });
+                        } else {
+                          addForm.setFieldsValue({
+                            dvhd_ngay_sinh: null,
+                            dvhd_ngay_vao_dang: null,
+                            dvhd_ngay_chinh_thuc: null
+                          });
+                        }
+                      }}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}><Form.Item name="ngay_phan_cong" label="Ngày phân công HD"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item></Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={8}><Form.Item name="dvhd_ngay_sinh" label="Ngày sinh ĐVHD"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item></Col>
+                <Col span={8}><Form.Item name="dvhd_ngay_vao_dang" label="Ngày vào Đảng ĐVHD"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item></Col>
+                <Col span={8}><Form.Item name="dvhd_ngay_chinh_thuc" label="Ngày chính thức ĐVHD"><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item></Col>
+              </Row>
+            </>
+          )}
         </Form>
       </Modal>
 
@@ -1922,7 +3222,17 @@ const HoSoChuyenRa = () => {
               layout="vertical"
               onValuesChange={(changedValues, allValues) => {
                 if (!isEmailEditedManually && selectedProcessForCompletion) {
-                  const generated = generateDefaultEmailTemplate(selectedProcessForCompletion, allValues);
+                  const combined = [
+                    allValues.noi_chuyen_den_chi_bo ? allValues.noi_chuyen_den_chi_bo.trim() : '',
+                    allValues.noi_chuyen_den_dang_bo_co_so ? allValues.noi_chuyen_den_dang_bo_co_so.trim() : '',
+                    allValues.noi_chuyen_den_dang_bo_cap_tren ? allValues.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
+                  ].filter(Boolean).join(', ');
+                  
+                  const generated = generateDefaultEmailTemplate(selectedProcessForCompletion, {
+                    ...allValues,
+                    noi_chuyen_ra: combined,
+                    noi_chuyen_den_tam_thoi: combined
+                  });
                   setEmailSubject(generated.subject);
                   setEmailHtml(generated.html);
                 }
@@ -1951,43 +3261,54 @@ const HoSoChuyenRa = () => {
                       style={{ borderRadius: '6px' }}
                     />
                   </Form.Item>
-
-                  <Form.Item
-                    name="noi_chuyen_den_tam_thoi"
-                    label={<span style={{ fontWeight: 600 }}>Nơi chuyển sinh hoạt tạm thời đến (Tổ chức Đảng mới):</span>}
-                    rules={[{ required: true, message: 'Vui lòng nhập tổ chức Đảng nơi chuyển đến tạm thời!' }]}
-                  >
-                    <Input 
-                      placeholder="Ví dụ: Chi bộ Sinh viên 1, Đảng bộ Trường Đại học X..." 
-                      style={{ borderRadius: '6px' }}
-                    />
-                  </Form.Item>
                 </>
               ) : (
-                <>
-                  <Form.Item
-                    name="ngay_chuyen_ra"
-                    label={<span style={{ fontWeight: 600 }}>Ngày chuyển ra chính thức:</span>}
-                    rules={[{ required: true, message: 'Vui lòng chọn ngày chuyển đi chính thức!' }]}
-                  >
-                    <DatePicker 
-                      format="DD/MM/YYYY" 
-                      style={{ width: '100%', borderRadius: '6px' }} 
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="noi_chuyen_ra"
-                    label={<span style={{ fontWeight: 600 }}>Nơi chuyển đến (Đảng bộ/Chi bộ mới):</span>}
-                    rules={[{ required: true, message: 'Vui lòng nhập nơi chuyển sinh hoạt đến!' }]}
-                  >
-                    <Input 
-                      placeholder="Ví dụ: Đảng bộ Quận Ngũ Hành Sơn, Đà Nẵng..." 
-                      style={{ borderRadius: '6px' }}
-                    />
-                  </Form.Item>
-                </>
+                <Form.Item
+                  name="ngay_chuyen_ra"
+                  label={<span style={{ fontWeight: 600 }}>Ngày chuyển ra chính thức:</span>}
+                  rules={[{ required: true, message: 'Vui lòng chọn ngày chuyển đi chính thức!' }]}
+                >
+                  <DatePicker 
+                    format="DD/MM/YYYY" 
+                    style={{ width: '100%', borderRadius: '6px' }} 
+                  />
+                </Form.Item>
               )}
+
+              <div style={{ marginBottom: 24 }}>
+                <span style={{ fontWeight: 600, display: 'block', marginBottom: 8 }}>
+                  Nơi chuyển sinh hoạt Đảng đến <span style={{ color: '#ff4d4f' }}>*</span>
+                </span>
+                <Row gutter={8}>
+                  <Col span={8}>
+                    <Form.Item
+                      name="noi_chuyen_den_chi_bo"
+                      rules={[{ required: true, message: 'Vui lòng nhập Chi bộ!' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input placeholder="Chi bộ (VD: thôn Đức Xá)..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item
+                      name="noi_chuyen_den_dang_bo_co_so"
+                      rules={[{ required: true, message: 'Vui lòng nhập Đảng bộ cơ sở!' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input placeholder="Đảng bộ cơ sở (VD: xã Vĩnh Thủy)..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item
+                      name="noi_chuyen_den_dang_bo_cap_tren"
+                      rules={[{ required: true, message: 'Vui lòng nhập Đảng bộ cấp trên!' }]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      <Input placeholder="Đảng bộ cấp trên (VD: tỉnh Quảng Trị)..." />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
 
               <Form.Item
                 name="ghi_chu"
@@ -2427,502 +3748,6 @@ const HoSoChuyenRa = () => {
         </div>
       </Modal>
 
-      {/* Modal 5: Document Generator Modal */}
-      <Modal
-        title={
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
-            <span style={{ fontWeight: 800, fontSize: '18px', color: '#1a1a1a', letterSpacing: '-0.3px' }}>
-              Trình hướng dẫn tạo biểu mẫu & Xem trước (Live Preview) - Đồng chí {docRecord?.ho_ten}
-            </span>
-          </div>
-        }
-        open={isDocModalVisible}
-        onCancel={() => setIsDocModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsDocModalVisible(false)} style={{ borderRadius: '6px' }}>
-            Đóng
-          </Button>,
-          transferType && (
-            <Button
-              key="download-zip"
-              type="primary"
-              icon={<FileZipOutlined />}
-              onClick={downloadDocModalAllAsZip}
-              loading={generating}
-              style={{
-                backgroundColor: '#c62828',
-                borderColor: '#c62828',
-                borderRadius: '6px',
-                fontWeight: 700,
-                padding: '0 24px',
-                height: '40px'
-              }}
-            >
-              TẢI TRỌN BỘ HỒ SƠ (.ZIP)
-            </Button>
-          )
-        ]}
-        width={1300}
-        centered
-        destroyOnClose
-        styles={{ body: { padding: '20px 24px', backgroundColor: '#f8fafc' }, header: { padding: '20px 24px 16px', borderBottom: '1px solid #f1f5f9' } }}
-      >
-        <Form form={docForm} layout="vertical">
-          <Row gutter={24}>
-            {/* Left inputs column */}
-            <Col xs={24} lg={10} style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '16px' }}>
-              
-              {/* Transfer Type Cards */}
-              <div style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b', marginBottom: '12px' }}>
-                Loại chuyển sinh hoạt
-              </div>
-              <Form.Item
-                name="loai_chuyen_sh"
-                rules={[{ required: true, message: 'Vui lòng chọn loại chuyển sinh hoạt Đảng' }]}
-              >
-                <div style={{ display: 'none' }}>
-                  <Input />
-                </div>
-                <Row gutter={[12, 12]}>
-                  <Col xs={24} sm={12}>
-                    <div
-                      onClick={() => handleDocTransferTypeChange('chuyen_ra')}
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        border: transferType === 'chuyen_ra' ? '2px solid #c62828' : '1px solid #e2e8f0',
-                        backgroundColor: transferType === 'chuyen_ra' ? '#fef2f2' : '#ffffff',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        boxShadow: transferType === 'chuyen_ra' ? '0 4px 10px rgba(198, 40, 40, 0.06)' : 'none',
-                      }}
-                      className="custom-select-card"
-                    >
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: transferType === 'chuyen_ra' ? '#c62828' : '#f1f5f9',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: transferType === 'chuyen_ra' ? '#ffffff' : '#64748b',
-                        fontSize: '15px',
-                        flexShrink: 0
-                      }}>
-                        <ExportOutlined />
-                      </div>
-                      <div style={{ flexGrow: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, color: transferType === 'chuyen_ra' ? '#c62828' : '#1e293b', fontSize: '13px' }}>
-                          Chuyển ra ngoài
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
-                          Vĩnh viễn (ra trường, đi làm...)
-                        </div>
-                      </div>
-                    </div>
-                  </Col>
-                  
-                  <Col xs={24} sm={12}>
-                    <div
-                      onClick={() => handleDocTransferTypeChange('chuyen_tam_thoi')}
-                      style={{
-                        padding: '12px',
-                        borderRadius: '10px',
-                        border: transferType === 'chuyen_tam_thoi' ? '2px solid #c62828' : '1px solid #e2e8f0',
-                        backgroundColor: transferType === 'chuyen_tam_thoi' ? '#fef2f2' : '#ffffff',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        boxShadow: transferType === 'chuyen_tam_thoi' ? '0 4px 10px rgba(198, 40, 40, 0.06)' : 'none',
-                      }}
-                      className="custom-select-card"
-                    >
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: transferType === 'chuyen_tam_thoi' ? '#c62828' : '#f1f5f9',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: transferType === 'chuyen_tam_thoi' ? '#ffffff' : '#64748b',
-                        fontSize: '15px',
-                        flexShrink: 0
-                      }}>
-                        <CalendarOutlined />
-                      </div>
-                      <div style={{ flexGrow: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 700, color: transferType === 'chuyen_tam_thoi' ? '#c62828' : '#1e293b', fontSize: '13px' }}>
-                          Chuyển tạm thời
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '1px' }}>
-                          Tạm thời (thực tập, học quân sự...)
-                        </div>
-                      </div>
-                    </div>
-                  </Col>
-                </Row>
-              </Form.Item>
-
-              {transferType && (
-                <>
-                  <Divider style={{ margin: '15px 0' }} />
-                  <div style={{ fontWeight: 800, fontSize: '14px', color: '#1e293b', marginBottom: '15px' }}>
-                    Thông tin bổ sung cho hồ sơ
-                  </div>
-
-                  <Collapse defaultActiveKey={['1']} bordered={false} style={{ backgroundColor: 'transparent' }} items={[
-                    {
-                      key: '1',
-                      label: <div style={{ fontWeight: 700, color: '#1e293b' }}>1. Thông tin Cá nhân</div>,
-                      children: (
-                        <>
-                          <Row gutter={16}>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="gioi_tinh" label="Giới tính" rules={[{ required: true }]}>
-                                <Select>
-                                  <Option value="Nam">Nam</Option>
-                                  <Option value="Nữ">Nữ</Option>
-                                </Select>
-                              </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="ngay_sinh" label="Ngày sinh" rules={[{ required: true }]}>
-                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                          <Row gutter={16}>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="que_quan" label="Quê quán" rules={[{ required: true }]}>
-                                <Input placeholder="Xã..., Huyện..., Tỉnh..." />
-                              </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="dia_chi" label="Địa chỉ cư trú hiện nay" rules={[{ required: true }]}>
-                                <Input placeholder="Thôn..., Xã..., Huyện..., Tỉnh..." />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                          <Form.Item name="so_dien_thoai" label="Số điện thoại liên hệ" rules={[{ required: true }]}>
-                            <Input />
-                          </Form.Item>
-                        </>
-                      )
-                    },
-                    {
-                      key: '2',
-                      label: <div style={{ fontWeight: 700, color: '#1e293b' }}>2. Thông tin Đảng tịch & Đoàn thể</div>,
-                      children: (
-                        <>
-                          <Row gutter={16}>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="ngay_vao_dang" label="Ngày vào Đảng" rules={[{ required: true }]}>
-                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="ngay_chinh_thuc" label="Ngày chính thức (bỏ trống nếu Dự bị)">
-                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} disabled={isProbationary} />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                          <Row gutter={16}>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="so_the_dang" label="Số thẻ Đảng viên (nếu có)">
-                                <Input placeholder="Nhập số thẻ Đảng..." />
-                              </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="nhiem_vu_dang" label="Nhiệm vụ được giao trong Đảng" rules={[{ required: true }]}>
-                                <Input placeholder="Ví dụ: Đảng viên, Phó Bí thư Chi bộ..." />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                          <Row gutter={16}>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="lop" label="Lớp học tập" rules={[{ required: true }]}>
-                                <Input />
-                              </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="khoa" label="Khoa quản lý" rules={[{ required: true }]}>
-                                <Input />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                        </>
-                      )
-                    },
-                    {
-                      key: '3',
-                      label: <div style={{ fontWeight: 700, color: '#1e293b' }}>3. Chi tiết Đơn chuyển sinh hoạt</div>,
-                      children: (
-                        <>
-                          <Row gutter={16}>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="noi_chuyen_den" label="Nơi chuyển đến" rules={[{ required: true }]}>
-                                <Input placeholder="Chi bộ... thuộc Đảng bộ cơ sở..." />
-                              </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="ngay_ky" label="Ngày ký hồ sơ" rules={[{ required: true }]}>
-                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                          <Form.Item name="tinh_tp" label="Tỉnh/Thành phố ký hồ sơ" rules={[{ required: true }]}>
-                            <Input />
-                          </Form.Item>
-                          <Form.Item name="ly_do_chuyen" label="Lý do xin chuyển sinh hoạt Đảng" rules={[{ required: true }]}>
-                            <Input.TextArea rows={2} />
-                          </Form.Item>
-                          <Form.Item name="ghi_chu" label="Ghi chú hồ sơ nội bộ">
-                            <Input.TextArea rows={2} placeholder="Nhập ghi chú hoặc nhắc nhở về hồ sơ này..." />
-                          </Form.Item>
-                        </>
-                      )
-                    },
-                    {
-                      key: '4',
-                      label: <div style={{ fontWeight: 700, color: '#1e293b' }}>4. Nội dung Tự Kiểm Điểm</div>,
-                      children: (
-                        <>
-                          <Form.Item name="uu_diem" label="Tự nhận xét Ưu điểm" rules={[{ required: true }]}>
-                            <Input.TextArea rows={4} />
-                          </Form.Item>
-                          <Form.Item name="khuyet_diem" label="Tự nhận xét Khuyết điểm, Hạn chế" rules={[{ required: true }]}>
-                            <Input.TextArea rows={2} />
-                          </Form.Item>
-                        </>
-                      )
-                    }
-                  ]} />
-
-                  {/* Probationary member extra guider inputs */}
-                  {isProbationary && (
-                    <div style={{ marginTop: '20px', padding: '16px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                      <div style={{ fontWeight: 800, fontSize: '14px', color: '#166534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <StarOutlined /> Ý kiến đánh giá của Đảng viên hướng dẫn (ĐVHD)
-                      </div>
-
-                      <Row gutter={16}>
-                        <Col xs={24} sm={14}>
-                          <Form.Item name="dvhd_id" label={<span style={{ color: '#166534', fontWeight: 600 }}>Chọn Đảng viên hướng dẫn từ danh sách</span>}>
-                            <Select 
-                              placeholder="Chọn Đảng viên chính thức đang sinh hoạt..."
-                              onChange={handleDocGuiderSelect}
-                              showSearch
-                              optionFilterProp="children"
-                            >
-                              {officialMembers.map(m => (
-                                <Option key={m.id} value={m.id}>{m.ho_ten} - {m.mssv || 'N/A'}</Option>
-                              ))}
-                            </Select>
-                          </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={10} style={{ display: 'none' }}>
-                          <Form.Item name="dvhd">
-                            <Input />
-                          </Form.Item>
-                        </Col>
-                        <Col xs={24} sm={10} style={{ display: 'flex', alignItems: 'center', height: '82px' }}>
-                          {guiderFound === 'found' ? (
-                            <Alert message="Lấy thông tin thành công" type="success" showIcon style={{ padding: '6px 12px', fontSize: '12px' }} />
-                          ) : (
-                            <Alert message="Vui lòng chọn để điền tự động" type="info" showIcon style={{ padding: '6px 12px', fontSize: '12px' }} />
-                          )}
-                        </Col>
-                      </Row>
-
-                      <div style={{ marginBottom: '15px' }}>
-                        <Checkbox
-                          checked={generateGuiderDoc}
-                          onChange={(e) => setGenerateGuiderDoc(e.target.checked)}
-                          style={{ fontWeight: 700, color: '#166534' }}
-                        >
-                          Tích chọn để kèm Bản nhận xét của ĐVHD (Mẫu 5) vào bộ hồ sơ
-                        </Checkbox>
-                      </div>
-
-                      {generateGuiderDoc && (
-                        <div style={{ marginTop: '10px', borderTop: '1px dashed #bbf7d0', paddingTop: '15px' }}>
-                          <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: '10px', color: '#166534' }}>
-                            Thông tin chi tiết về Đảng viên hướng dẫn (cần thiết cho Mẫu 5):
-                          </Text>
-                          <Row gutter={16}>
-                            <Col xs={24} sm={8}>
-                              <Form.Item name="dvhd_ngay_sinh" label={<span style={{ color: '#166534' }}>Ngày sinh ĐVHD</span>} rules={[{ required: generateGuiderDoc }]}>
-                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={8}>
-                              <Form.Item name="dvhd_ngay_vao_dang" label={<span style={{ color: '#166534' }}>Ngày kết nạp ĐVHD</span>} rules={[{ required: generateGuiderDoc }]}>
-                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col xs={24} sm={8}>
-                              <Form.Item name="dvhd_ngay_chinh_thuc" label={<span style={{ color: '#166534' }}>Ngày chính thức ĐVHD</span>} rules={[{ required: generateGuiderDoc }]}>
-                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                          <Row gutter={16}>
-                            <Col xs={24} sm={12}>
-                              <Form.Item name="ngay_phan_cong" label={<span style={{ color: '#166534' }}>Ngày Chi bộ phân công giúp đỡ</span>} rules={[{ required: generateGuiderDoc }]}>
-                                <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Downloads Section moved to Left Column */}
-              <Card
-                className="premium-glass-card"
-                style={{
-                  borderRadius: '12px',
-                  border: '1px solid rgba(226, 232, 240, 0.8)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
-                  backgroundColor: '#f8fafc',
-                  marginTop: '20px',
-                  marginBottom: '20px'
-                }}
-              >
-                <div style={{ fontWeight: 800, fontSize: '15px', color: '#1e293b', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <DownloadOutlined style={{ color: '#c62828' }} /> Danh mục biểu mẫu & Tải lẻ
-                </div>
-
-                {!transferType ? (
-                  <div style={{ textAlign: 'center', padding: '30px 10px', color: '#94a3b8' }}>
-                    <InfoCircleOutlined style={{ fontSize: '24px', marginBottom: '8px', display: 'block', margin: '0 auto 8px' }} />
-                    Vui lòng chọn loại chuyển sinh hoạt Đảng để xem danh mục biểu mẫu
-                  </div>
-                ) : (
-                  <div>
-                    <Alert
-                      message={
-                        <span style={{ fontSize: '11px', color: '#475569' }}>
-                          Cơ chế sinh mẫu tự động điền các thông tin của {docRecord?.ho_ten} và ĐVHD (nếu có).
-                        </span>
-                      }
-                      type="info"
-                      showIcon
-                      style={{ marginBottom: '15px' }}
-                    />
-
-                    {/* Document items list */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {docModalDocumentList.map(doc => (
-                        <div
-                          key={doc.key}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '8px 12px',
-                            backgroundColor: '#ffffff',
-                            borderRadius: '8px',
-                            border: '1px solid #e2e8f0',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '60%' }}>
-                            <FileTextOutlined style={{ color: '#3b82f6', fontSize: '15px' }} />
-                            <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {doc.label}
-                            </span>
-                          </div>
-                          <Space size="small">
-                            <Tooltip title="Xem trước trên giao diện">
-                              <Button
-                                size="small"
-                                type={previewDocKey === doc.key ? 'primary' : 'default'}
-                                icon={<InfoCircleOutlined />}
-                                onClick={() => setPreviewDocKey(doc.key)}
-                                style={{ borderRadius: '6px', fontSize: '11px' }}
-                              >
-                                Xem
-                              </Button>
-                            </Tooltip>
-                            <Tooltip title={`Tải riêng lẻ ${doc.code}`}>
-                              <Button
-                                type="text"
-                                icon={<DownloadOutlined style={{ color: '#10b981' }} />}
-                                onClick={() => downloadDocModalSingleDoc(doc.key)}
-                                disabled={generating}
-                                size="small"
-                              />
-                            </Tooltip>
-                          </Space>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </Card>
-
-            </Col>
-
-            {/* Right column: Live A4 Preview */}
-            <Col xs={24} lg={14}>
-              <Card
-                className="premium-glass-card"
-                style={{
-                  borderRadius: '12px',
-                  border: '1px solid rgba(226, 232, 240, 0.8)',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
-                  backgroundColor: '#e2e8f0',
-                  height: '75vh',
-                  overflowY: 'auto'
-                }}
-                styles={{ body: { padding: 0 } }}
-              >
-                <div style={{ padding: '12px 16px', borderBottom: '1px solid #cbd5e1', backgroundColor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
-                  <div style={{ fontWeight: 700, color: '#334155' }}>
-                    <FileTextOutlined style={{ marginRight: 8, color: '#c62828' }} />
-                    Bản xem trước A4 - {docModalDocumentList.find(d => d.key === previewDocKey)?.code || 'Chọn mẫu để xem'}
-                  </div>
-                  <Tag color="green">Live Preview</Tag>
-                </div>
-                
-                <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
-                  <Form.Item noStyle shouldUpdate>
-                    {() => {
-                      const currentValues = docForm.getFieldsValue();
-                      const previewData = {
-                        ...docRecord,
-                        ...currentValues,
-                        ngay_sinh: currentValues.ngay_sinh ? currentValues.ngay_sinh.format('YYYY-MM-DD') : '',
-                        ngay_vao_dang: currentValues.ngay_vao_dang ? currentValues.ngay_vao_dang.format('YYYY-MM-DD') : '',
-                        ngay_chinh_thuc: currentValues.ngay_chinh_thuc ? currentValues.ngay_chinh_thuc.format('YYYY-MM-DD') : '',
-                        ngay_ky: currentValues.ngay_ky ? currentValues.ngay_ky.format('YYYY-MM-DD') : ''
-                      };
-                      return (
-                        <div style={{ transform: 'scale(0.85)', transformOrigin: 'top center', width: '100%' }}>
-                          <DocumentPreview 
-                            data={previewData} 
-                            docType={previewDocKey} 
-                          />
-                        </div>
-                      );
-                    }}
-                  </Form.Item>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-        </Form>
-      </Modal>
 
     </div>
   );

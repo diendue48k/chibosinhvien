@@ -48,6 +48,24 @@ export const DOCUMENT_TYPES = [
     defaultPath: '/6. Biên bản họp lớp.docx',
     outputName: '7_Bien_Ban_Hop_Lop',
   },
+  {
+    key: 'nghi_quyet_chi_bo',
+    label: '8. Nghị quyết đề nghị chính thức chi bộ',
+    defaultPath: '/8. Mau 13_KND_Nghi quyet de nghi chinh thuc chi bo.docx',
+    outputName: '8_Nghi_Quyet_Chi_Bo',
+  },
+  {
+    key: 'tong_hop_nhan_xet_mau12',
+    label: '9. Tổng hợp nhận xét đoàn thể',
+    defaultPath: '/7. Mau 12_KND_Tong hop nhan xet cuadoan the dv dang vien du bi.docx',
+    outputName: '9_Tong_Hop_Nhan_Xet',
+  },
+  {
+    key: 'nhan_xet_dang_vien_giup_do_mau11',
+    label: '10. Nhận xét đảng viên giúp đỡ',
+    defaultPath: '/2. Mau 11_KND_nhan xet dang vien giup do_DHKT_2025.docx',
+    outputName: '10_Nhan_Xet_Dang_Vien_Giup_Do',
+  }
 ];
 
 // Danh sách placeholder hợp lệ để tham khảo khi tạo mẫu mới

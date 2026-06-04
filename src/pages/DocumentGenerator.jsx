@@ -5,7 +5,7 @@ import {
 } from 'antd';
 import { 
   FileWordOutlined, UserOutlined, AuditOutlined, TeamOutlined, 
-  SettingOutlined, CheckCircleOutlined, BookOutlined, StarOutlined, EyeOutlined, FileZipOutlined
+  SettingOutlined, CheckCircleOutlined, BookOutlined, StarOutlined, EyeOutlined, FileZipOutlined, FileProtectOutlined
 } from '@ant-design/icons';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -519,8 +519,18 @@ const DocumentGenerator = () => {
         case 'nghi_quyet_doan_truong':
           await docGeneratorService.generateNghiQuyetDoanTruong(formatted);
           break;
+        case 'nhan_xet_dang_vien_giup_do_mau11':
+          await docGeneratorService.generateNhanXetDangVienGiupDoMau11(formatted);
+          break;
+        case 'tong_hop_nhan_xet_mau12':
+          await docGeneratorService.generateTongHopNhanXetMau12(formatted);
+          break;
+        case 'nghi_quyet_chi_bo_mau13':
+          await docGeneratorService.generateNghiQuyetDeNghiChinhThuc(formatted);
+          break;
         default:
           message.error("Loại tài liệu không hợp lệ.");
+          return;
       }
       message.success("Xuất biểu mẫu Word thành công.");
     } catch (e) {
@@ -1378,7 +1388,12 @@ const DocumentGenerator = () => {
                       { key: 'bien_ban_lcd', label: '4. Biên bản họp LCĐ khoa', color: '#2563eb', desc: 'Mẫu 3' },
                       { key: 'nghi_quyet_chi_doan', label: '5. Nghị quyết Chi Đoàn', color: '#b91c1c', desc: 'Mẫu 4' },
                       { key: 'bien_ban_chi_doan', label: '6. Biên bản họp Chi Đoàn', color: '#2563eb', desc: 'Mẫu 5' },
-                      { key: 'bien_ban_hop_lop', label: '7. Biên bản họp lớp sinh hoạt', color: '#2563eb', desc: 'Mẫu 6' }
+                      { key: 'bien_ban_hop_lop', label: '7. Biên bản họp lớp sinh hoạt', color: '#2563eb', desc: 'Mẫu 6' },
+                      ...(isManager ? [
+                        { key: 'nhan_xet_dang_vien_giup_do_mau11', label: '8. Nhận xét ĐV giúp đỡ', color: '#0369a1', desc: 'Mẫu 11' },
+                        { key: 'tong_hop_nhan_xet_mau12', label: '9. Tổng hợp nhận xét nơi cư trú', color: '#0369a1', desc: 'Mẫu 12' },
+                        { key: 'nghi_quyet_chi_bo_mau13', label: '10. Nghị quyết Chi bộ', color: '#0369a1', desc: 'Mẫu 13' }
+                      ] : [])
                     ].map((doc) => {
                       const isActive = activeTab === doc.key;
                       return (
@@ -1562,9 +1577,7 @@ const DocumentGenerator = () => {
 
                     <div className="premium-input-wrapper" style={{ minHeight: 460 }}>
                       
-                      {/* TAB 1: BẢN TỰ KIỂM ĐIỂM */}
-                      {activeTab === 'ban_tu_kiem_diem' && (
-                        <div>
+                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
                           <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
                             <AuditOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
                             <div>
@@ -1601,9 +1614,6 @@ const DocumentGenerator = () => {
                               </Form.Item>
                             </Col>
                             <Col span={12}>
-                              <Form.Item name="ngay_ky" label={<span className="premium-form-label">Ngày ký <span style={{fontWeight:500,color:'#94a3b8'}}>(để trống nếu chưa có)</span></span>}>
-                                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Để trống - điền tay sau" />
-                              </Form.Item>
                             </Col>
                           </Row>
 
@@ -1624,32 +1634,9 @@ const DocumentGenerator = () => {
                           <Form.Item name="bien_phap_khac_phuc" label={<span className="premium-form-label">Biện pháp khắc phục khuyết điểm <span style={{fontWeight:500,color:'#94a3b8'}}>(không bắt buộc)</span></span>}>
                             <TextArea rows={3} placeholder="Hướng phấn đấu rèn luyện sửa đổi... (để trống nếu không cần)" />
                           </Form.Item>
-
-                          {/* Action Buttons directly under the Form */}
-                          <Divider style={{ margin: '20px 0 12px 0' }} />
-                          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                            <Button
-                              icon={<EyeOutlined />}
-                              onClick={() => handlePreview('ban_tu_kiem_diem')}
-                              style={{ borderRadius: '6px', fontWeight: 700 }}
-                            >
-                              Xem trước bản in
-                            </Button>
-                            <Button
-                              type="primary"
-                              icon={<FileWordOutlined />}
-                              onClick={() => handleExport('ban_tu_kiem_diem')}
-                              style={{ borderRadius: '6px', fontWeight: 700, backgroundColor: '#c62828', borderColor: '#c62828' }}
-                            >
-                              Tải file Word
-                            </Button>
-                          </div>
                         </div>
-                      )}
 
-                      {/* TAB 2: NGHỊ QUYẾT ĐOÀN TRƯỜNG */}
-                      {activeTab === 'nghi_quyet_doan_truong' && (
-                        <div>
+                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
                           <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
                             <SettingOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
                             <div>
@@ -1673,8 +1660,8 @@ const DocumentGenerator = () => {
                               </Form.Item>
                             </Col>
                             <Col span={12}>
-                              <Form.Item name="ngay_hop_doan_truong" label={<span className="premium-form-label">Ngày họp Đoàn Trường <span style={{fontWeight:500,color:'#94a3b8'}}>(để trống → chỉ in năm)</span></span>}>
-                                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Để trống → chỉ in năm hiện tại" />
+                              <Form.Item name="bi_thu_doan_truong" label={<span className="premium-form-label">Bí thư Đoàn Trường ký NQ <span style={{fontWeight:500,color:'#94a3b8'}}>(để trống - điền sau)</span></span>}>
+                                <Input placeholder="Để trống - điền tay sau" />
                               </Form.Item>
                             </Col>
                           </Row>
@@ -1685,38 +1672,10 @@ const DocumentGenerator = () => {
                                 <InputNumber min={1} style={{ width: '100%' }} />
                               </Form.Item>
                             </Col>
-                            <Col span={12}>
-                              <Form.Item name="bi_thu_doan_truong" label={<span className="premium-form-label">Bí thư Đoàn Trường ký NQ <span style={{fontWeight:500,color:'#94a3b8'}}>(để trống - điền sau)</span></span>}>
-                                <Input placeholder="Để trống - điền tay sau" />
-                              </Form.Item>
-                            </Col>
                           </Row>
-
-                          {/* Action Buttons directly under the Form */}
-                          <Divider style={{ margin: '20px 0 12px 0' }} />
-                          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                            <Button
-                              icon={<EyeOutlined />}
-                              onClick={() => handlePreview('nghi_quyet_doan_truong')}
-                              style={{ borderRadius: '6px', fontWeight: 700 }}
-                            >
-                              Xem trước bản in
-                            </Button>
-                            <Button
-                              type="primary"
-                              icon={<FileWordOutlined />}
-                              onClick={() => handleExport('nghi_quyet_doan_truong')}
-                              style={{ borderRadius: '6px', fontWeight: 700, backgroundColor: '#c62828', borderColor: '#c62828' }}
-                            >
-                              Tải file Word
-                            </Button>
-                          </div>
                         </div>
-                      )}
 
-                      {/* TAB 3 & 4: LIÊN CHI ĐOÀN KHOA */}
-                      {(activeTab === 'nghi_quyet_lcd' || activeTab === 'bien_ban_lcd') && (
-                        <div>
+                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
                           <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
                             <StarOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
                             <div>
@@ -1734,11 +1693,6 @@ const DocumentGenerator = () => {
                           </Divider>
 
                           <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="ngay_hop_lcd" label={<span className="premium-form-label">Ngày họp Liên chi Đoàn <span style={{fontWeight:500,color:'#94a3b8'}}>(để trống → chỉ in năm)</span></span>}>
-                                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Để trống → chỉ in năm hiện tại" />
-                              </Form.Item>
-                            </Col>
                             <Col span={12}>
                               <Form.Item name="dia_diem_hop_lcd" label={<span className="premium-form-label">Địa điểm họp</span>}>
                                 <Input placeholder="Trường Đại học Kinh tế" />
@@ -1790,38 +1744,9 @@ const DocumentGenerator = () => {
                               </Form.Item>
                             </Col>
                           </Row>
-
-                          {/* Action Buttons directly under the Form */}
-                          <Divider style={{ margin: '20px 0 12px 0' }} />
-                          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', alignItems: 'center' }}>
-                            <div style={{ marginRight: 'auto', display: 'flex', gap: 6 }}>
-                              <Text style={{ fontWeight: 800, color: '#64748b', fontSize: 11.5 }}>Đang chọn:</Text>
-                              <span style={{ fontWeight: 800, color: '#c62828', background: '#fee2e2', padding: '1px 8px', borderRadius: '12px', fontSize: 11 }}>
-                                {activeTab === 'nghi_quyet_lcd' ? '3. Nghị quyết' : '4. Biên bản'}
-                              </span>
-                            </div>
-                            <Button
-                              icon={<EyeOutlined />}
-                              onClick={() => handlePreview(activeTab)}
-                              style={{ borderRadius: '6px', fontWeight: 700 }}
-                            >
-                              Xem trước
-                            </Button>
-                            <Button
-                              type="primary"
-                              icon={<FileWordOutlined />}
-                              onClick={() => handleExport(activeTab)}
-                              style={{ borderRadius: '6px', fontWeight: 700, backgroundColor: '#c62828', borderColor: '#c62828' }}
-                            >
-                              Tải file Word
-                            </Button>
-                          </div>
                         </div>
-                      )}
 
-                      {/* TAB 5 & 6: CHI ĐOÀN CƠ SỞ */}
-                      {(activeTab === 'nghi_quyet_chi_doan' || activeTab === 'bien_ban_chi_doan') && (
-                        <div>
+                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
                           <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
                             <BookOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
                             <div>
@@ -1839,11 +1764,6 @@ const DocumentGenerator = () => {
                           </Divider>
 
                           <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="ngay_hop_chi_doan" label={<span className="premium-form-label">Ngày họp Chi đoàn <span style={{fontWeight:500,color:'#94a3b8'}}>(để trống → chỉ in năm)</span></span>}>
-                                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Để trống → chỉ in năm hiện tại" />
-                              </Form.Item>
-                            </Col>
                             <Col span={12}>
                               <Form.Item name="bi_thu_chi_doan" label={<span className="premium-form-label">Bí thư Chi đoàn ký NQ <span style={{color:'#ef4444'}}>*</span></span>}>
                                 <Input placeholder="Tên Bí thư Chi đoàn..." />
@@ -1892,38 +1812,9 @@ const DocumentGenerator = () => {
                               </Form.Item>
                             </Col>
                           </Row>
-
-                          {/* Action Buttons directly under the Form */}
-                          <Divider style={{ margin: '20px 0 12px 0' }} />
-                          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', alignItems: 'center' }}>
-                            <div style={{ marginRight: 'auto', display: 'flex', gap: 6 }}>
-                              <Text style={{ fontWeight: 800, color: '#64748b', fontSize: 11.5 }}>Đang chọn:</Text>
-                              <span style={{ fontWeight: 800, color: '#c62828', background: '#fee2e2', padding: '1px 8px', borderRadius: '12px', fontSize: 11 }}>
-                                {activeTab === 'nghi_quyet_chi_doan' ? '5. Nghị quyết' : '6. Biên bản'}
-                              </span>
-                            </div>
-                            <Button
-                              icon={<EyeOutlined />}
-                              onClick={() => handlePreview(activeTab)}
-                              style={{ borderRadius: '6px', fontWeight: 700 }}
-                            >
-                              Xem trước
-                            </Button>
-                            <Button
-                              type="primary"
-                              icon={<FileWordOutlined />}
-                              onClick={() => handleExport(activeTab)}
-                              style={{ borderRadius: '6px', fontWeight: 700, backgroundColor: '#c62828', borderColor: '#c62828' }}
-                            >
-                              Tải file Word
-                            </Button>
-                          </div>
                         </div>
-                      )}
 
-                      {/* TAB 7: BIÊN BẢN HỌP LỚP */}
-                      {activeTab === 'bien_ban_hop_lop' && (
-                        <div>
+                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
                           <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
                             <TeamOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
                             <div>
@@ -1941,11 +1832,6 @@ const DocumentGenerator = () => {
                           </Divider>
 
                           <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="ngay_hop_lop" label={<span className="premium-form-label">Ngày họp lớp <span style={{fontWeight:500,color:'#94a3b8'}}>(để trống → chỉ in năm)</span></span>}>
-                                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Để trống → chỉ in năm hiện tại" />
-                              </Form.Item>
-                            </Col>
                             <Col span={12}>
                               <Form.Item name="gvcn" label={<span className="premium-form-label">Giảng viên chủ nhiệm</span>}>
                                 <Input placeholder="ThS. Nguyễn Văn A" />
@@ -1989,28 +1875,160 @@ const DocumentGenerator = () => {
                               </Form.Item>
                             </Col>
                           </Row>
-
-                          {/* Action Buttons directly under the Form */}
-                          <Divider style={{ margin: '20px 0 12px 0' }} />
-                          <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                            <Button
-                              icon={<EyeOutlined />}
-                              onClick={() => handlePreview('bien_ban_hop_lop')}
-                              style={{ borderRadius: '6px', fontWeight: 700 }}
-                            >
-                              Xem trước bản in
-                            </Button>
-                            <Button
-                              type="primary"
-                              icon={<FileWordOutlined />}
-                              onClick={() => handleExport('bien_ban_hop_lop')}
-                              style={{ borderRadius: '6px', fontWeight: 700, backgroundColor: '#c62828', borderColor: '#c62828' }}
-                            >
-                              Tải file Word
-                            </Button>
-                          </div>
                         </div>
-                      )}
+
+                        {/* ADMIN ONLY FORMS */}
+                        {isManager && (
+                          <>
+                            {/* MẪU 11 - NHẬN XÉT CỦA ĐẢNG VIÊN GIÚP ĐỠ */}
+                            <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
+                              <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#e0f2fe', marginBottom: 16 }}>
+                                <SettingOutlined style={{ color: '#0369a1', fontSize: 18, marginTop: 2 }} />
+                                <div>
+                                  <div style={{ fontWeight: 800, color: '#0369a1', fontSize: 13.5, marginBottom: 2 }}>[Quản lý] Nhận xét Đảng viên giúp đỡ (Mẫu 11)</div>
+                                  <div style={{ fontSize: 12, color: '#0c4a6e', lineHeight: 1.4 }}>
+                                    Thông tin Đảng viên chính thức được phân công giúp đỡ Đảng viên dự bị.
+                                  </div>
+                                </div>
+                              </div>
+
+                              <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
+                                <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
+                                  Thông tin Đảng viên giúp đỡ
+                                </span>
+                              </Divider>
+
+                              <Row gutter={16}>
+                                <Col span={12}>
+                                  <Form.Item name="dvhd_ngay_sinh" label={<span className="premium-form-label">Ngày sinh ĐV giúp đỡ</span>}>
+                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày sinh" />
+                                  </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                  <Form.Item name="nam_vao_chi_bo_dvhd" label={<span className="premium-form-label">Năm sinh hoạt tại Chi bộ</span>}>
+                                    <Input placeholder="VD: 2022" />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+
+                              <Row gutter={16}>
+                                <Col span={12}>
+                                  <Form.Item name="dvhd_ngay_vao_dang" label={<span className="premium-form-label">Ngày vào Đảng của ĐV hướng dẫn</span>}>
+                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày kết nạp" />
+                                  </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                  <Form.Item name="dvhd_ngay_chinh_thuc" label={<span className="premium-form-label">Ngày chính thức của ĐV hướng dẫn</span>}>
+                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày chính thức" />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+                            </div>
+
+                            {/* MẪU 12 - TỔNG HỢP Ý KIẾN */}
+                            <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
+                              <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#e0f2fe', marginBottom: 16 }}>
+                                <AuditOutlined style={{ color: '#0369a1', fontSize: 18, marginTop: 2 }} />
+                                <div>
+                                  <div style={{ fontWeight: 800, color: '#0369a1', fontSize: 13.5, marginBottom: 2 }}>[Quản lý] Tổng hợp nhận xét nơi cư trú (Mẫu 12)</div>
+                                  <div style={{ fontSize: 12, color: '#0c4a6e', lineHeight: 1.4 }}>
+                                    Chi ủy nơi cư trú và các đoàn thể nhận xét đảng viên dự bị.
+                                  </div>
+                                </div>
+                              </div>
+
+                              <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
+                                <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
+                                  Nhận xét của các tổ chức Đoàn thể
+                                </span>
+                              </Divider>
+
+                              <Row gutter={16}>
+                                <Col span={12}>
+                                  <Form.Item name="chi_uy_noi_cu_tru" label={<span className="premium-form-label">Tên Chi ủy Chi bộ nơi cư trú</span>}>
+                                    <Input placeholder="VD: 43-44-45 An Thượng" />
+                                  </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                  <Form.Item name="tong_so_chi_uy_noi_cu_tru" label={<span className="premium-form-label">Tổng số Chi ủy viên nơi cư trú</span>}>
+                                    <InputNumber min={1} style={{ width: '100%' }} placeholder="VD: 3" />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+                              <Row gutter={16}>
+                                <Col span={12}>
+                                  <Form.Item name="tong_so_to_chuc_ctxh" label={<span className="premium-form-label">Tổng số lượng tổ chức CTXH</span>}>
+                                    <InputNumber min={1} style={{ width: '100%' }} placeholder="VD: 100" />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+                            </div>
+
+                            {/* MẪU 13 - NGHỊ QUYẾT ĐỀ NGHỊ CHÍNH THỨC CHI BỘ */}
+                            <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
+                              <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#e0f2fe', marginBottom: 16 }}>
+                                <FileProtectOutlined style={{ color: '#0369a1', fontSize: 18, marginTop: 2 }} />
+                                <div>
+                                  <div style={{ fontWeight: 800, color: '#0369a1', fontSize: 13.5, marginBottom: 2 }}>[Quản lý] Nghị quyết Chi bộ (Mẫu 13)</div>
+                                  <div style={{ fontSize: 12, color: '#0c4a6e', lineHeight: 1.4 }}>
+                                    Chi bộ họp xét đề nghị công nhận Đảng viên chính thức.
+                                  </div>
+                                </div>
+                              </div>
+
+                              <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
+                                <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
+                                  Đại diện Chi bộ
+                                </span>
+                              </Divider>
+
+                              <Row gutter={16}>
+                                <Col span={12}>
+                                  <Form.Item name="chu_tri_chi_bo" label={<span className="premium-form-label">Chủ trì cuộc họp</span>}>
+                                    <Input placeholder="Tên chủ trì" />
+                                  </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                  <Form.Item name="chuc_vu_chu_tri_chi_bo" label={<span className="premium-form-label">Chức vụ Chủ trì</span>}>
+                                    <Input placeholder="Bí thư Chi bộ" />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+
+                              <Row gutter={16}>
+                                <Col span={12}>
+                                  <Form.Item name="thu_ky_chi_bo" label={<span className="premium-form-label">Thư ký cuộc họp</span>}>
+                                    <Input placeholder="Tên thư ký" />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+
+                              <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
+                                <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
+                                  Số liệu Đảng viên
+                                </span>
+                              </Divider>
+
+                              <Row gutter={16}>
+                                <Col span={8}>
+                                  <Form.Item name="tong_so_dv" label={<span className="premium-form-label">Tổng số Đảng viên</span>}>
+                                    <InputNumber min={1} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                </Col>
+                                <Col span={8}>
+                                  <Form.Item name="tong_so_dv_chinh_thuc" label={<span className="premium-form-label">Đảng viên chính thức</span>}>
+                                    <InputNumber min={1} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                </Col>
+                                <Col span={8}>
+                                  <Form.Item name="tong_so_dv_du_bi" label={<span className="premium-form-label">Đảng viên dự bị</span>}>
+                                    <InputNumber min={0} style={{ width: '100%' }} />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
+                            </div>
+                          </>
+                        )}
 
                     </div>
 

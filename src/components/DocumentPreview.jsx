@@ -1,4 +1,5 @@
 import React from 'react';
+import dayjs from 'dayjs';
 
 const DocumentPreview = ({ data, docType }) => {
   if (!data) return <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>Không có dữ liệu xem trước</div>;
@@ -28,7 +29,34 @@ const DocumentPreview = ({ data, docType }) => {
     ngay_phan_cong = ''
   } = data;
 
-  const formatDate = (dateString) => {
+  const safeFormatDateString = (val) => {
+    if (!val) return '';
+    try {
+      if (typeof val === 'string') {
+        if (val.includes('T')) return val.split('T')[0];
+        return val.trim();
+      }
+      if (val.format && typeof val.format === 'function') {
+        return val.format('YYYY-MM-DD');
+      }
+      if (typeof val === 'object' && val.seconds !== undefined) {
+        return dayjs(new Date(val.seconds * 1000)).format('YYYY-MM-DD');
+      }
+      if (typeof val === 'object' && typeof val.toDate === 'function') {
+        return dayjs(val.toDate()).format('YYYY-MM-DD');
+      }
+      if (val instanceof Date) {
+        return dayjs(val).format('YYYY-MM-DD');
+      }
+      const d = dayjs(val);
+      return d.isValid() ? d.format('YYYY-MM-DD') : '';
+    } catch {
+      return '';
+    }
+  };
+
+  const formatDate = (dateVal) => {
+    const dateString = safeFormatDateString(dateVal);
     if (!dateString) return '.../.../...';
     const parts = dateString.split('-');
     if (parts.length === 3) {
@@ -37,9 +65,18 @@ const DocumentPreview = ({ data, docType }) => {
     return dateString;
   };
 
-  const getD = (dateString) => dateString ? dateString.split('-')[2] : '...';
-  const getM = (dateString) => dateString ? dateString.split('-')[1] : '...';
-  const getY = (dateString) => dateString ? dateString.split('-')[0] : '......';
+  const getD = (dateVal) => {
+    const dateString = safeFormatDateString(dateVal);
+    return dateString ? dateString.split('-')[2] : '...';
+  };
+  const getM = (dateVal) => {
+    const dateString = safeFormatDateString(dateVal);
+    return dateString ? dateString.split('-')[1] : '...';
+  };
+  const getY = (dateVal) => {
+    const dateString = safeFormatDateString(dateVal);
+    return dateString ? dateString.split('-')[0] : '......';
+  };
 
   const renderContent = () => {
     switch (docType) {
@@ -96,7 +133,10 @@ const DocumentPreview = ({ data, docType }) => {
               <span style={{ marginLeft: 30 }}>{ly_do_chuyen}</span>
             </div>
             <div style={{ marginBottom: 10, lineHeight: 1.6 }}>
-              <span style={{ marginLeft: 30 }}>Để thực hiện theo đúng Điều lệ Đảng, kính đề nghị các cấp ủy Đảng cho tôi được chuyển sinh hoạt Đảng về {noi_chuyen_den}</span>
+              <span style={{ marginLeft: 30 }}>Để thực hiện theo đúng Điều lệ Đảng, kính đề nghị các cấp ủy Đảng cho tôi được chuyển sinh hoạt Đảng về:</span><br/>
+              <span style={{ marginLeft: 30 }}>- Chi bộ trực thuộc: {(noi_chuyen_den || '').split(',')[0]?.trim() || '....................'}</span><br/>
+              <span style={{ marginLeft: 30 }}>- Đảng bộ cơ sở: {(noi_chuyen_den || '').split(',')[1]?.trim() || '....................'}</span><br/>
+              <span style={{ marginLeft: 30 }}>- Đảng bộ cấp trên cơ sở: {((noi_chuyen_den || '').split(',').slice(2).join(', '))?.trim() || '....................'}</span>
             </div>
             <div style={{ marginBottom: 30, lineHeight: 1.6 }}>
               <span style={{ marginLeft: 30 }}>Tôi hứa sẽ phát huy tốt vai trò của người đảng viên trong lĩnh vực công tác mới và hoàn thành tốt mọi nhiệm vụ được giao.</span><br/>

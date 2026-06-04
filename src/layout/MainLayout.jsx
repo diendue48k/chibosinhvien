@@ -178,9 +178,19 @@ const MainLayout = () => {
       ],
     },
     {
-      key: '/ho-so-chuyen-ra',
+      key: 'ho-so-chuyen-ra-group',
       icon: <ExportOutlined />,
       label: 'Hồ sơ chuyển ra',
+      children: [
+        {
+          key: '/ho-so-chuyen-ra',
+          label: 'Quản lý hồ sơ',
+        },
+        {
+          key: '/tao-bieu-mau-chuyen-ra',
+          label: 'Tạo biểu mẫu hồ sơ',
+        },
+      ],
     },
     {
       key: 'sinh-hoat-chi-bo-group',

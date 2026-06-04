@@ -2242,40 +2242,7 @@ const DangVienDuBi = () => {
             </Row>
           </div>
 
-          {/* Section: Đặc điểm & Ghi chú hồ sơ */}
-          <div style={{ 
-            padding: '16px', 
-            border: '1px solid #e8e8e8', 
-            borderRadius: '12px', 
-            backgroundColor: '#fbfbfb', 
-            marginBottom: '10px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-          }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <SettingOutlined style={{ fontSize: '16px' }} /> Đặc điểm & Ghi chú hồ sơ
-            </span>
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item name="uu_diem" label="Ưu điểm">
-                  <Input.TextArea rows={3} placeholder="Ưu điểm, điểm mạnh..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item name="khuyet_diem" label="Khuyết điểm">
-                  <Input.TextArea rows={3} placeholder="Khuyết điểm, điểm cần khắc phục..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item name="ghi_chu_ho_so" label="Ghi chú hồ sơ">
-                  <Input.TextArea rows={2} placeholder="Ghi chú chung cho hồ sơ đảng viên này..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
+
         </Form>
       </Drawer>
 

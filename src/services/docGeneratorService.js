@@ -373,8 +373,8 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
     }
   }
 
-  // Step 3: Handle hardcoded DOM templates for Transfer documents (Mẫu 1, 2, 3, 5)
-  if (docType && docType.startsWith('transfer_')) {
+  // Step 3: Handle hardcoded DOM templates for Transfer documents (Mẫu 1, 2, 3, 5) and Mẫu 11, 12, 13
+  if (docType && (docType.startsWith('transfer_') || docType.includes('mau11') || docType.includes('mau12') || docType.includes('mau13') || docType.includes('chi_bo'))) {
     const allParagraphs = getElementsByLocalName(doc, 'p');
     
     // Mapping of exact strings from the template to dynamic data
@@ -390,6 +390,55 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         { find: '26 tháng 07 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
         { find: 'Nguyễn Văn A', replace: data.ho_ten },
         { find: 'Đà Nẵng, ngày       tháng         năm 2026', replace: `Đà Nẵng, ngày       tháng         năm ${dayjs().format('YYYY')}` }
+      );
+    } else if (docType === 'transfer_nghi_quyet_chi_bo_mau8') {
+      mappings.push(
+        { find: 'ngày    tháng    năm 2026', replace: `ngày    tháng    năm ${dayjs().format('YYYY')}` },
+        { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten },
+        { find: 'ngày 30 tháng 5 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
+        { find: '378', replace: String(data.tong_so_dv || '') },
+        { find: '234', replace: String(data.tong_so_dv_chinh_thuc || '') },
+        { find: '144', replace: String(data.tong_so_dv_du_bi || '') },
+        { find: 'Bùi Trung Hiệp', replace: data.chu_tri_chi_bo || '....................' },
+        { find: 'Bí thư Chi bộ', replace: data.chuc_vu_chu_tri_chi_bo || '....................' },
+        { find: 'Lê Vĩnh Diện', replace: data.thu_ky_chi_bo || '....................' }
+      );
+    } else if (docType === 'nghi_quyet_chi_bo_mau13') {
+      mappings.push(
+        { find: 'ngày    tháng    năm 2026', replace: `ngày    tháng    năm ${dayjs().format('YYYY')}` },
+        { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten },
+        { find: 'ngày 30 tháng 5 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
+        { find: '378', replace: String(data.tong_so_dv || '') },
+        { find: '234', replace: String(data.tong_so_dv_chinh_thuc || '') },
+        { find: '144', replace: String(data.tong_so_dv_du_bi || '') },
+        { find: 'Bùi Trung Hiệp', replace: data.chu_tri_chi_bo || '....................' },
+        { find: 'Bí thư Chi bộ', replace: data.chuc_vu_chu_tri_chi_bo || '....................' },
+        { find: 'Lê Vĩnh Diện', replace: data.thu_ky_chi_bo || '....................' }
+      );
+    } else if (docType === 'tong_hop_nhan_xet_mau12') {
+      mappings.push(
+        { find: 'ngày    tháng    năm 2026', replace: `ngày    tháng    năm ${dayjs().format('YYYY')}` },
+        { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten },
+        { find: 'ngày 30 tháng 5 năm 2025', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
+        { find: 'Quản trị kinh doanh', replace: data.khoa || '....................' },
+        { find: '51K25.2', replace: data.lop || '....................' },
+        { find: '43-44-45 An Thượng', replace: data.chi_uy_noi_cu_tru || '....................' },
+        { find: '100', replace: String(data.tong_so_to_chuc_ctxh || '') },
+        { find: '3', replace: String(data.tong_so_chi_uy_noi_cu_tru || '') }
+      );
+    } else if (docType === 'nhan_xet_dang_vien_giup_do_mau11') {
+      mappings.push(
+        { find: 'Lê Vĩnh Diện', replace: data.dvhd || '....................' },
+        { find: '01/04/2004', replace: data.dvhd_ngay_sinh_formatted || '....................' },
+        { find: 'vào Đảng ngày 26/07/2022', replace: `vào Đảng ngày ${data.dvhd_ngay_vao_dang || '....................'}` },
+        { find: 'Chính thức ngày 26/07/2022', replace: `Chính thức ngày ${data.dvhd_ngay_chinh_thuc || '....................'}` },
+        { find: 'Ngày vào Đảng: 26/07/2022', replace: `Ngày vào Đảng: ${data.dvhd_ngay_vao_dang || '....................'}` },
+        { find: 'Ngày chính thức: 26/07/2022', replace: `Ngày chính thức: ${data.dvhd_ngay_chinh_thuc || '....................'}` },
+        { find: '26/07/2022', replace: data.dvhd_ngay_vao_dang || '....................' },
+        { find: 'ngày 30 tháng 5 năm 2025', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
+        { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten || '....................' },
+        { find: 'năm 2026', replace: `năm ${data.nam_vao_chi_bo_dvhd || data.ngay_vao_dang_y || '2026'}` },
+        { find: '2026', replace: data.nam_vao_chi_bo_dvhd || data.ngay_vao_dang_y || '2026' }
       );
     } else {
       // Standard mappings for Mẫu 1, 2, 3, 4
@@ -416,7 +465,14 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         { find: 'Tôi hiện đang đi thực tập ở quê nên cần phải chuyển sinh hoạt tạm thời về quê để đảm bảo sinh hoạt Đảng đầy đủ, đúng quy định.', replace: data.ly_do_chuyen || 'Tôi hiện đang đi thực tập ở quê nên cần phải chuyển sinh hoạt tạm thời về quê để đảm bảo sinh hoạt Đảng đầy đủ, đúng quy định.' },
         
         // Dynamic mapping for Destination parts from Mẫu 1 & 2
-        { find: 'thôn Đức Xá thuộc Đảng bộ cơ sở xã Vĩnh Thủy, Đảng bộ cấp trên cơ sở tỉnh Quảng Trị', replace: data.noi_chuyen_den },
+        { find: 'thôn Đức Xá thuộc Đảng bộ cơ sở xã Vĩnh Thủy, Đảng bộ cấp trên cơ sở tỉnh Quảng Trị', replace: (() => {
+            const parts = (data.noi_chuyen_den || '').split(',');
+            return `Chi bộ trực thuộc ${parts[0] ? parts[0].trim() : '....................'}, Đảng bộ cơ sở ${parts[1] ? parts[1].trim() : '....................'}, Đảng bộ cấp trên cơ sở ${parts.length > 2 ? parts.slice(2).join(', ').trim() : '....................'}`;
+        })() },
+        { find: 'Chi bộ trực thuộc thôn Đức Xá, Đảng bộ cơ sở xã Vĩnh Thủy, Đảng bộ cấp trên cơ sở tỉnh Quảng Trị', replace: (() => {
+            const parts = (data.noi_chuyen_den || '').split(',');
+            return `Chi bộ trực thuộc ${parts[0] ? parts[0].trim() : '....................'}, Đảng bộ cơ sở ${parts[1] ? parts[1].trim() : '....................'}, Đảng bộ cấp trên cơ sở ${parts.length > 2 ? parts.slice(2).join(', ').trim() : '....................'}`;
+        })() },
         { find: 'thôn Đức Xá', replace: (() => {
             const parts = (data.noi_chuyen_den || '').split(',');
             return parts[0] ? parts[0].trim() : '....................';
@@ -741,6 +797,11 @@ export const docGeneratorService = {
     downloadBlob(blob, `7_Bien_Ban_Hop_Lop_${data.mssv || 'DVDB'}.docx`);
   },
   
+  async generateNhanXetDangVienGiupDoMau11(data) {
+    const blob = await replaceTagsInDocx('/2. Mau 11_KND_nhan xet dang vien giup do_DHKT_2025.docx', data, 'nhan_xet_dang_vien_giup_do_mau11');
+    downloadBlob(blob, `10_Nhan_Xet_Dang_Vien_Giup_Do_${data.mssv || 'DVDB'}.docx`);
+  },
+  
   async generateAllDocumentsZip(data) {
     const zip = new JSZip();
     
@@ -761,7 +822,10 @@ export const docGeneratorService = {
       addFileToZip('/3. Biên bản họp Liên chi Đoàn.docx', `4_Bien_Ban_LCD_${data.mssv || 'DVDB'}.docx`, 'bien_ban_lcd'),
       addFileToZip('/4. Nghị quyết Chi Đoàn.docx', `5_Nghi_Quyet_Chi_Doan_${data.mssv || 'DVDB'}.docx`, 'nghi_quyet_chi_doan'),
       addFileToZip('/5. Biên bản họp Chi Đoàn.docx', `6_Bien_Ban_Chi_Doan_${data.mssv || 'DVDB'}.docx`, 'bien_ban_chi_doan'),
-      addFileToZip('/6. Biên bản họp lớp.docx', `7_Bien_Ban_Hop_Lop_${data.mssv || 'DVDB'}.docx`, 'bien_ban_hop_lop')
+      addFileToZip('/6. Biên bản họp lớp.docx', `7_Bien_Ban_Hop_Lop_${data.mssv || 'DVDB'}.docx`, 'bien_ban_hop_lop'),
+      addFileToZip('/2. Mau 11_KND_nhan xet dang vien giup do_DHKT_2025.docx', `10_Nhan_Xet_Dang_Vien_Giup_Do_${data.mssv || 'DVDB'}.docx`, 'nhan_xet_dang_vien_giup_do_mau11'),
+      addFileToZip('/7. Mau 12_KND_Tong hop nhan xet cuadoan the dv dang vien du bi.docx', `9_Tong_Hop_Nhan_Xet_Mau_12_${data.mssv || 'DVDB'}.docx`, 'tong_hop_nhan_xet_mau12'),
+      addFileToZip('/8. Mau 13_KND_Nghi quyet de nghi chinh thuc chi bo.docx', `8_Nghi_Quyet_Chi_Bo_Mau_13_${data.mssv || 'DVDB'}.docx`, 'nghi_quyet_chi_bo_mau13')
     ]);
     
     const content = await zip.generateAsync({
@@ -797,6 +861,16 @@ export const docGeneratorService = {
   async generateKiemDiemChuyenDang(data) {
     const blob = await replaceTagsInDocx('/5. Mẫu 4. Kiem diem chuyen dang 2026.docx', data, 'transfer_kiem_diem_chuyen_dang');
     downloadBlob(blob, `5. Mẫu 4. Kiem diem chuyen dang 2026 - ${data.ho_ten || 'DV'}.docx`);
+  },
+
+  async generateNghiQuyetDeNghiChinhThuc(data) {
+    const blob = await replaceTagsInDocx('/8. Mau 13_KND_Nghi quyet de nghi chinh thuc chi bo.docx', data, 'nghi_quyet_chi_bo_mau13');
+    downloadBlob(blob, `8. Mẫu 13. Nghị quyết đề nghị chính thức chi bộ - ${data.ho_ten || 'DV'}.docx`);
+  },
+
+  async generateTongHopNhanXetMau12(data) {
+    const blob = await replaceTagsInDocx('/7. Mau 12_KND_Tong hop nhan xet cuadoan the dv dang vien du bi.docx', data, 'tong_hop_nhan_xet_mau12');
+    downloadBlob(blob, `9. Mẫu 12. Tổng hợp nhận xét đoàn thể - ${data.ho_ten || 'DV'}.docx`);
   },
 
   async generateTransferDocumentsZip(data, fileTypes) {

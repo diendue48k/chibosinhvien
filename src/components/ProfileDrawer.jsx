@@ -1129,23 +1129,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   </Card>
                 )}
 
-                <Card title={<><StarOutlined style={{marginRight: 8}}/> Đặc điểm & Ghi chú hồ sơ</>} bordered={false} style={cardStyle} headStyle={headStyle}>
-                  <Row gutter={16}>
-                    <Field name="uu_diem" label="Ưu điểm" span={24}>
-                      <Input.TextArea rows={3} placeholder="Điểm mạnh, ưu điểm của đảng viên..." />
-                    </Field>
-                  </Row>
-                  <Row gutter={16}>
-                    <Field name="khuyet_diem" label="Khuyết điểm" span={24}>
-                      <Input.TextArea rows={3} placeholder="Điểm hạn chế, khuyết điểm của đảng viên..." />
-                    </Field>
-                  </Row>
-                  <Row gutter={16}>
-                    <Field name="ghi_chu_ho_so" label="Ghi chú hồ sơ" span={24}>
-                      <Input.TextArea rows={2} placeholder="Ghi chú chung cho hồ sơ đảng viên..." />
-                    </Field>
-                  </Row>
-                </Card>
+
 
                 <Card title={<><PhoneOutlined style={{marginRight: 8}}/> Liên hệ</>} bordered={false} style={cardStyle} headStyle={headStyle}>
                   <Row gutter={16}>

@@ -545,7 +545,6 @@ const Profile = () => {
 
   // Privileged roles that can convert CCCD -> So The Dang
   const PRIVILEGED_ROLES = [ROLES.ADMIN, ROLES.BITHU, ROLES.CAPUY, ROLES.KIEMTRA, ROLES.OFFICIAL_MANAGER];
-  const canConvertSoTheDang = currentUser && PRIVILEGED_ROLES.includes(currentUser.role);
 
   const handleConvertSoTheDang = async () => {
     if (!memberData || !memberData.cccd) {
@@ -955,7 +954,6 @@ const Profile = () => {
                   <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} editable>
                     <DatePicker style={{ width: '100%' }} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" />
                   </Field>
-                  {/* So the dang: read-only, with privileged convert button */}
                   <Col span={12}>
                     <div style={{ marginBottom: 16 }}>
                       <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Số thẻ Đảng</div>
@@ -963,26 +961,6 @@ const Profile = () => {
                         <div style={{ fontWeight: 500, fontSize: 15, color: '#262626', flex: 1 }}>
                           {memberData.so_the_dang || <span style={{ color: '#bfbfbf' }}>Chưa cấp</span>}
                         </div>
-                        {canConvertSoTheDang && (
-                          <Popconfirm
-                            title="Cấp số thẻ Đảng từ CCCD?"
-                            description={`Ghi số thẻ Đảng = CCCD (${memberData.cccd || 'Chưa có'}) cho đồng chí ${memberData.ho_ten}?`}
-                            onConfirm={handleConvertSoTheDang}
-                            okText="Xác nhận"
-                            cancelText="Hủy"
-                            okButtonProps={{ style: { backgroundColor: '#c62828', borderColor: '#c62828' } }}
-                          >
-                            <Tooltip title="Cấp số thẻ Đảng từ CCCD">
-                              <Button
-                                size="small"
-                                icon={<SwapOutlined />}
-                                style={{ color: '#c62828', borderColor: '#c62828', fontWeight: 700, fontSize: 11 }}
-                              >
-                                Cấp thẻ từ CCCD
-                              </Button>
-                            </Tooltip>
-                          </Popconfirm>
-                        )}
                       </div>
                     </div>
                   </Col>
