@@ -72,7 +72,12 @@ const MainLayout = () => {
       const snapshot = await getDocs(collection(db, "notifications"));
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setNotifList(list.slice(0, 8));
+      
+      const filteredList = currentUser?.role === ROLES.ADMIN 
+        ? list 
+        : list.filter(n => n.target_user_id === currentUser?.id || !n.target_user_id || n.type === 'system');
+
+      setNotifList(filteredList.slice(0, 8));
     } catch (e) {
       console.error("Lỗi tải thông báo:", e);
     } finally {
@@ -215,6 +220,11 @@ const MainLayout = () => {
       key: '/dang-ky-213',
       icon: <FormOutlined />,
       label: 'Đăng ký 213',
+    },
+    {
+      key: '/dang-ky-chuyen-sinh-hoat',
+      icon: <ExportOutlined />,
+      label: 'Đăng ký Chuyển sinh hoạt',
     },
   ];
 

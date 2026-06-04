@@ -605,7 +605,7 @@ const DocumentGenerator = () => {
     if (!previewData) return null;
     
     const dStyle = {
-      width: '100%',
+      width: '210mm',
       minHeight: '297mm', // A4 aspect ratio
       padding: '20mm 15mm 20mm 20mm', // standard margin
       background: '#fff',
@@ -613,7 +613,7 @@ const DocumentGenerator = () => {
       fontFamily: '"Times New Roman", Times, serif',
       fontSize: '13pt',
       lineHeight: '1.45',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
       margin: '0 auto',
       position: 'relative',
       boxSizing: 'border-box'

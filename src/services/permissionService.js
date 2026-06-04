@@ -18,11 +18,11 @@ export const ROLES = {
 
 // Route Access Mapping for Sidebar & Route Protection
 const ROUTE_PERMISSIONS = {
-  [ROLES.ADMIN]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/document-generator'],
-  [ROLES.BITHU]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/document-generator'],
-  [ROLES.PHOBIHU]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/document-generator'],
-  [ROLES.CAPUY]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/document-generator'],
-  [ROLES.DANGVIEN]: ['/dashboard', '/dang-vien', '/profile', '/thong-bao', '/weekly-plan', '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/attendance', '/document-generator'],
+  [ROLES.ADMIN]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/dang-ky-chuyen-sinh-hoat', '/lich-hop', '/xin-vang', '/document-generator'],
+  [ROLES.BITHU]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/dang-ky-chuyen-sinh-hoat', '/lich-hop', '/xin-vang', '/document-generator'],
+  [ROLES.PHOBIHU]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/dang-ky-chuyen-sinh-hoat', '/lich-hop', '/xin-vang', '/document-generator'],
+  [ROLES.CAPUY]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/dang-ky-chuyen-sinh-hoat', '/lich-hop', '/xin-vang', '/document-generator'],
+  [ROLES.DANGVIEN]: ['/dashboard', '/dang-vien', '/profile', '/thong-bao', '/weekly-plan', '/voting', '/dang-ky-213', '/dang-ky-chuyen-sinh-hoat', '/lich-hop', '/xin-vang', '/attendance', '/document-generator'],
   [ROLES.OFFICIAL_MANAGER]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/document-generator'],
   [ROLES.ADMISSION_MANAGER]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/thong-bao', '/profile', '/weekly-plan', '/attendance', '/voting', '/lich-hop', '/xin-vang', '/document-generator'],
   [ROLES.KIEMTRA]: ['/dashboard', '/dang-vien', '/chuyen-tam-thoi', '/chuyen-sinh-hoat', '/ho-so-chuyen-ra', '/ho-so-ket-nap', '/ho-so-da-ket-nap', '/thong-ke-ho-so', '/ho-so-chinh-thuc', '/ho-so-da-chinh-thuc', '/thong-ke-chinh-thuc', '/thong-bao', '/users', '/profile', '/weekly-plan', '/attendance', '/voting', '/dang-ky-213', '/lich-hop', '/xin-vang', '/document-generator'],
@@ -133,7 +133,7 @@ export const permissionService = {
     }
 
     // Common routes accessible to all authenticated party members
-    const commonRoutes = ['/', '/dashboard', '/profile', '/dang-ky-chuyen'];
+    const commonRoutes = ['/', '/dashboard', '/profile', '/dang-ky-chuyen', '/dang-ky-chuyen-sinh-hoat'];
     if (commonRoutes.includes(path)) {
       return true;
     }

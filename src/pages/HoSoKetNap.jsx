@@ -147,7 +147,8 @@ const HoSoKetNap = () => {
     cccd: { type: 'text' },
     quequan: { type: 'text' },
     sdt: { type: 'text' },
-    email: { type: 'text' }
+    email: { type: 'text' },
+    ghi_chu_ho_so: { type: 'text' }
   };
 
   const startCellEdit = (id, dataIndex, val) => {
@@ -474,6 +475,13 @@ const HoSoKetNap = () => {
         ...getColumnSearchProps('email', 'Email')
       },
       {
+        title: 'Ghi chú',
+        dataIndex: 'ghi_chu_ho_so',
+        key: 'ghi_chu_ho_so',
+        width: 200,
+        ...getColumnSearchProps('ghi_chu_ho_so', 'Ghi chú')
+      },
+      {
         title: 'Hành động',
         key: 'actions',
         width: 80,
@@ -617,6 +625,7 @@ const HoSoKetNap = () => {
             soqd: row["Số quyết định"] || row["SỐ QĐ"] || row["Số QĐ"] || row["Số QĐ kết nạp"] || "",
             ngaykiqd: parseExcelDate(row["Ngày ký quyết định"] || row["Ngày kí"] || row["NGÀY KÍ"] || row["NGÀY KÍ "] || row["Ngày ký QĐ"] || row["NGÀY KÝ"] || row["NGÀY KÝ QUYẾT ĐỊNH"]),
             trangthai: (row["Ngày kết nạp"] || row["NGÀY KẾT NẠP"] || row["Ngày vào Đảng"] || row["NGÀY VÀO ĐẢNG"] || row["Số quyết định"] || row["SỐ QĐ"] || row["Số QĐ"] || stepVal === 8) ? 8 : (stepVal >= 1 && stepVal <= 8 ? stepVal : 1),
+            ghi_chu_ho_so: row["Ghi chú"] || row["Ghi chú hồ sơ"] || "",
             nguon_du_lieu: 'auto'
           };
 
@@ -890,6 +899,7 @@ const HoSoKetNap = () => {
       sdt: svData.SoDienThoai || svData.so_dien_thoai || svData.sdt || '',
       link_fb: svData.Facebook || svData.facebook || svData.link_fb || '',
       cccd: svData.SoCCCD || svData.cccd || '',
+      ghi_chu_ho_so: svData.GhiChu || svData.ghi_chu_ho_so || '',
       nguon_du_lieu: 'auto'
     });
 
@@ -1284,6 +1294,7 @@ const HoSoKetNap = () => {
         ngayvaodang: values.ngayvaodang ? values.ngayvaodang.format('YYYY-MM-DD') : null,
         soqd: values.soqd || '',
         ngaykiqd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : null,
+        ghi_chu_ho_so: values.ghi_chu_ho_so || '',
         updated_at: new Date().toISOString()
       };
 
@@ -1370,6 +1381,7 @@ const HoSoKetNap = () => {
       "Ngày nộp HS lên VPĐU": formatDate(item.ngay_nop_vpdu || item.ngay_nop_ho_so_vpdu),
       "Ngày nộp HS lên ĐHĐN": formatDate(item.ngay_nop_dhdn || item.ngay_nop_ho_so_dhdn),
       "Trạng thái quy trình (Bước)": item.trangthai || item.ho_so_status || 1,
+      "Ghi chú": item.ghi_chu_ho_so || '',
       "Ngày vào Đảng": formatDate(item.ngayvaodang || item.ngay_vao_dang),
       "Số quyết định": item.soqd || item.so_qd,
       "Ngày ký quyết định": formatDate(item.ngaykiqd || item.ngay_ky_qd)
@@ -1443,6 +1455,12 @@ const HoSoKetNap = () => {
       dataIndex: 'ngaynhanhoso', 
       key: 'ngaynhanhoso',
       render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : '--'
+    },
+    {
+      title: 'Ghi chú',
+      dataIndex: 'ghi_chu_ho_so',
+      key: 'ghi_chu_ho_so',
+      render: (text) => text ? <span style={{ fontSize: '12px' }}>{text}</span> : '--'
     },
     {
       title: 'Hành động',
@@ -1897,6 +1915,10 @@ const HoSoKetNap = () => {
                     </Form.Item>
                   </Col>
                 </Row>
+                
+                <Form.Item name="ghi_chu_ho_so" label="Ghi chú hồ sơ">
+                  <Input.TextArea rows={2} placeholder="Nhập ghi chú cho hồ sơ kết nạp này..." />
+                </Form.Item>
               </Card>
 
               {/* Status History Timeline Card */}

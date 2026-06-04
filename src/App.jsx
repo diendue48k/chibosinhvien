@@ -28,6 +28,7 @@ import DangKy213 from './pages/DangKy213';
 import LichHop from './pages/LichHop';
 import XinVang from './pages/XinVang';
 import DocumentGenerator from './pages/DocumentGenerator';
+import DangKyChuyenSinhHoat from './pages/DangKyChuyenSinhHoat';
 function App() {
   useEffect(() => {
     const loadRolePermissions = async () => {
@@ -77,6 +78,7 @@ function App() {
               <Route path="attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
               <Route path="voting" element={<ProtectedRoute><Voting /></ProtectedRoute>} />
               <Route path="dang-ky-213" element={<ProtectedRoute><DangKy213 /></ProtectedRoute>} />
+              <Route path="dang-ky-chuyen-sinh-hoat" element={<ProtectedRoute><DangKyChuyenSinhHoat /></ProtectedRoute>} />
               <Route path="lich-hop" element={<ProtectedRoute><LichHop /></ProtectedRoute>} />
               <Route path="xin-vang" element={<ProtectedRoute><XinVang /></ProtectedRoute>} />
               <Route path="document-generator" element={<ProtectedRoute><DocumentGenerator /></ProtectedRoute>} />

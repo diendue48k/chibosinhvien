@@ -7,7 +7,7 @@ import {
   UserOutlined, CalendarOutlined, NotificationOutlined, AuditOutlined, 
   ClockCircleOutlined, CheckCircleOutlined, SyncOutlined, FileTextOutlined, 
   StarOutlined, TeamOutlined, SafetyCertificateOutlined, BellOutlined, 
-  RightOutlined, FormOutlined, FlagOutlined, CloseCircleOutlined, InfoCircleOutlined
+  RightOutlined, FormOutlined, FlagOutlined, CloseCircleOutlined, InfoCircleOutlined, ExportOutlined
 } from '@ant-design/icons';
 import { collection, getDocs, query, where, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -396,6 +396,14 @@ const DangVienDashboard = () => {
       route: '/profile',
       color: '#607d8b',
       bg: '#eceff1'
+    },
+    {
+      title: 'Đăng ký chuyển SHĐ',
+      desc: 'Đăng ký chuyển sinh hoạt đi nơi khác',
+      icon: <ExportOutlined />,
+      route: '/dang-ky-chuyen-sinh-hoat',
+      color: '#d46b08',
+      bg: '#fff7e6'
     },
     {
       title: 'Xem thành viên nhóm',

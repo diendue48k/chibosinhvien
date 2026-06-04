@@ -106,6 +106,7 @@ const HoSoChinhThuc = () => {
       key: 'trang_thai',
       render: (st) => <Tag color={st === 'chinh_thuc' ? 'green' : 'blue'}>{st}</Tag>
     },
+    { title: 'Ghi chú', dataIndex: 'ghi_chu_ho_so', key: 'ghi_chu_ho_so', render: (text) => text ? <span style={{ fontSize: '12px' }}>{text}</span> : '--' },
     {
       title: 'Hành động',
       key: 'action',
@@ -145,6 +146,9 @@ const HoSoChinhThuc = () => {
               <Option value="dang_xet">Đang xét</Option>
               <Option value="chinh_thuc">Đã chính thức</Option>
             </Select>
+          </Form.Item>
+          <Form.Item name="ghi_chu_ho_so" label="Ghi chú hồ sơ">
+            <Input.TextArea rows={2} placeholder="Nhập ghi chú cho hồ sơ này..." />
           </Form.Item>
         </Form>
       </Modal>

@@ -44,6 +44,18 @@ const TRANG_THAI_CONFIG = {
 // Roles có quyền quản lý (admin view)
 const ADMIN_ROLES = [ROLES.ADMIN, ROLES.BITHU, ROLES.CAPUY, ROLES.KIEMTRA, ROLES.OFFICIAL_MANAGER, ROLES.PHOBIHU];
 
+// Safe date formatter - handles Firestore Timestamps, dayjs, Date, and strings
+const safeFmtDate = (val, fmt = 'DD/MM/YYYY') => {
+  if (!val) return '';
+  try {
+    if (typeof val === 'object' && val.seconds !== undefined) return dayjs(new Date(val.seconds * 1000)).format(fmt);
+    if (typeof val === 'object' && typeof val.toDate === 'function') return dayjs(val.toDate()).format(fmt);
+    if (dayjs.isDayjs && dayjs.isDayjs(val)) return val.isValid() ? val.format(fmt) : '';
+    const d = dayjs(val);
+    return d.isValid() ? d.format(fmt) : '';
+  } catch { return ''; }
+};
+
 // ================================================================
 // WORD DOCUMENT BUILDER - Theo đúng mẫu giấy giới thiệu 213 chuẩn A4
 // docx v8: TabStopType không còn là enum, dùng string 'left' trực tiếp
@@ -83,7 +95,6 @@ const buildGiayGioiThieu = (reg, member, custom = {}) => {
     thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '.....',
     nam: reg.created_at ? dayjs(reg.created_at).format('YYYY') : '2026',
     kinhGuiPhuong: `Đảng ủy phường ${reg.phuong || '...'}, ${reg.thanh_pho || 'Đà Nẵng'},`,
-    kinhGuiChiBo: `Chi bộ ${reg.chi_bo_noi_cu_tru || '...'}.`,
     thucHienQuyDinh: 'Thực hiện Quy định số 213-QĐ/TW, ngày 02 tháng 01 năm 2020 của Bộ Chính trị về trách nhiệm của đảng viên đang công tác thường xuyên giữ mối liên hệ với tổ chức đảng và nhân dân nơi cư trú.',
     dangBoGioiThieu: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
     sinhHoatTaiChiBo: 'Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.',
@@ -189,11 +200,6 @@ const buildGiayGioiThieu = (reg, member, custom = {}) => {
                   alignment: AlignmentType.LEFT,
                   spacing: { line: 336, before: 0, after: 60 },
                   children: [new TextRun({ text: `- ${c.kinhGuiPhuong}`, size: 28, font: 'Times New Roman' })]
-                }),
-                new Paragraph({
-                  alignment: AlignmentType.LEFT,
-                  spacing: { line: 336, before: 0, after: 160 },
-                  children: [new TextRun({ text: `- ${c.kinhGuiChiBo}`, size: 28, font: 'Times New Roman' })]
                 })
               ]
             })
@@ -220,8 +226,8 @@ const buildGiayGioiThieu = (reg, member, custom = {}) => {
     // ── Thông tin đảng viên (dùng paragraph với tab stops để thụt lề chuẩn) ──
     makeInfoParagraph('Giới thiệu đồng chí', member.ho_ten || '...'),
     makeInfoParagraph('Nam, nữ', member.gioi_tinh || '...'),
-    makeInfoParagraph('Sinh ngày', member.ngay_sinh ? dayjs(member.ngay_sinh).format('DD/MM/YYYY') : '...'),
-    makeInfoParagraph('Kết nạp vào Đảng ngày', member.ngay_vao_dang ? dayjs(member.ngay_vao_dang).format('DD/MM/YYYY') : '...'),
+    makeInfoParagraph('Sinh ngày', safeFmtDate(member.ngay_sinh) || '...'),
+    makeInfoParagraph('Kết nạp vào Đảng ngày', safeFmtDate(member.ngay_vao_dang) || '...'),
     makeInfoParagraph('Đang sinh hoạt đảng tại Chi bộ', c.sinhHoatTaiChiBo),
     makeInfoParagraph('Hiện cư trú tại', diaChiCuTru),
 
@@ -507,7 +513,6 @@ const DangKy213 = () => {
       thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '.....',
       nam: reg.created_at ? dayjs(reg.created_at).format('YYYY') : '2026',
       kinhGuiPhuong: `Đảng ủy phường ${reg.phuong || '...'}, ${reg.thanh_pho || 'Đà Nẵng'}`,
-      kinhGuiChiBo: `Chi bộ ${reg.chi_bo_noi_cu_tru || '...'}`,
       thucHienQuyDinh: 'Thực hiện Quy định số 213-QĐ/TW, ngày 02 tháng 01 năm 2020 của Bộ Chính trị về trách nhiệm của đảng viên đang công tác thường xuyên giữ mối liên hệ với tổ chức đảng và nhân dân nơi cư trú.',
       dangBoGioiThieu: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
       sinhHoatTaiChiBo: 'Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.',
@@ -543,7 +548,6 @@ const DangKy213 = () => {
       DiaChiCuTru: record.full_address || '--',
       PhuongXa: record.phuong || '--',
       TinhTP: record.thanh_pho || '--',
-      ChiBoNoiCuTru: record.chi_bo_noi_cu_tru || '--',
       NgayGui: record.created_at ? dayjs(record.created_at).format('DD/MM/YYYY HH:mm') : '--',
       TrangThai: TRANG_THAI_CONFIG[record.trang_thai]?.label || record.trang_thai || '--',
     };
@@ -659,7 +663,6 @@ const DangKy213 = () => {
         ten_duong: values.ten_duong,
         phuong: values.phuong,
         thanh_pho: values.thanh_pho,
-        chi_bo_noi_cu_tru: values.chi_bo_noi_cu_tru,
         trang_thai: 'da_nhan',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -714,7 +717,6 @@ const DangKy213 = () => {
         thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '.....',
         nam: reg.created_at ? dayjs(reg.created_at).format('YYYY') : '2026',
         kinhGuiPhuong: `Đảng ủy phường ${reg.phuong || '...'}, ${reg.thanh_pho || 'Đà Nẵng'}`,
-        kinhGuiChiBo: `Chi bộ ${reg.chi_bo_noi_cu_tru || '...'}`,
         thucHienQuyDinh: 'Thực hiện Quy định số 213-QĐ/TW, ngày 02 tháng 01 năm 2020 của Bộ Chính trị về trách nhiệm của đảng viên đang công tác thường xuyên giữ mối liên hệ với tổ chức đảng và nhân dân nơi cư trú.',
         dangBoGioiThieu: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
         sinhHoatTaiChiBo: 'Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.',
@@ -726,8 +728,8 @@ const DangKy213 = () => {
       const soNhaVaTenDuong = [reg.so_nha, reg.ten_duong].filter(Boolean).join(' ');
       const fullAddress = [soNhaVaTenDuong, reg.phuong, reg.thanh_pho || 'Đà Nẵng'].filter(Boolean).join(', ');
       
-      const ngaySinhStr = member.ngay_sinh ? dayjs(member.ngay_sinh).format('DD/MM/YYYY') : '...';
-      const ngayVaoDangStr = member.ngay_vao_dang ? dayjs(member.ngay_vao_dang).format('DD/MM/YYYY') : '...';
+      const ngaySinhStr = safeFmtDate(member.ngay_sinh) || '...';
+      const ngayVaoDangStr = safeFmtDate(member.ngay_vao_dang) || '...';
 
       // Load original template from public folder
       const response = await fetch('/' + encodeURIComponent('ĐHKT_QĐ 213- 24052026.Sinh vien.docx'));
@@ -873,8 +875,6 @@ const DangKy213 = () => {
           replaceParagraphValue(p, 'Hiện cư trú tại', fullAddress + ' về sinh hoạt nơi cư trú.');
         } else if (pText.startsWith('- Đảng uỷ phường') || pText.startsWith('- Đảng ủy phường')) {
           replaceParagraphValue(p, null, '- ' + customFieldsMerged.kinhGuiPhuong);
-        } else if (pText.startsWith('- Chi bộ')) {
-          replaceParagraphValue(p, null, '- ' + customFieldsMerged.kinhGuiChiBo);
         } else if (pText === 'Phan Minh Đức') {
           replaceParagraphValue(p, null, customFieldsMerged.tenBiThu);
         } else if (pText.includes('tiếp nhận và tạo điều kiện cho đảng viên') && pText.includes('hoàn thành nhiệm vụ.')) {
@@ -1041,8 +1041,8 @@ const DangKy213 = () => {
 
         const soNhaVaTenDuong = [reg.so_nha, reg.ten_duong].filter(Boolean).join(' ');
         const fullAddress = [soNhaVaTenDuong, reg.phuong, reg.thanh_pho || 'Đà Nẵng'].filter(Boolean).join(', ');
-        const ngaySinhStr = member.ngay_sinh ? dayjs(member.ngay_sinh).format('DD/MM/YYYY') : '...';
-        const ngayVaoDangStr = member.ngay_vao_dang ? dayjs(member.ngay_vao_dang).format('DD/MM/YYYY') : '...';
+        const ngaySinhStr = safeFmtDate(member.ngay_sinh) || '...';
+        const ngayVaoDangStr = safeFmtDate(member.ngay_vao_dang) || '...';
 
         const zip = await JSZip.loadAsync(templateArrayBuffer);
         let docXml = await zip.file('word/document.xml').async('string');
@@ -1193,7 +1193,6 @@ const DangKy213 = () => {
       'Địa chỉ cư trú': r.full_address || '',
       'Phường/Xã': r.phuong || '',
       'Tỉnh/TP': r.thanh_pho || '',
-      'Chi bộ nơi cư trú': r.chi_bo_noi_cu_tru || '',
       'Ngày gửi': r.created_at ? dayjs(r.created_at).format('DD/MM/YYYY') : '',
       'Trạng thái': TRANG_THAI_CONFIG[r.trang_thai]?.label || r.trang_thai || '',
     }));
@@ -1204,7 +1203,7 @@ const DangKy213 = () => {
       { wch: 5 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 12 },
       { wch: 10 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 15 }, { wch: 8 },
       { wch: 26 }, { wch: 12 }, { wch: 36 }, { wch: 18 }, { wch: 16 },
-      { wch: 24 }, { wch: 12 }, { wch: 14 },
+      { wch: 14 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Danh sách đăng ký 213');
@@ -1241,7 +1240,6 @@ const DangKy213 = () => {
         ten_duong: values.ten_duong,
         phuong: values.phuong,
         thanh_pho: values.thanh_pho,
-        chi_bo_noi_cu_tru: values.chi_bo_noi_cu_tru,
         trang_thai: values.trang_thai || 'da_nhan',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -1319,8 +1317,8 @@ const DangKy213 = () => {
   const handleOpenCompletionModal = (record) => {
     setSelectedRegForCompletion(record);
     completionForm.setFieldsValue({
-      ten_bi_thu_cu_tru: record.ten_bi_thu_cu_tru || '',
-      sdt_bi_thu_cu_tru: record.sdt_bi_thu_cu_tru || ''
+      ten_bi_thu: record.ten_bi_thu || '',
+      sdt_bi_thu: record.sdt_bi_thu || ''
     });
     setConfirmSubmitModalVisible(true);
   };
@@ -1333,8 +1331,8 @@ const DangKy213 = () => {
       
       await updateDoc(doc(db, "dangky_213", selectedRegForCompletion.id), {
         trang_thai: 'hoan_thanh',
-        ten_bi_thu_cu_tru: values.ten_bi_thu_cu_tru,
-        sdt_bi_thu_cu_tru: values.sdt_bi_thu_cu_tru,
+        ten_bi_thu: values.ten_bi_thu,
+        sdt_bi_thu: values.sdt_bi_thu,
         completed_at: new Date().toISOString()
       });
       
@@ -1700,7 +1698,7 @@ const DangKy213 = () => {
             <Col xs={12} sm={6} md={4}>
               <div style={readOnlyFieldStyle}>
                 <div style={readOnlyLabelStyle}>Ngày sinh</div>
-                <div style={readOnlyValueStyle}>{memberData.ngay_sinh ? dayjs(memberData.ngay_sinh).format('DD/MM/YYYY') : '--'}</div>
+                <div style={readOnlyValueStyle}>{safeFmtDate(memberData.ngay_sinh) || '--'}</div>
               </div>
             </Col>
           </Row>
@@ -1732,7 +1730,7 @@ const DangKy213 = () => {
             <Col xs={12} sm={6} md={4}>
               <div style={readOnlyFieldStyle}>
                 <div style={readOnlyLabelStyle}>Ngày vào Đảng</div>
-                <div style={readOnlyValueStyle}>{memberData.ngay_vao_dang ? dayjs(memberData.ngay_vao_dang).format('DD/MM/YYYY') : '--'}</div>
+                <div style={readOnlyValueStyle}>{safeFmtDate(memberData.ngay_vao_dang) || '--'}</div>
               </div>
             </Col>
             <Col xs={12} sm={6} md={4}>
@@ -1740,8 +1738,7 @@ const DangKy213 = () => {
                 <div style={readOnlyLabelStyle}>Ngày chính thức</div>
                 <div style={readOnlyValueStyle}>
                   {memberData.loai_dang_vien === 'Chính thức' || memberData.ngay_chinh_thuc || memberData.ngay_cong_nhan_dvct ? (
-                    (memberData.ngay_chinh_thuc || memberData.ngay_cong_nhan_dvct) ? 
-                      dayjs(memberData.ngay_chinh_thuc || memberData.ngay_cong_nhan_dvct).format('DD/MM/YYYY') : 'Chính thức'
+                    safeFmtDate(memberData.ngay_chinh_thuc || memberData.ngay_cong_nhan_dvct) || 'Chính thức'
                   ) : 'Dự bị'}
                 </div>
               </div>
@@ -1840,10 +1837,6 @@ const DangKy213 = () => {
               </Col>
             </Row>
 
-            <Form.Item name="chi_bo_noi_cu_tru" label="Chi bộ nơi cư trú" rules={[{ required: true, message: 'Vui lòng nhập chi bộ nơi cư trú' }]}>
-              <Input placeholder="Nhập tên chi bộ nơi cư trú..." />
-            </Form.Item>
-
             <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
               <Button type="primary" icon={<SendOutlined />} onClick={handleSubmit} loading={submitting} block
                 style={{
@@ -1884,7 +1877,6 @@ const DangKy213 = () => {
                   )
                 },
                 { title: 'Địa chỉ', key: 'address', render: (_, r) => buildFullAddress(r) },
-                { title: 'Chi bộ nơi cư trú', dataIndex: 'chi_bo_noi_cu_tru', width: 160 },
                 { title: 'Ngày gửi', dataIndex: 'created_at', width: 110, render: (val) => val ? dayjs(val).format('DD/MM/YYYY') : '--' },
                 { title: 'Trạng thái', dataIndex: 'trang_thai', width: 170, render: renderStatusTag },
                 {
@@ -1909,8 +1901,8 @@ const DangKy213 = () => {
                       return (
                         <Tooltip title={
                           <div>
-                            <div>Bí thư: {r.ten_bi_thu_cu_tru || 'Chưa rõ'}</div>
-                            <div>SĐT: {r.sdt_bi_thu_cu_tru || 'Chưa rõ'}</div>
+                            <div>Bí thư: {r.ten_bi_thu || 'Chưa rõ'}</div>
+                            <div>SĐT: {r.sdt_bi_thu || 'Chưa rõ'}</div>
                           </div>
                         }>
                           <Tag color="purple" style={{ fontWeight: 700, borderRadius: '4px', cursor: 'pointer' }}>
@@ -1967,15 +1959,14 @@ const DangKy213 = () => {
       title: 'Địa chỉ cư trú', dataIndex: 'full_address', width: 250, ellipsis: true,
       render: (text) => (<Tooltip title={text}><span>{text}</span></Tooltip>)
     },
-    { title: 'Chi bộ nơi cư trú', dataIndex: 'chi_bo_noi_cu_tru', width: 160 },
     {
       title: 'Bí thư nơi cư trú',
       key: 'bi_thu_cu_tru',
       width: 230,
-      render: (_, r) => r.ten_bi_thu_cu_tru ? (
+      render: (_, r) => r.ten_bi_thu ? (
         <div>
-          <div style={{ fontWeight: 700, color: '#555' }}>{r.ten_bi_thu_cu_tru}</div>
-          <div style={{ fontSize: '12px', color: '#8c8c8c' }}>SĐT: {r.sdt_bi_thu_cu_tru || '--'}</div>
+          <div style={{ fontWeight: 700, color: '#555' }}>{r.ten_bi_thu}</div>
+          <div style={{ fontSize: '12px', color: '#8c8c8c' }}>SĐT: {r.sdt_bi_thu || '--'}</div>
         </div>
       ) : <span style={{ color: '#bfbfbf' }}>Chưa khai báo</span>
     },
@@ -2493,24 +2484,24 @@ const DangKy213 = () => {
       >
         <Alert
           message="Yêu cầu bắt buộc"
-          description="Đồng chí vui lòng khai báo đầy đủ thông tin của Bí thư Chi bộ nơi cư trú tiếp nhận Giấy giới thiệu 213 của đồng chí để Chi bộ tiện liên hệ lấy phiếu nhận xét cuối năm."
+          description="Đồng chí vui lòng khai báo đầy đủ thông tin của Bí thư cấp ủy nơi cư trú tiếp nhận Giấy giới thiệu 213 của đồng chí để Chi bộ tiện liên hệ lấy phiếu nhận xét cuối năm."
           type="info"
           showIcon
           style={{ marginBottom: 16, borderRadius: 8 }}
         />
         <Form form={completionForm} layout="vertical">
           <Form.Item
-            name="ten_bi_thu_cu_tru"
-            label={<span style={{ fontWeight: 700 }}>Họ và tên Bí thư Chi bộ nơi cư trú <span style={{ color: '#ff4d4f' }}>*</span></span>}
-            rules={[{ required: true, message: 'Nhập họ và tên Bí thư Chi bộ nơi cư trú' }]}
+            name="ten_bi_thu"
+            label={<span style={{ fontWeight: 700 }}>Họ và tên Bí thư cấp uỷ nơi cư trú <span style={{ color: '#ff4d4f' }}>*</span></span>}
+            rules={[{ required: true, message: 'Nhập họ và tên Bí thư cấp uỷ nơi cư trú' }]}
           >
             <Input placeholder="Nhập họ và tên Bí thư..." />
           </Form.Item>
           <Form.Item
-            name="sdt_bi_thu_cu_tru"
-            label={<span style={{ fontWeight: 700 }}>Số điện thoại Bí thư Chi bộ nơi cư trú <span style={{ color: '#ff4d4f' }}>*</span></span>}
+            name="sdt_bi_thu"
+            label={<span style={{ fontWeight: 700 }}>Số điện thoại Bí thư cấp uỷ nơi cư trú <span style={{ color: '#ff4d4f' }}>*</span></span>}
             rules={[
-              { required: true, message: 'Nhập số điện thoại Bí thư Chi bộ nơi cư trú' },
+              { required: true, message: 'Nhập số điện thoại Bí thư cấp uỷ nơi cư trú' },
               { pattern: /^[0-9+ ]{9,12}$/, message: 'Số điện thoại không hợp lệ (9 đến 12 số)' }
             ]}
           >
@@ -2578,9 +2569,6 @@ const DangKy213 = () => {
                   </Row>
                   <Form.Item label={<span style={{ fontWeight: 600 }}>Kính gửi: Đảng ủy phường/xã</span>}>
                     <Input value={customFields.kinhGuiPhuong} onChange={(e) => setCustomFields({ ...customFields, kinhGuiPhuong: e.target.value })} />
-                  </Form.Item>
-                  <Form.Item label={<span style={{ fontWeight: 600 }}>Kính gửi: Chi bộ nơi cư trú</span>}>
-                    <Input value={customFields.kinhGuiChiBo} onChange={(e) => setCustomFields({ ...customFields, kinhGuiChiBo: e.target.value })} />
                   </Form.Item>
                   <Form.Item label={<span style={{ fontWeight: 600 }}>Văn bản Quy định căn cứ</span>}>
                     <Input.TextArea rows={3} value={customFields.thucHienQuyDinh} onChange={(e) => setCustomFields({ ...customFields, thucHienQuyDinh: e.target.value })} />
@@ -2657,10 +2645,6 @@ const DangKy213 = () => {
                       <tr>
                         <td style={{ width: '90px', fontStyle: 'italic', whiteSpace: 'nowrap', verticalAlign: 'top', paddingLeft: '30px' }}><em>Kính gửi</em>:</td>
                         <td style={{ verticalAlign: 'top' }}>- {customFields.kinhGuiPhuong}</td>
-                      </tr>
-                      <tr>
-                        <td style={{ paddingLeft: '30px' }}></td>
-                        <td style={{ paddingBottom: 8 }}>- {customFields.kinhGuiChiBo}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -2845,9 +2829,6 @@ const DangKy213 = () => {
             </Descriptions.Item>
             <Descriptions.Item label="Tỉnh / Thành phố">
               {registerFormData.thanh_pho || '--'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Chi bộ nơi cư trú">
-              <span style={{ fontWeight: 600 }}>{registerFormData.chi_bo_noi_cu_tru || '--'}</span>
             </Descriptions.Item>
           </Descriptions>
         )}
