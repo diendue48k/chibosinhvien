@@ -425,8 +425,10 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
       { find: '16/5/2004', replace: data.ngay_sinh_formatted },
       { find: '48K27', replace: data.lop },
       { find: 'Lý luận chính trị', replace: data.khoa },
+      { find: 'ngày 26 tháng 05 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
       { find: '26 tháng 05 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
       { find: '26 tháng 5 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
+      { find: 'Đà Nẵng, ngày     tháng      năm 2026', replace: `Đà Nẵng, ngày     tháng      năm ${dayjs().format('YYYY')}` },
       { find: 'Nguyễn Văn A', replace: data.ho_ten },
       { find: '26 tháng 07 năm 2026', replace: data.ngay_phan_cong },
       
