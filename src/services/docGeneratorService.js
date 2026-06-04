@@ -396,7 +396,19 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
       { find: '26 tháng 05 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
       { find: '26 tháng 5 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
       { find: 'Nguyễn Văn A', replace: data.ho_ten },
-      { find: '26 tháng 07 năm 2026', replace: data.ngay_phan_cong }
+      { find: '26 tháng 07 năm 2026', replace: data.ngay_phan_cong },
+      
+      // Explicit mappings for Mẫu 1 curly brace placeholders as fallback replacement
+      { find: '{{Quê quán của Đảng viên}}', replace: data.que_quan },
+      { find: '{{Nơi ở hiện nay của Đảng viên}}', replace: data.dia_chi },
+      { find: '{{Ngày vào Đảng của Đảng viên}}', replace: data.ngay_vao_dang_formatted },
+      { find: '{{Ngày chính thức của Đảng viên nếu có}}', replace: data.ngay_chinh_thuc_formatted },
+      { find: '{{Số thẻ Đảng của Đảng viên nếu có}}', replace: data.so_the_dang || '....................' },
+      { find: '{{Số điện thọai của Đảng viên}}', replace: data.so_dien_thoai },
+      
+      // Explicit mappings for Mẫu 4
+      { find: '{{Ngày vào Đảng}}', replace: data.ngay_vao_dang_formatted },
+      { find: '{{Ngày chính thức nếu có}}', replace: data.ngay_chinh_thuc_formatted },
     ];
 
     // Mẫu 1 & 2 extra replacements for "về Chi bộ trực thuộc thôn Đức Xá..."

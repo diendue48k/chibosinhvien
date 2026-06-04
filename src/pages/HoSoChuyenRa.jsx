@@ -473,6 +473,7 @@ const HoSoChuyenRa = () => {
         noi_chuyen_den: values.noi_chuyen_den || '',
         ly_do_chuyen: values.ly_do_chuyen || '',
         loai_chuyen: values.loai_chuyen_sh || 'chuyen_ra',
+        ghi_chu: values.ghi_chu || '',
         updated_at: new Date().toISOString()
       };
       
