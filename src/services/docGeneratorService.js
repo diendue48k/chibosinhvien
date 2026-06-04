@@ -378,49 +378,65 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
     const allParagraphs = getElementsByLocalName(doc, 'p');
     
     // Mapping of exact strings from the template to dynamic data
-    const mappings = [
-      // Name & Personal details
-      { find: 'Lê Vĩnh Diện', replace: data.ho_ten },
-      { find: '01/04/2004', replace: data.ngay_sinh_formatted },
-      { find: 'Xã Vĩnh Thủy, tỉnh Quảng Trị', replace: data.que_quan },
-      { find: 'Thôn Đức Xá, Xã Vĩnh Thủy, tỉnh Quảng Trị', replace: data.dia_chi },
-      { find: '0969754149', replace: data.so_dien_thoai },
-      { find: '2004', replace: data.nam_sinh },
-      { find: 'Nam', replace: data.gioi_tinh || 'Nam' },
+    const mappings = [];
 
-      // Dates and Cards
-      { find: '26/07/2022', replace: data.ngay_vao_dang_formatted },
-      { find: '26/07/2023', replace: data.ngay_chinh_thuc_formatted || '....................' },
-      { find: '045204008389', replace: data.so_the_dang || '....................' },
-      
-      // Duties
-      { find: 'Đảng viên, Phó bí thư Chi bộ Sinh viên', replace: data.nhiem_vu_dang || 'Đảng viên' },
-      
-      // Reasons
-      { find: 'Tôi đã hoàn thành chương trình học và đã tốt nghiệp ra trường. Cần chuyển đến tổ chức Đảng mới để tiếp tục hoàn thành nhiệm vụ Đảng viên.', replace: data.ly_do_chuyen || 'Tôi đã hoàn thành chương trình học và đã tốt nghiệp ra trường. Cần chuyển đến tổ chức Đảng mới để tiếp tục hoàn thành nhiệm vụ Đảng viên.' },
-      { find: 'Tôi hiện đang đi thực tập ở quê nên cần phải chuyển sinh hoạt tạm thời về quê để đảm bảo sinh hoạt Đảng đầy đủ, đúng quy định.', replace: data.ly_do_chuyen || 'Tôi hiện đang đi thực tập ở quê nên cần phải chuyển sinh hoạt tạm thời về quê để đảm bảo sinh hoạt Đảng đầy đủ, đúng quy định.' },
-      
-      // Dynamic mapping for Destination parts from Mẫu 1 & 2
-      { find: 'thôn Đức Xá thuộc Đảng bộ cơ sở xã Vĩnh Thủy, Đảng bộ cấp trên cơ sở tỉnh Quảng Trị', replace: data.noi_chuyen_den },
-      { find: 'thôn Đức Xá', replace: (() => {
-          // E.g. "Chi bộ thôn Đức Xá, Đảng bộ Xã Vĩnh Thủy, Huyện Vĩnh Linh, Tỉnh Quảng Trị" -> extract "Chi bộ thôn Đức Xá"
-          const parts = (data.noi_chuyen_den || '').split(',');
-          return parts[0] ? parts[0].trim() : '....................';
-      })() },
-      { find: 'xã Vĩnh Thủy', replace: (() => {
-          const parts = (data.noi_chuyen_den || '').split(',');
-          return parts[1] ? parts[1].trim() : '....................';
-      })() },
-      { find: 'tỉnh Quảng Trị', replace: (() => {
-          const parts = (data.noi_chuyen_den || '').split(',');
-          // Combine parts after index 1 (like Huyện + Tỉnh)
-          if (parts.length > 2) {
-             return parts.slice(2).map(p => p.trim()).join(', ');
-          }
-          return '....................';
-      })() },
+    if (docType === 'transfer_nhan_xet_dvhd') {
+      // Specific mappings for Mẫu 5 (Bản nhận xét ĐVHD)
+      mappings.push(
+        { find: 'Lê Vĩnh Diện', replace: data.dvhd || '' },
+        { find: '01/04/2004', replace: data.dvhd_ngay_sinh_formatted || '....................' },
+        { find: '26/07/2022', replace: data.dvhd_ngay_vao_dang || '....................' },
+        { find: '26/07/2023', replace: data.dvhd_ngay_chinh_thuc || '....................' },
+        { find: '26 tháng 07 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
+        { find: 'Nguyễn Văn A', replace: data.ho_ten },
+        { find: 'Đà Nẵng, ngày       tháng         năm 2026', replace: `Đà Nẵng, ngày       tháng         năm ${dayjs().format('YYYY')}` }
+      );
+    } else {
+      // Standard mappings for Mẫu 1, 2, 3, 4
+      mappings.push(
+        // Name & Personal details
+        { find: 'Lê Vĩnh Diện', replace: data.ho_ten },
+        { find: '01/04/2004', replace: data.ngay_sinh_formatted },
+        { find: 'Xã Vĩnh Thủy, tỉnh Quảng Trị', replace: data.que_quan },
+        { find: 'Thôn Đức Xá, Xã Vĩnh Thủy, tỉnh Quảng Trị', replace: data.dia_chi },
+        { find: '0969754149', replace: data.so_dien_thoai },
+        { find: '2004', replace: data.nam_sinh },
+        { find: 'Nam', replace: data.gioi_tinh || 'Nam' },
 
-      // Other generic mappings
+        // Dates and Cards
+        { find: '26/07/2022', replace: data.ngay_vao_dang_formatted },
+        { find: '26/07/2023', replace: data.ngay_chinh_thuc_formatted || '....................' },
+        { find: '045204008389', replace: data.so_the_dang || '....................' },
+        
+        // Duties
+        { find: 'Đảng viên, Phó bí thư Chi bộ Sinh viên', replace: data.nhiem_vu_dang || 'Đảng viên' },
+        
+        // Reasons
+        { find: 'Tôi đã hoàn thành chương trình học và đã tốt nghiệp ra trường. Cần chuyển đến tổ chức Đảng mới để tiếp tục hoàn thành nhiệm vụ Đảng viên.', replace: data.ly_do_chuyen || 'Tôi đã hoàn thành chương trình học và đã tốt nghiệp ra trường. Cần chuyển đến tổ chức Đảng mới để tiếp tục hoàn thành nhiệm vụ Đảng viên.' },
+        { find: 'Tôi hiện đang đi thực tập ở quê nên cần phải chuyển sinh hoạt tạm thời về quê để đảm bảo sinh hoạt Đảng đầy đủ, đúng quy định.', replace: data.ly_do_chuyen || 'Tôi hiện đang đi thực tập ở quê nên cần phải chuyển sinh hoạt tạm thời về quê để đảm bảo sinh hoạt Đảng đầy đủ, đúng quy định.' },
+        
+        // Dynamic mapping for Destination parts from Mẫu 1 & 2
+        { find: 'thôn Đức Xá thuộc Đảng bộ cơ sở xã Vĩnh Thủy, Đảng bộ cấp trên cơ sở tỉnh Quảng Trị', replace: data.noi_chuyen_den },
+        { find: 'thôn Đức Xá', replace: (() => {
+            const parts = (data.noi_chuyen_den || '').split(',');
+            return parts[0] ? parts[0].trim() : '....................';
+        })() },
+        { find: 'xã Vĩnh Thủy', replace: (() => {
+            const parts = (data.noi_chuyen_den || '').split(',');
+            return parts[1] ? parts[1].trim() : '....................';
+        })() },
+        { find: 'tỉnh Quảng Trị', replace: (() => {
+            const parts = (data.noi_chuyen_den || '').split(',');
+            if (parts.length > 2) {
+               return parts.slice(2).map(p => p.trim()).join(', ');
+            }
+            return '....................';
+        })() }
+      );
+    }
+
+    // Generic shared mappings added for both modes if they exist in templates
+    mappings.push(
       { find: 'Nguyễn Văn An', replace: data.ho_ten },
       { find: '16/5/2004', replace: data.ngay_sinh_formatted },
       { find: '48K27', replace: data.lop },
@@ -446,8 +462,8 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
       
       // Explicit mappings for Mẫu 4
       { find: '{{Ngày vào Đảng}}', replace: data.ngay_vao_dang_formatted },
-      { find: '{{Ngày chính thức nếu có}}', replace: data.ngay_chinh_thuc_formatted || '....................' },
-    ];
+      { find: '{{Ngày chính thức nếu có}}', replace: data.ngay_chinh_thuc_formatted || '....................' }
+    );
 
     // Sort by longest 'find' first to avoid partial string replacements
     mappings.sort((a, b) => b.find.length - a.find.length);
