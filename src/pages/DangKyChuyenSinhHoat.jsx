@@ -340,11 +340,25 @@ export default function DangKyChuyenSinhHoat() {
 
               <Divider orientation="left" plain style={{ color: '#8c8c8c' }}>Tự kiểm điểm Đảng viên (Dành cho bản kiểm điểm)</Divider>
               
-              <Form.Item name="uu_diem" label={<span style={{ fontWeight: 600 }}>Ưu điểm</span>}>
-                <Input.TextArea rows={3} placeholder="Về tư tưởng chính trị, đạo đức lối sống, thực hiện nhiệm vụ..." />
+              <Form.Item 
+                name="uu_diem" 
+                label={<span style={{ fontWeight: 600 }}>Ưu điểm</span>}
+                initialValue={
+                  "- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.\n" +
+                  "- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.\n" +
+                  "- Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.\n" +
+                  "- Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.\n" +
+                  "- Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm."
+                }
+              >
+                <Input.TextArea rows={6} placeholder="Về tư tưởng chính trị, đạo đức lối sống, thực hiện nhiệm vụ..." />
               </Form.Item>
               
-              <Form.Item name="khuyet_diem" label={<span style={{ fontWeight: 600 }}>Khuyết điểm</span>}>
+              <Form.Item 
+                name="khuyet_diem" 
+                label={<span style={{ fontWeight: 600 }}>Khuyết điểm</span>}
+                initialValue="- Không có khuyết điểm gì lớn"
+              >
                 <Input.TextArea rows={2} placeholder="Những hạn chế, khuyết điểm trong quá trình sinh hoạt..." />
               </Form.Item>
 
