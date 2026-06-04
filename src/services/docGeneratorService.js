@@ -175,11 +175,15 @@ const prepareTemplateData = (data, docType) => {
     'Khuyết điểm': data.khuyet_diem,
     
     // ĐVHD specific
+    'tên đảng viên hướng dẫn': data.dvhd || '',
     'ngày sinh đảng viên hướng dẫn': safeParse(data.dvhd_ngay_sinh) ? safeParse(data.dvhd_ngay_sinh).format('DD') : '..',
     'tháng sinh đảng viên hướng dẫn': safeParse(data.dvhd_ngay_sinh) ? safeParse(data.dvhd_ngay_sinh).format('MM') : '..',
     'năm sinh đảng viên hướng dẫn': safeParse(data.dvhd_ngay_sinh) ? safeParse(data.dvhd_ngay_sinh).format('YYYY') : '....',
     'ngày vào Đảng của đảng viên hướng dẫn': baseData.dvhd_ngay_vao_dang,
     'ngày chính thức của đảng viên hướng dẫn': baseData.dvhd_ngay_chinh_thuc,
+    'ngày kết nạp của Đảng viên dự bị ': baseData.ngay_vao_dang_d,
+    'tháng kết nạp của Đảng viên dự bị ': baseData.ngay_vao_dang_m,
+    'năm kết nạp của Đảng viên dự bị ': baseData.ngay_vao_dang_y,
   };
 
   // Convert keys to case-insensitive support

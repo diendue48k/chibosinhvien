@@ -1312,6 +1312,14 @@ const HoSoChuyenRa = () => {
         );
       }
     },
+    {
+      title: 'Ghi chú',
+      dataIndex: 'ghi_chu',
+      key: 'ghi_chu',
+      width: 150,
+      ellipsis: true,
+      render: (text) => text ? <span style={{ fontSize: '12px', color: '#64748b' }}>{text}</span> : <span style={{ color: '#cbd5e1' }}>--</span>
+    },
     { 
       title: 'Thao tác', 
       key: 'actions',
@@ -1653,6 +1661,7 @@ const HoSoChuyenRa = () => {
           pageSizeOptions: ['5', '10', '20', '50'],
           showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ chuyển đi đang xử lý`
         }}
+        scroll={{ x: 'max-content' }}
         style={{ cursor: 'pointer' }}
       />
 

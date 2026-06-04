@@ -191,6 +191,20 @@ export default function DangKyChuyenSinhHoat() {
       ellipsis: true
     },
     {
+      title: 'Lý do & Ghi chú',
+      key: 'notes',
+      render: (_, record) => (
+        <div style={{ fontSize: '12px' }}>
+          <div><strong>Lý do:</strong> {record.ly_do || '--'}</div>
+          {record.ghi_chu_duyet && (
+            <div style={{ color: '#c62828', marginTop: 4 }}>
+              <strong>Phản hồi:</strong> {record.ghi_chu_duyet}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
       title: 'Trạng thái',
       dataIndex: 'trang_thai',
       key: 'trang_thai',
