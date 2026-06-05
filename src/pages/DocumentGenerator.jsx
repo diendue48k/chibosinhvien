@@ -110,6 +110,9 @@ const DocumentGenerator = () => {
   const [previewDocType, setPreviewDocType] = useState(null);
   const [previewData, setPreviewData] = useState(null);
 
+  const [officialMembers, setOfficialMembers] = useState([]);
+  const [activeStats, setActiveStats] = useState({ total: 0, official: 0, probationary: 0 });
+
   // Template Manager States
   const [templateMetas, setTemplateMetas] = useState(() => {
     const metas = {};
@@ -273,27 +276,36 @@ const DocumentGenerator = () => {
     setLoadingProfile(true);
     try {
       if (isManager) {
-        // Query members who are probationary
-        const q1 = query(collection(db, "dang_vien"), where("dang_vien_du_bi", "==", true));
-        const s1 = await getDocs(q1);
-        const list1 = s1.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Fetch ALL members once to compute stats and lists
+        const allQuery = query(collection(db, "dang_vien"));
+        const allSnap = await getDocs(allQuery);
+        const allMembers = allSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => m.ho_ten);
 
-        const q2 = query(collection(db, "dang_vien"), where("loai_dang_vien", "==", "Dự bị"));
-        const s2 = await getDocs(q2);
-        const list2 = s2.docs.map(d => ({ id: d.id, ...d.data() }));
+        const official = [];
+        const probationary = [];
+        let stats = { total: 0, official: 0, probationary: 0 };
 
-        // Merge by MSSV
-        const merged = [...list1];
-        list2.forEach(item => {
-          if (!merged.some(m => m.mssv === item.mssv)) merged.push(item);
+        allMembers.forEach(m => {
+          const isOfficial = m.loai_dang_vien === "Chính thức";
+          const isProbationary = m.loai_dang_vien === "Dự bị" || m.dang_vien_du_bi === true;
+          const isActive = !m.trang_thai || m.trang_thai === 'dang_sinh_hoat';
+
+          if (isOfficial) official.push(m);
+          if (isProbationary) probationary.push(m);
+
+          if (isActive) {
+            stats.total++;
+            if (isOfficial) stats.official++;
+            if (isProbationary) stats.probationary++;
+          }
         });
 
-        // Filter valid names
-        const validList = merged.filter(m => m.ho_ten);
-        setProbationaryList(validList);
+        setOfficialMembers(official);
+        setProbationaryList(probationary);
+        setActiveStats(stats);
 
-        if (validList.length > 0) {
-          setSelectedMember(validList[0]);
+        if (probationary.length > 0) {
+          setSelectedMember(probationary[0]);
         } else {
           message.warning("Hiện tại không có Đảng viên dự bị nào trong hệ thống.");
         }
@@ -407,10 +419,22 @@ const DocumentGenerator = () => {
         ngay_hop_doan_truong: null,// để trống, chỉ lấy năm khi xuất
         tan_thanh_doan_truong: 28,
         khong_tan_thanh_doan_truong: 0,
-        bi_thu_doan_truong: ''     // để trống, điền sau
+        bi_thu_doan_truong: '',     // để trống, điền sau
+
+        // Tab 6 & Mẫu 13 defaults
+        chi_uy_noi_cu_tru: '',
+        tong_so_chi_uy_noi_cu_tru: 3,
+        tong_so_to_chuc_ctxh: 100,
+
+        chu_tri_chi_bo: 'Bùi Trung Hiệp',
+        chuc_vu_chu_tri_chi_bo: 'Bí thư Chi bộ',
+        thu_ky_chi_bo: 'Lê Vĩnh Diện',
+        tong_so_dv: activeStats.total || 0,
+        tong_so_dv_chinh_thuc: activeStats.official || 0,
+        tong_so_dv_du_bi: activeStats.probationary || 0,
       });
     }
-  }, [selectedMember, form]);
+  }, [selectedMember, form, activeStats]);
 
 
   const getFieldsToValidate = (docType) => {
@@ -480,7 +504,7 @@ const DocumentGenerator = () => {
       const prepared = docGeneratorService.prepareTemplateData(formatted);
       setPreviewData(prepared);
       setPreviewDocType(docType);
-      setPreviewVisible(true);
+      // setPreviewVisible(true); // removed for inline preview
     } catch (e) {
       if (e.errorFields) {
         message.error("Vui lòng điền đầy đủ các thông tin bắt buộc trước khi xem trước.");
@@ -1240,6 +1264,182 @@ const DocumentGenerator = () => {
           </div>
         );
 
+      case 'nhan_xet_dang_vien_giup_do_mau11':
+        return (
+          <div style={dStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ textAlign: 'center', width: '45%', fontWeight: 'bold', fontSize: '13pt' }}>
+                ĐẢNG CỘNG SẢN VIỆT NAM
+                <div style={{ fontWeight: 'normal', margin: '4px 0' }}>— — — — —</div>
+              </div>
+              <div style={{ textAlign: 'center', width: '50%', fontStyle: 'italic', fontSize: '12pt' }}>
+                Đà Nẵng, ngày... tháng... năm...
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '15pt', marginBottom: '20px', textTransform: 'uppercase' }}>
+              BẢN NHẬN XÉT ĐẢNG VIÊN DỰ BỊ
+            </div>
+
+            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '13pt', marginBottom: '20px' }}>
+              Kính gửi: Chi uỷ {previewData.chi_bo_sinh_hoat || '..................'}<br />
+              Đảng uỷ {previewData.dang_uy_truong || 'Trường Đại học Kinh tế'}
+            </div>
+
+            <div style={indentStyle}>
+              Tôi là: <strong>{previewData.dvhd || '..................'}</strong>, sinh ngày {previewData.dvhd_ngay_sinh ? dayjs(previewData.dvhd_ngay_sinh).format('DD/MM/YYYY') : '..................'}.
+            </div>
+            <div style={indentStyle}>
+              Ngày vào Đảng {previewData.dvhd_ngay_vao_dang ? dayjs(previewData.dvhd_ngay_vao_dang).format('DD/MM/YYYY') : '..................'}, ngày chính thức {previewData.dvhd_ngay_chinh_thuc ? dayjs(previewData.dvhd_ngay_chinh_thuc).format('DD/MM/YYYY') : '..................'}.
+            </div>
+            <div style={indentStyle}>
+              Đang sinh hoạt tại Chi bộ: {previewData.chi_bo_sinh_hoat || '..................'}.
+            </div>
+            <div style={indentStyle}>
+              Được Chi bộ phân công theo dõi, giúp đỡ đảng viên dự bị <strong>{previewData.ho_ten}</strong> phấn đấu trở thành đảng viên chính thức. Nay tôi xin báo cáo với Chi bộ những ưu, khuyết điểm của đảng viên dự bị như sau:
+            </div>
+
+            <div style={{ fontWeight: 'bold', marginTop: '15px', marginBottom: '5px' }}>1- Ưu điểm:</div>
+            <div style={{ ...indentStyle, whiteSpace: 'pre-line' }}>{previewData.uu_diem}</div>
+
+            <div style={{ fontWeight: 'bold', marginTop: '15px', marginBottom: '5px' }}>2- Khuyết điểm:</div>
+            <div style={{ ...indentStyle, whiteSpace: 'pre-line' }}>{previewData.khuyet_diem}</div>
+
+            <div style={indentStyle}>
+              Đối chiếu với tiêu chuẩn đảng viên, tôi đề nghị Chi bộ xét, công nhận đồng chí <strong>{previewData.ho_ten}</strong> trở thành đảng viên chính thức. Tôi xin chịu trách nhiệm trước Đảng về sự nhận xét của mình.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
+              <div style={{ width: '50%' }}></div>
+              <div style={{ width: '50%', textAlign: 'center' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '80px' }}>ĐẢNG VIÊN ĐƯỢC PHÂN CÔNG GIÚP ĐỠ</div>
+                <div style={{ fontWeight: 'bold' }}>{previewData.dvhd || ''}</div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'tong_hop_nhan_xet_mau12':
+        return (
+          <div style={dStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ textAlign: 'center', width: '45%', fontWeight: 'bold', fontSize: '13pt' }}>
+                ĐẢNG ỦY {previewData.dang_uy_truong ? previewData.dang_uy_truong.toUpperCase() : 'TRƯỜNG ĐH KINH TẾ'}
+                <div style={{ marginTop: '2px' }}>CHI BỘ {previewData.chi_bo_sinh_hoat ? previewData.chi_bo_sinh_hoat.toUpperCase() : '...............'}</div>
+                <div style={{ fontWeight: 'normal', margin: '4px 0' }}>*</div>
+              </div>
+              <div style={{ textAlign: 'center', width: '45%', fontWeight: 'bold', fontSize: '13pt' }}>
+                ĐẢNG CỘNG SẢN VIỆT NAM
+                <div style={{ fontWeight: 'normal', margin: '4px 0' }}>— — — — —</div>
+                <div style={{ fontStyle: 'italic', fontSize: '12pt', fontWeight: 'normal' }}>
+                  Đà Nẵng, ngày... tháng... năm...
+                </div>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '15pt', marginBottom: '20px', textTransform: 'uppercase' }}>
+              TỔNG HỢP Ý KIẾN NHẬN XÉT<br/>CỦA TỔ CHỨC ĐOÀN THỂ VÀ CHI UỶ NƠI CƯ TRÚ<br/>đối với đảng viên dự bị
+            </div>
+
+            <div style={indentStyle}>
+              Căn cứ ý kiến nhận xét của đại diện các tổ chức đoàn thể mà đảng viên dự bị là thành viên và chi ủy nơi cư trú; Chi uỷ {previewData.chi_bo_sinh_hoat || '..................'} tổng hợp các ý kiến nhận xét đó đối với đảng viên dự bị <strong>{previewData.ho_ten}</strong> như sau:
+            </div>
+
+            <div style={{ fontWeight: 'bold', marginTop: '15px', marginBottom: '5px' }}>1- Tổng số tổ chức đoàn thể (mà đảng viên dự bị là thành viên) và chi ủy nơi cư trú có ý kiến nhận xét: {previewData.tong_so_to_chuc_ctxh || 1} tổ chức.</div>
+            <div style={indentStyle}>
+              Trong đó: Tổ chức Công đoàn: 0, Tổ chức Đoàn Thanh niên: 1, Chi uỷ nơi cư trú: 1.
+            </div>
+
+            <div style={{ fontWeight: 'bold', marginTop: '15px', marginBottom: '5px' }}>2- Những ưu điểm:</div>
+            <div style={{ ...indentStyle, whiteSpace: 'pre-line' }}>{previewData.uu_diem}</div>
+
+            <div style={{ fontWeight: 'bold', marginTop: '15px', marginBottom: '5px' }}>3- Những khuyết điểm:</div>
+            <div style={{ ...indentStyle, whiteSpace: 'pre-line' }}>{previewData.khuyet_diem}</div>
+
+            <div style={{ fontWeight: 'bold', marginTop: '15px', marginBottom: '5px' }}>4- Số tổ chức nhất trí đề nghị công nhận đảng viên chính thức:</div>
+            <div style={indentStyle}>
+              - Nhất trí: {previewData.tong_so_to_chuc_ctxh || 1}/{previewData.tong_so_to_chuc_ctxh || 1} tổ chức.
+              <br/>- Không nhất trí: 0 tổ chức.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
+              <div style={{ width: '50%' }}></div>
+              <div style={{ width: '50%', textAlign: 'center' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '80px' }}>T/M CHI UỶ</div>
+                <div style={{ fontWeight: 'bold' }}>{previewData.chu_tri_chi_bo || ''}</div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'nghi_quyet_chi_bo_mau13':
+        return (
+          <div style={dStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ textAlign: 'center', width: '45%', fontWeight: 'bold', fontSize: '13pt' }}>
+                ĐẢNG ỦY {previewData.dang_uy_truong ? previewData.dang_uy_truong.toUpperCase() : 'TRƯỜNG ĐH KINH TẾ'}
+                <div style={{ marginTop: '2px' }}>CHI BỘ {previewData.chi_bo_sinh_hoat ? previewData.chi_bo_sinh_hoat.toUpperCase() : '...............'}</div>
+                <div style={{ fontWeight: 'normal', margin: '4px 0' }}>*</div>
+              </div>
+              <div style={{ textAlign: 'center', width: '45%', fontWeight: 'bold', fontSize: '13pt' }}>
+                ĐẢNG CỘNG SẢN VIỆT NAM
+                <div style={{ fontWeight: 'normal', margin: '4px 0' }}>— — — — —</div>
+                <div style={{ fontStyle: 'italic', fontSize: '12pt', fontWeight: 'normal' }}>
+                  Đà Nẵng, ngày... tháng... năm...
+                </div>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '15pt', marginBottom: '20px', textTransform: 'uppercase' }}>
+              NGHỊ QUYẾT<br/>Đề nghị công nhận đảng viên chính thức
+            </div>
+
+            <div style={indentStyle}>
+              Hôm nay, ngày ... tháng ... năm ..., Chi bộ {previewData.chi_bo_sinh_hoat || '...............'} đã họp để xét, đề nghị công nhận đảng viên dự bị <strong>{previewData.ho_ten}</strong> trở thành đảng viên chính thức.
+            </div>
+            
+            <div style={indentStyle}>
+              Tổng số đảng viên của Chi bộ: {previewData.tong_so_dv || '...'} đồng chí, trong đó chính thức {previewData.tong_so_dv_chinh_thuc || '...'} đ/c, dự bị {previewData.tong_so_dv_du_bi || '...'} đ/c.
+            </div>
+
+            <div style={indentStyle}>
+              Căn cứ Điều 5, Điều lệ Đảng Cộng sản Việt Nam, Chi bộ đã thảo luận và nhất trí kết luận:
+            </div>
+
+            <div style={indentStyle}>Về ưu điểm:</div>
+            <div style={{ ...indentStyle, whiteSpace: 'pre-line' }}>{previewData.uu_diem}</div>
+
+            <div style={indentStyle}>Về khuyết điểm:</div>
+            <div style={{ ...indentStyle, whiteSpace: 'pre-line' }}>{previewData.khuyet_diem}</div>
+
+            <div style={indentStyle}>
+              Đốì chiếu với Quy định của Điều lệ Đảng, Chi bộ nhận thấy đảng viên dự bị <strong>{previewData.ho_ten}</strong> đủ điều kiện trở thành đảng viên chính thức.
+            </div>
+
+            <div style={indentStyle}>
+              Chi bộ biểu quyết đề nghị công nhận đồng chí <strong>{previewData.ho_ten}</strong> trở thành đảng viên chính thức: {previewData.tong_so_dv_chinh_thuc || '...'} đ/c (đạt 100%) so với tổng số đảng viên chính thức. Số không tán thành: 0 đ/c.
+            </div>
+
+            <div style={indentStyle}>
+              Đề nghị Đảng uỷ {previewData.dang_uy_truong || 'Trường Đại học Kinh tế'} xét, quyết định công nhận đảng viên <strong>{previewData.ho_ten}</strong> trở thành đảng viên chính thức.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
+              <div style={{ width: '40%', textAlign: 'center' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '80px' }}>NƠI NHẬN:</div>
+                <div style={{ fontWeight: 'normal', textAlign: 'left', fontStyle: 'italic', fontSize: '11pt' }}>
+                  - Đảng ủy Trường (để b/c)<br/>
+                  - Lưu hồ sơ Chi bộ.
+                </div>
+              </div>
+              <div style={{ width: '50%', textAlign: 'center' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '80px' }}>T/M CHI BỘ</div>
+                <div style={{ fontWeight: 'bold' }}>{previewData.chu_tri_chi_bo || ''}</div>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -1368,11 +1568,272 @@ const DocumentGenerator = () => {
             </Card>
           )}
 
-          {/* MAIN 2-COLUMN BOTTOM WORKSPACE */}
+          {/* MAIN WORKSPACE */}
           {selectedMember ? (
-            <Row gutter={20}>
-              
-              {/* COLUMN 1: LEFT DOCUMENT LIST MENU (span 9) */}
+            <>
+
+              {/* TOP SECTION: ALL FORMS */}
+              <Form form={form} layout="vertical" className="premium-form">
+                 <Card bordered={false} className="premium-card" style={{ marginBottom: 20, borderRadius: 16 }}>
+                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 12 }}>Thông tin dùng chung & Đánh giá</div>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item name="chi_bo_ket_nap" label={<span className="premium-form-label">Chi bộ kết nạp</span>}>
+                          <Input placeholder="Chi bộ Sinh viên" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item name="co_quan_cong_tac" label={<span className="premium-form-label">Cơ quan công tác</span>}>
+                          <Input placeholder="Trường Đại học Kinh tế..." />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item name="chi_bo_sinh_hoat" label={<span className="premium-form-label">Chi bộ sinh hoạt</span>}>
+                          <Input placeholder="Chi bộ Sinh viên" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item name="uu_diem" label={<span className="premium-form-label">Ưu điểm</span>}>
+                          <Input.TextArea rows={4} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item name="khuyet_diem" label={<span className="premium-form-label">Khuyết điểm</span>}>
+                          <Input.TextArea rows={4} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
+                      <Col span={24}>
+                        <Form.Item name="bien_phap_khac_phuc" label={<span className="premium-form-label">Biện pháp khắc phục (không bắt buộc)</span>}>
+                          <Input.TextArea rows={2} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Divider dashed style={{ margin: '16px 0' }} />
+                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 12 }}>Đại diện các cấp & Số liệu họp</div>
+                    
+                    <Row gutter={16}>
+                      <Col span={6}>
+                        <Form.Item name="chu_tri_lop" label={<span className="premium-form-label">Chủ trì Lớp</span>}>
+                          <Input placeholder="Lớp trưởng" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="thu_ky_lop" label={<span className="premium-form-label">Thư ký Lớp</span>}>
+                          <Input placeholder="Bí thư Chi đoàn" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="tong_so_sv_lop" label={<span className="premium-form-label">TS SV Lớp</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="tham_gia_lop" label={<span className="premium-form-label">Có mặt (Lớp)</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="vang_lop" label={<span className="premium-form-label">Vắng (Lớp)</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col span={6}>
+                        <Form.Item name="chu_tri_chi_doan" label={<span className="premium-form-label">Chủ trì Chi đoàn</span>}>
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="thu_ky_chi_doan" label={<span className="premium-form-label">Thư ký Chi đoàn</span>}>
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="tong_so_dv_chi_doan" label={<span className="premium-form-label">TS ĐV CĐ</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="tham_gia_chi_doan" label={<span className="premium-form-label">Có mặt (CĐ)</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="vang_chi_doan" label={<span className="premium-form-label">Vắng (CĐ)</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col span={6}>
+                        <Form.Item name="chu_tri_lcd" label={<span className="premium-form-label">Chủ trì LCĐ</span>}>
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="thu_ky_lcd" label={<span className="premium-form-label">Thư ký LCĐ</span>}>
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="tong_so_uy_vien_lcd" label={<span className="premium-form-label">TS UV LCĐ</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="tham_gia_lcd" label={<span className="premium-form-label">Có mặt (LCĐ)</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={4}>
+                        <Form.Item name="vang_lcd" label={<span className="premium-form-label">Vắng (LCĐ)</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col span={6}>
+                        <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">Đoàn Trường: Tán thành</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="khong_tan_thanh_doan_truong" label={<span className="premium-form-label">Đoàn Trường: K.Tán thành</span>}>
+                          <InputNumber style={{width:'100%'}} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="ly_do_vang_chi_doan" label={<span className="premium-form-label">Lý do vắng (nếu có)</span>}>
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="dia_diem_hop_lcd" label={<span className="premium-form-label">Địa điểm họp LCĐ</span>}>
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    {isManager && (
+                      <>
+                        <Divider dashed style={{ margin: '16px 0' }} />
+                        <div style={{ fontWeight: 800, color: '#0369a1', fontSize: 13.5, marginBottom: 12 }}>Dành cho Quản lý (Mẫu 11, 12, 13)</div>
+                        
+                        <Row gutter={16}>
+                          <Col span={8}>
+                            <Form.Item name="dvhd" label={<span className="premium-form-label">Đảng viên hướng dẫn (Mẫu 11)</span>}>
+                              <Select 
+                                showSearch 
+                                placeholder="Chọn Đảng viên hướng dẫn"
+                                optionFilterProp="children"
+                                onChange={(val) => {
+                                  const hd = officialMembers.find(m => m.ho_ten === val);
+                                  if (hd) {
+                                    form.setFieldsValue({
+                                      dvhd_ngay_sinh: hd.ngay_sinh ? dayjs(hd.ngay_sinh) : null,
+                                      dvhd_ngay_vao_dang: hd.ngay_vao_dang ? dayjs(hd.ngay_vao_dang) : null,
+                                      dvhd_ngay_chinh_thuc: hd.ngay_chinh_thuc ? dayjs(hd.ngay_chinh_thuc) : null,
+                                    });
+                                  }
+                                }}
+                              >
+                                {officialMembers.map(m => (
+                                  <Option key={m.id} value={m.ho_ten}>{m.ho_ten} ({m.mssv})</Option>
+                                ))}
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col span={4}>
+                            <Form.Item name="dvhd_ngay_sinh" label={<span className="premium-form-label">Ngày sinh (ĐVHD)</span>}>
+                              <DatePicker format="DD/MM/YYYY" style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={4}>
+                            <Form.Item name="dvhd_ngay_vao_dang" label={<span className="premium-form-label">Vào Đảng (ĐVHD)</span>}>
+                              <DatePicker format="DD/MM/YYYY" style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={4}>
+                            <Form.Item name="dvhd_ngay_chinh_thuc" label={<span className="premium-form-label">Chính thức (ĐVHD)</span>}>
+                              <DatePicker format="DD/MM/YYYY" style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={4}>
+                            <Form.Item name="nam_vao_chi_bo_dvhd" label={<span className="premium-form-label">Năm sinh hoạt</span>}>
+                              <Input placeholder="2022" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={16}>
+                          <Col span={8}>
+                            <Form.Item name="chi_uy_noi_cu_tru" label={<span className="premium-form-label">Tên Chi ủy cư trú (Mẫu 12)</span>}>
+                              <Input placeholder="43-44-45 An Thượng" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item name="tong_so_chi_uy_noi_cu_tru" label={<span className="premium-form-label">Tổng số Chi ủy viên nơi cư trú</span>}>
+                              <InputNumber style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item name="tong_so_to_chuc_ctxh" label={<span className="premium-form-label">Số lượng tổ chức CTXH</span>}>
+                              <InputNumber style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={16}>
+                          <Col span={6}>
+                            <Form.Item name="chu_tri_chi_bo" label={<span className="premium-form-label">Chủ trì (Mẫu 13)</span>}>
+                              <Input />
+                            </Form.Item>
+                          </Col>
+                          <Col span={6}>
+                            <Form.Item name="chuc_vu_chu_tri_chi_bo" label={<span className="premium-form-label">Chức vụ</span>}>
+                              <Input />
+                            </Form.Item>
+                          </Col>
+                          <Col span={6}>
+                            <Form.Item name="thu_ky_chi_bo" label={<span className="premium-form-label">Thư ký Chi bộ</span>}>
+                              <Input />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                        <Row gutter={16}>
+                          <Col span={4}>
+                            <Form.Item name="tong_so_dv" label={<span className="premium-form-label">Tổng số ĐV</span>}>
+                              <InputNumber style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={4}>
+                            <Form.Item name="tong_so_dv_chinh_thuc" label={<span className="premium-form-label">ĐV Chính thức</span>}>
+                              <InputNumber style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={4}>
+                            <Form.Item name="tong_so_dv_du_bi" label={<span className="premium-form-label">ĐV Dự bị</span>}>
+                              <InputNumber style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                      </>
+                    )}
+                 </Card>
+              </Form>
+
+              {/* BOTTOM SECTION: TWO COLUMNS */}
+              <Row gutter={20}>
+                {/* COLUMN 1: LEFT DOCUMENT LIST MENU (span 9) */}
               <Col xs={24} md={10} lg={9} style={{ marginBottom: 20 }}>
                 <Card bordered={false} className="premium-card" bodyStyle={{ padding: '16px' }}>
                   <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1551,602 +2012,25 @@ const DocumentGenerator = () => {
                 </Card>
               </Col>
 
-              {/* COLUMN 2: RIGHT FORM WORKSPACE PANEL (span 15) */}
-              <Col xs={24} md={14} lg={15} style={{ marginBottom: 20 }}>
-                <Card bordered={false} className="premium-card" bodyStyle={{ padding: '20px 24px' }}>
-                  <Form form={form} layout="vertical">
-
-                    
-                    {/* Hidden Sync Fields */}
-                    <div style={{ display: 'none' }}>
-                      <Form.Item name="ho_ten"><Input /></Form.Item>
-                      <Form.Item name="mssv"><Input /></Form.Item>
-                      <Form.Item name="lop"><Input /></Form.Item>
-                      <Form.Item name="khoa"><Input /></Form.Item>
-                      <Form.Item name="ngay_sinh"><DatePicker /></Form.Item>
-                      <Form.Item name="ngay_vao_dang"><DatePicker /></Form.Item>
-                      <Form.Item name="que_quan"><Input /></Form.Item>
-                      <Form.Item name="dia_chi_thuong_tru"><Input /></Form.Item>
-                      <Form.Item name="dia_chi_tam_tru"><Input /></Form.Item>
-                      <Form.Item name="dvhd"><Input /></Form.Item>
-                      <Form.Item name="cccd"><Input /></Form.Item>
-                      <Form.Item name="gioi_tinh"><Input /></Form.Item>
-                      <Form.Item name="sdt"><Input /></Form.Item>
-                      <Form.Item name="email"><Input /></Form.Item>
+              
+                
+                {/* COLUMN 2: RIGHT LIVE PREVIEW */}
+                <Col xs={24} md={14} lg={15}>
+                  <Card bordered={false} className="premium-card" style={{ borderRadius: 16, height: '100%', minHeight: 600 }}>
+                    <div style={{ fontWeight: 800, color: '#c62828', fontSize: 16, marginBottom: 16 }}>
+                      Xem trước văn bản: {previewDocType ? DOCUMENT_TYPES.find(d => d.key === previewDocType)?.label : 'Chưa chọn'}
                     </div>
-
-                    <div className="premium-input-wrapper" style={{ minHeight: 460 }}>
-                      
-                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
-                          <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
-                            <AuditOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#c62828', fontSize: 13.5, marginBottom: 2 }}>Bản tự kiểm điểm (Mẫu 10-KND)</div>
-                              <div style={{ fontSize: 12, color: '#450a0a', lineHeight: 1.4 }}>
-                                Quá trình học tập và rèn luyện để đảng viên dự bị tự kiểm điểm đề nghị chuyển Đảng chính thức.
-                              </div>
-                            </div>
-                          </div>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Đơn vị & Tổ chức Đảng
-                            </span>
-                          </Divider>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="chi_bo_ket_nap" label={<span className="premium-form-label">Chi bộ kết nạp <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Chi bộ Sinh viên" />
-                              </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                              <Form.Item name="co_quan_cong_tac" label={<span className="premium-form-label">Cơ quan công tác <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Trường Đại học Kinh tế - Đại học Đà Nẵng" />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="chi_bo_sinh_hoat" label={<span className="premium-form-label">Chi bộ sinh hoạt <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Chi bộ Sinh viên" />
-                              </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                            </Col>
-                          </Row>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Đánh giá & Rèn luyện
-                            </span>
-                          </Divider>
-
-                          <Form.Item name="uu_diem" label={<span className="premium-form-label">Ưu điểm nổi bật <span style={{color:'#ef4444'}}>*</span></span>}>
-                            <TextArea rows={5} placeholder="Các ưu điểm chính về tư tưởng, đạo đức, học tập, rèn luyện..." />
-                          </Form.Item>
-
-                          <Form.Item name="khuyet_diem" label={<span className="premium-form-label">Khuyết điểm, hạn chế <span style={{color:'#ef4444'}}>*</span></span>}>
-                            <TextArea rows={3} placeholder="Những mặt còn hạn chế cần cải thiện..." />
-                          </Form.Item>
-
-                          <Form.Item name="bien_phap_khac_phuc" label={<span className="premium-form-label">Biện pháp khắc phục khuyết điểm <span style={{fontWeight:500,color:'#94a3b8'}}>(không bắt buộc)</span></span>}>
-                            <TextArea rows={3} placeholder="Hướng phấn đấu rèn luyện sửa đổi... (để trống nếu không cần)" />
-                          </Form.Item>
-                        </div>
-
-                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
-                          <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
-                            <SettingOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#c62828', fontSize: 13.5, marginBottom: 2 }}>Nghị quyết Đoàn Trường (Mẫu 1)</div>
-                              <div style={{ fontSize: 12, color: '#450a0a', lineHeight: 1.4 }}>
-                                Nghị quyết BCH Đoàn trường đề nghị lên Chi bộ xem xét và biểu quyết công nhận chính thức.
-                              </div>
-                            </div>
-                          </div>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Thông tin Quyết nghị Đoàn Trường
-                            </span>
-                          </Divider>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="so_nq_doan_truong" label={<span className="premium-form-label">Số nghị quyết <span style={{fontWeight:500,color:'#94a3b8'}}>(điền số vào trước "-NQ/ĐTN-ĐHKT")</span></span>}>
-                                <Input placeholder="Vd: 15-NQ/ĐTN-ĐHKT" />
-                              </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                              <Form.Item name="bi_thu_doan_truong" label={<span className="premium-form-label">Bí thư Đoàn Trường ký NQ <span style={{fontWeight:500,color:'#94a3b8'}}>(để trống - điền sau)</span></span>}>
-                                <Input placeholder="Để trống - điền tay sau" />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">Số ủy viên tán thành (100%) <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <InputNumber min={1} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                        </div>
-
-                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
-                          <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
-                            <StarOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#c62828', fontSize: 13.5, marginBottom: 2 }}>Liên chi Đoàn giới thiệu (Mẫu 1 & Mẫu 3)</div>
-                              <div style={{ fontSize: 12, color: '#450a0a', lineHeight: 1.4 }}>
-                                BCH Liên chi Đoàn khoa họp xét và quyết nghị giới thiệu Đảng viên chuyển chính thức.
-                              </div>
-                            </div>
-                          </div>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Thông tin cuộc họp LCĐ khoa
-                            </span>
-                          </Divider>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="dia_diem_hop_lcd" label={<span className="premium-form-label">Địa điểm họp</span>}>
-                                <Input placeholder="Trường Đại học Kinh tế" />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="chu_tri_lcd" label={<span className="premium-form-label">Chủ trì (Bí thư LCĐ) <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Trần Thị Lan Trinh" />
-                              </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                              <Form.Item name="thu_ky_lcd" label={<span className="premium-form-label">Thư ký cuộc họp <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Nguyễn Thị Xuân Hòa" />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Thành viên BCH LCĐ biểu quyết
-                            </span>
-                          </Divider>
-
-                          <Row gutter={16}>
-                            <Col span={8}>
-                              <Form.Item name="tong_so_uy_vien_lcd" label={<span className="premium-form-label">Tổng số ủy viên <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <InputNumber min={1} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                              <Form.Item name="tham_gia_lcd" label={<span className="premium-form-label">Ủy viên tham gia <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <InputNumber min={1} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                              <Form.Item name="vang_lcd" label={<span className="premium-form-label">Ủy viên vắng</span>}>
-                                <InputNumber min={0} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Row gutter={16}>
-                            <Col span={24}>
-                              <Form.Item name="bi_thu_lcd" label={<span className="premium-form-label">Bí thư Liên chi Đoàn ký NQ <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Tên Bí thư Liên chi Đoàn..." />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                        </div>
-
-                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
-                          <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
-                            <BookOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#c62828', fontSize: 13.5, marginBottom: 2 }}>Chi đoàn giới thiệu (Mẫu 4 & Mẫu 5)</div>
-                              <div style={{ fontSize: 12, color: '#450a0a', lineHeight: 1.4 }}>
-                                Xét quyết nghị giới thiệu và Biên bản họp BCH Chi đoàn bảo đảm chuyển Đảng chính thức.
-                              </div>
-                            </div>
-                          </div>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Thông tin cuộc họp Chi đoàn
-                            </span>
-                          </Divider>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="bi_thu_chi_doan" label={<span className="premium-form-label">Bí thư Chi đoàn ký NQ <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Tên Bí thư Chi đoàn..." />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="chu_tri_chi_doan" label={<span className="premium-form-label">Chủ trì cuộc họp <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Bí thư Chi đoàn" />
-                              </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                              <Form.Item name="thu_ky_chi_doan" label={<span className="premium-form-label">Thư ký cuộc họp <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Phó Bí thư Chi đoàn" />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Hiện diện & Biểu quyết
-                            </span>
-                          </Divider>
-
-                          <Row gutter={16}>
-                            <Col span={6}>
-                              <Form.Item name="tong_so_dv_chi_doan" label={<span className="premium-form-label">Tổng đoàn viên <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <InputNumber min={1} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col span={6}>
-                              <Form.Item name="tham_gia_chi_doan" label={<span className="premium-form-label">Tham gia <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <InputNumber min={1} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col span={6}>
-                              <Form.Item name="vang_chi_doan" label={<span className="premium-form-label">Vắng mặt</span>}>
-                                <InputNumber min={0} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col span={6}>
-                              <Form.Item name="ly_do_vang_chi_doan" label={<span className="premium-form-label">Lý do vắng</span>}>
-                                <Input placeholder="Để trống nếu không vắng" />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                        </div>
-
-                        <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
-                          <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#fee2e2', marginBottom: 16 }}>
-                            <TeamOutlined style={{ color: '#c62828', fontSize: 18, marginTop: 2 }} />
-                            <div>
-                              <div style={{ fontWeight: 800, color: '#c62828', fontSize: 13.5, marginBottom: 2 }}>Biên bản họp lớp (Mẫu 6)</div>
-                              <div style={{ fontSize: 12, color: '#450a0a', lineHeight: 1.4 }}>
-                                Tập thể lớp sinh hoạt họp xét đề nghị công nhận đảng viên chính thức cho sinh viên.
-                              </div>
-                            </div>
-                          </div>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Ban điều hành & Cuộc họp
-                            </span>
-                          </Divider>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="gvcn" label={<span className="premium-form-label">Giảng viên chủ nhiệm</span>}>
-                                <Input placeholder="ThS. Nguyễn Văn A" />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Row gutter={16}>
-                            <Col span={12}>
-                              <Form.Item name="chu_tri_lop" label={<span className="premium-form-label">Chủ trì cuộc họp <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Lớp trưởng" />
-                              </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                              <Form.Item name="thu_ky_lop" label={<span className="premium-form-label">Thư ký cuộc họp <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <Input placeholder="Bí thư Chi đoàn" />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-
-                          <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                            <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                              Số liệu Hiện diện & Biểu quyết
-                            </span>
-                          </Divider>
-
-                          <Row gutter={16}>
-                            <Col span={8}>
-                              <Form.Item name="tong_so_sv_lop" label={<span className="premium-form-label">Tổng sinh viên <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <InputNumber min={1} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                              <Form.Item name="tham_gia_lop" label={<span className="premium-form-label">Sinh viên tham gia <span style={{color:'#ef4444'}}>*</span></span>}>
-                                <InputNumber min={1} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                              <Form.Item name="vang_lop" label={<span className="premium-form-label">Sinh viên vắng</span>}>
-                                <InputNumber min={0} style={{ width: '100%' }} />
-                              </Form.Item>
-                            </Col>
-                          </Row>
-                        </div>
-
-                        {/* ADMIN ONLY FORMS */}
-                        {isManager && (
-                          <>
-                            {/* MẪU 11 - NHẬN XÉT CỦA ĐẢNG VIÊN GIÚP ĐỠ */}
-                            <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
-                              <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#e0f2fe', marginBottom: 16 }}>
-                                <SettingOutlined style={{ color: '#0369a1', fontSize: 18, marginTop: 2 }} />
-                                <div>
-                                  <div style={{ fontWeight: 800, color: '#0369a1', fontSize: 13.5, marginBottom: 2 }}>[Quản lý] Nhận xét Đảng viên giúp đỡ (Mẫu 11)</div>
-                                  <div style={{ fontSize: 12, color: '#0c4a6e', lineHeight: 1.4 }}>
-                                    Thông tin Đảng viên chính thức được phân công giúp đỡ Đảng viên dự bị.
-                                  </div>
-                                </div>
-                              </div>
-
-                              <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                                <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                                  Thông tin Đảng viên giúp đỡ
-                                </span>
-                              </Divider>
-
-                              <Row gutter={16}>
-                                <Col span={12}>
-                                  <Form.Item name="dvhd_ngay_sinh" label={<span className="premium-form-label">Ngày sinh ĐV giúp đỡ</span>}>
-                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày sinh" />
-                                  </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                  <Form.Item name="nam_vao_chi_bo_dvhd" label={<span className="premium-form-label">Năm sinh hoạt tại Chi bộ</span>}>
-                                    <Input placeholder="VD: 2022" />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-
-                              <Row gutter={16}>
-                                <Col span={12}>
-                                  <Form.Item name="dvhd_ngay_vao_dang" label={<span className="premium-form-label">Ngày vào Đảng của ĐV hướng dẫn</span>}>
-                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày kết nạp" />
-                                  </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                  <Form.Item name="dvhd_ngay_chinh_thuc" label={<span className="premium-form-label">Ngày chính thức của ĐV hướng dẫn</span>}>
-                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày chính thức" />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-                            </div>
-
-                            {/* MẪU 12 - TỔNG HỢP Ý KIẾN */}
-                            <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
-                              <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#e0f2fe', marginBottom: 16 }}>
-                                <AuditOutlined style={{ color: '#0369a1', fontSize: 18, marginTop: 2 }} />
-                                <div>
-                                  <div style={{ fontWeight: 800, color: '#0369a1', fontSize: 13.5, marginBottom: 2 }}>[Quản lý] Tổng hợp nhận xét nơi cư trú (Mẫu 12)</div>
-                                  <div style={{ fontSize: 12, color: '#0c4a6e', lineHeight: 1.4 }}>
-                                    Chi ủy nơi cư trú và các đoàn thể nhận xét đảng viên dự bị.
-                                  </div>
-                                </div>
-                              </div>
-
-                              <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                                <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                                  Nhận xét của các tổ chức Đoàn thể
-                                </span>
-                              </Divider>
-
-                              <Row gutter={16}>
-                                <Col span={12}>
-                                  <Form.Item name="chi_uy_noi_cu_tru" label={<span className="premium-form-label">Tên Chi ủy Chi bộ nơi cư trú</span>}>
-                                    <Input placeholder="VD: 43-44-45 An Thượng" />
-                                  </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                  <Form.Item name="tong_so_chi_uy_noi_cu_tru" label={<span className="premium-form-label">Tổng số Chi ủy viên nơi cư trú</span>}>
-                                    <InputNumber min={1} style={{ width: '100%' }} placeholder="VD: 3" />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-                              <Row gutter={16}>
-                                <Col span={12}>
-                                  <Form.Item name="tong_so_to_chuc_ctxh" label={<span className="premium-form-label">Tổng số lượng tổ chức CTXH</span>}>
-                                    <InputNumber min={1} style={{ width: '100%' }} placeholder="VD: 100" />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-                            </div>
-
-                            {/* MẪU 13 - NGHỊ QUYẾT ĐỀ NGHỊ CHÍNH THỨC CHI BỘ */}
-                            <div style={{ marginBottom: 40, paddingBottom: 40, borderBottom: "1px dashed #e2e8f0" }}>
-                              <div className="premium-info-banner" style={{ display: 'flex', gap: 12, padding: '10px 14px', borderRadius: '8px', background: '#e0f2fe', marginBottom: 16 }}>
-                                <FileProtectOutlined style={{ color: '#0369a1', fontSize: 18, marginTop: 2 }} />
-                                <div>
-                                  <div style={{ fontWeight: 800, color: '#0369a1', fontSize: 13.5, marginBottom: 2 }}>[Quản lý] Nghị quyết Chi bộ (Mẫu 13)</div>
-                                  <div style={{ fontSize: 12, color: '#0c4a6e', lineHeight: 1.4 }}>
-                                    Chi bộ họp xét đề nghị công nhận Đảng viên chính thức.
-                                  </div>
-                                </div>
-                              </div>
-
-                              <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                                <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                                  Đại diện Chi bộ
-                                </span>
-                              </Divider>
-
-                              <Row gutter={16}>
-                                <Col span={12}>
-                                  <Form.Item name="chu_tri_chi_bo" label={<span className="premium-form-label">Chủ trì cuộc họp</span>}>
-                                    <Input placeholder="Tên chủ trì" />
-                                  </Form.Item>
-                                </Col>
-                                <Col span={12}>
-                                  <Form.Item name="chuc_vu_chu_tri_chi_bo" label={<span className="premium-form-label">Chức vụ Chủ trì</span>}>
-                                    <Input placeholder="Bí thư Chi bộ" />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-
-                              <Row gutter={16}>
-                                <Col span={12}>
-                                  <Form.Item name="thu_ky_chi_bo" label={<span className="premium-form-label">Thư ký cuộc họp</span>}>
-                                    <Input placeholder="Tên thư ký" />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-
-                              <Divider orientation="left" style={{ margin: '16px 0 12px 0' }}>
-                                <span style={{ color: '#475569', fontWeight: 800, fontSize: 12 }}>
-                                  Số liệu Đảng viên
-                                </span>
-                              </Divider>
-
-                              <Row gutter={16}>
-                                <Col span={8}>
-                                  <Form.Item name="tong_so_dv" label={<span className="premium-form-label">Tổng số Đảng viên</span>}>
-                                    <InputNumber min={1} style={{ width: '100%' }} />
-                                  </Form.Item>
-                                </Col>
-                                <Col span={8}>
-                                  <Form.Item name="tong_so_dv_chinh_thuc" label={<span className="premium-form-label">Đảng viên chính thức</span>}>
-                                    <InputNumber min={1} style={{ width: '100%' }} />
-                                  </Form.Item>
-                                </Col>
-                                <Col span={8}>
-                                  <Form.Item name="tong_so_dv_du_bi" label={<span className="premium-form-label">Đảng viên dự bị</span>}>
-                                    <InputNumber min={0} style={{ width: '100%' }} />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-                            </div>
-                          </>
-                        )}
-
-                    </div>
-
-                    {/* TAB: QUẢN LÝ BIỂU MẪU - CHỈ ADMIN */}
-                    {isAdmin && activeTab === 'quan_ly_bieu_mau' && (
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                          <SettingOutlined style={{ color: '#2563eb', fontSize: 20 }} />
-                          <div>
-                            <div style={{ fontWeight: 900, fontSize: 15, color: '#1e293b' }}>Quản lý file mẫu (.docx)</div>
-                            <div style={{ fontSize: 11.5, color: '#64748b' }}>Tải lên file mẫu bình thường — hệ thống sẽ tự động ánh xạ placeholder cho bạn</div>
-                          </div>
-                        </div>
-
-                        {/* Danh sách 7 biểu mẫu */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                          {DOCUMENT_TYPES.map(doc => {
-                            const meta = templateMetas[doc.key];
-                            const isCustom = !!meta;
-                            const isUploading = uploadingTemplate === doc.key;
-                            const isDeleting = deletingTemplate === doc.key;
-
-                            return (
-                              <div key={doc.key} style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 12,
-                                padding: '12px 16px',
-                                background: isCustom ? '#f0fdf4' : '#f8fafc',
-                                border: isCustom ? '1px solid #86efac' : '1px solid #e2e8f0',
-                                borderRadius: 10,
-                                transition: 'all 0.2s ease'
-                              }}>
-                                {/* Status dot */}
-                                <div style={{
-                                  width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                                  background: isCustom ? '#22c55e' : '#94a3b8',
-                                  boxShadow: isCustom ? '0 0 6px rgba(34,197,94,0.5)' : 'none'
-                                }} />
-
-                                {/* Info */}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div style={{ fontWeight: 700, fontSize: 12.5, color: '#1e293b' }}>{doc.label}</div>
-                                  {isCustom ? (
-                                    <div style={{ fontSize: 11, color: '#16a34a', marginTop: 1 }}>
-                                      ✅ Đang dùng: <strong>{meta.fileName}</strong>
-                                      <span style={{ color: '#64748b', marginLeft: 6 }}>
-                                        (tải lên {dayjs(meta.uploadedAt).format('DD/MM/YYYY HH:mm')})
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
-                                      ⚪ Đang dùng file mặc định
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Actions */}
-                                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                                  {/* Upload button — dùng input file ẩn */}
-                                  <label style={{ cursor: 'pointer' }}>
-                                    <input
-                                      type="file"
-                                      accept=".docx"
-                                      style={{ display: 'none' }}
-                                      onChange={e => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleSelectFileForMapping(doc.key, file);
-                                        e.target.value = '';
-                                      }}
-                                    />
-                                    <Button
-                                      size="small"
-                                      loading={isUploading}
-                                      as="span"
-                                      style={{
-                                        borderRadius: 6,
-                                        fontWeight: 700,
-                                        fontSize: 11,
-                                        background: '#1d4ed8',
-                                        border: 'none',
-                                        color: '#fff',
-                                        pointerEvents: 'none'
-                                      }}
-                                    >
-                                      {isUploading ? 'Đang tải...' : (isCustom ? '🔄 Thay thế' : '⬆ Tải lên')}
-                                    </Button>
-                                  </label>
-
-                                  {/* Delete button — chỉ hiện khi có custom template */}
-                                  {isCustom && (
-                                    <Button
-                                      size="small"
-                                      danger
-                                      loading={isDeleting}
-                                      onClick={() => handleDeleteTemplate(doc.key)}
-                                      style={{ borderRadius: 6, fontWeight: 700, fontSize: 11 }}
-                                    >
-                                      Xóa
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <div style={{ marginTop: 16, padding: '10px 14px', background: '#e0f2fe', border: '1px solid #bae6fd', borderRadius: 8, fontSize: 11.5, color: '#0369a1' }}>
-                          <strong>💡 Lưu ý:</strong> File mẫu phải ở định dạng <code>.docx</code>. Khi bạn chọn tải lên, hệ thống sẽ mở trình ánh xạ thông minh để tự động nhận dạng và thay thế các từ khóa của bạn bằng các placeholder, giúp bạn không cần phải sửa đổi file Word thủ công.
-                        </div>
+                    {previewDocType ? renderDocPreview() : (
+                      <div style={{ textAlign: 'center', padding: '100px 0', color: '#94a3b8' }}>
+                         <EyeOutlined style={{ fontSize: 48, marginBottom: 16, opacity: 0.5 }} />
+                         <div>Chọn "Xem trước" ở một biểu mẫu để xem kết quả.</div>
                       </div>
                     )}
+                  </Card>
+                </Col>
+              </Row>
 
-                  </Form>
-                </Card>
-              </Col>
-
-            </Row>
+            </>
           ) : (
             <Card bordered={false} className="premium-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
               <TeamOutlined style={{ fontSize: 48, color: '#cbd5e1', marginBottom: 16 }} />
@@ -2157,7 +2041,7 @@ const DocumentGenerator = () => {
       )}
 
       {/* Document Preview Modal */}
-      <Modal
+      {/* <Modal
         title={<span style={{ fontSize: 16, fontWeight: 900, color: '#c62828' }}>Xem trước văn bản hồ sơ chính thức</span>}
         open={previewVisible}
         onCancel={() => setPreviewVisible(false)}
@@ -2171,7 +2055,7 @@ const DocumentGenerator = () => {
         <div style={{ padding: '10px 0' }}>
           {renderDocPreview()}
         </div>
-      </Modal>
+      </Modal> */}
 
       {/* Direct Mail-Merge Modal */}
       <Modal
