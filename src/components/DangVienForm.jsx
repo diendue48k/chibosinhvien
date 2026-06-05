@@ -275,7 +275,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item name="tinh_tp_qq_cu" label="Tỉnh/TP quê quán cũ">
-                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} size="large" />
+                  <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} size="large" />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -285,7 +285,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
               </Col>
               <Col span={8}>
                 <Form.Item name="xa_phuong_qq_cu" label="Xã/Phường quê quán cũ">
-                  <AddressWardSelect province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
+                  <AddressWardSelect isOld={true} province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
                 </Form.Item>
               </Col>
             </Row>
@@ -297,7 +297,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ">
-                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} size="large" />
+                  <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} size="large" />
                 </Form.Item>
               </Col>
               <Col span={8}>
@@ -307,7 +307,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
               </Col>
               <Col span={8}>
                 <Form.Item name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ">
-                  <AddressWardSelect province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
+                  <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
                 </Form.Item>
               </Col>
             </Row>

@@ -1173,13 +1173,13 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Quê quán cũ (nếu có)</Divider>
                   <Row gutter={16}>
                     <Field name="tinh_tp_qq_cu" label="Tỉnh/TP quê quán cũ" span={8}>
-                       <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} />
+                       <AddressProvinceSelect isOld={true} size="large" onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} />
                     </Field>
                     <Field name="quan_huyen_qq_cu" label="Quận/Huyện quê quán cũ" span={8}>
                        <AddressDistrictSelect province={watchTinhTpQqCu} onChange={() => form.setFieldsValue({ xa_phuong_qq_cu: undefined })} size="large" />
                     </Field>
                     <Field name="xa_phuong_qq_cu" label="Xã/Phường quê quán cũ" span={8}>
-                       <AddressWardSelect province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
+                       <AddressWardSelect isOld={true} province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
                     </Field>
                   </Row>
 
@@ -1189,13 +1189,13 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   </Row>
                   <Row gutter={16}>
                     <Field name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" span={8}>
-                       <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} />
+                       <AddressProvinceSelect isOld={true} size="large" onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} />
                     </Field>
                     <Field name="quan_huyen_tt_cu" label="Quận/Huyện thường trú cũ" span={8}>
                        <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} size="large" />
                     </Field>
                     <Field name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ" span={8}>
-                       <AddressWardSelect province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
+                       <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
                     </Field>
                   </Row>
                 </Card>

@@ -931,6 +931,8 @@ const HoSoDaKetNap = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
+    if (dateString.toDate) return dayjs(dateString.toDate()).format('DD/MM/YYYY');
+    if (dateString.seconds) return dayjs(dateString.seconds * 1000).format('DD/MM/YYYY');
     return dayjs(dateString).format('DD/MM/YYYY');
   };
 
@@ -1722,7 +1724,7 @@ const HoSoDaKetNap = () => {
         pagination={{
           defaultPageSize: 10,
           showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50'],
+          pageSizeOptions: ['5', '10', '20', '50', '1000'],
           showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ đã kết nạp`
         }}
       />
@@ -2066,7 +2068,7 @@ const HoSoDaKetNap = () => {
                 pagination={{
                   defaultPageSize: 5,
                   showSizeChanger: true,
-                  pageSizeOptions: ['5', '10', '20', '50', '100'],
+                  pageSizeOptions: ['5', '10', '20', '50', '100', '1000'],
                   showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} dòng`
                 }}
                 size="small"

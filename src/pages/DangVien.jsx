@@ -423,8 +423,16 @@ const DangVien = () => {
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return '';
-    return dayjs(dateString).format('DD/MM/YYYY');
+    try {
+      if (!dateString) return '';
+      if (typeof dateString === 'string' && dateString.trim() === '') return '';
+      if (dateString.toDate) return dayjs(dateString.toDate()).format('DD/MM/YYYY');
+      if (dateString.seconds) return dayjs(dateString.seconds * 1000).format('DD/MM/YYYY');
+      const parsed = dayjs(dateString);
+      return parsed.isValid() ? parsed.format('DD/MM/YYYY') : String(dateString);
+    } catch(e) {
+      return '';
+    }
   };
 
   const handleOpenExportModal = () => {
@@ -434,68 +442,94 @@ const DangVien = () => {
   };
 
   const exportExcel = () => {
-    let dataToExport = [];
-    if (exportRange === 'selected') {
-      dataToExport = filteredData.filter(item => selectedRowKeys.includes(item.id));
-    } else if (exportRange === 'all') {
-      dataToExport = data;
-    } else {
-      dataToExport = filteredData;
-    }
+    try {
+      let dataToExport = [];
+      if (exportRange === 'selected') {
+        dataToExport = filteredData.filter(item => item && selectedRowKeys.includes(item.id));
+      } else if (exportRange === 'all') {
+        dataToExport = data || [];
+      } else {
+        dataToExport = filteredData || [];
+      }
 
-    if (dataToExport.length === 0) {
-      message.warning("Không có dữ liệu Đảng viên để xuất!");
-      return;
-    }
+      if (!dataToExport || dataToExport.length === 0) {
+        message.warning("Không có dữ liệu Đảng viên để xuất!");
+        return;
+      }
 
-    const mappedData = dataToExport.map(item => {
-      const row = {};
-      EXPORT_FIELDS.forEach(field => {
-        if (selectedExportFields.includes(field.key)) {
-          if (field.isDate) {
-            row[field.label] = formatDate(item[field.key]);
-          } else if (field.isSpecial === 'type') {
-            row[field.label] = item.dang_vien_du_bi ? "Dự bị" : "Chính thức";
-          } else if (field.isSpecial === 'status') {
-            row[field.label] = item.trang_thai === 'dang_sinh_hoat' ? 'Đang sinh hoạt' :
-                               item.trang_thai === 'da_chuyen' ? 'Đã chuyển ra' :
-                               item.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
-                               item.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
-          } else {
-            let val = item[field.key];
-            if (field.key === 'so_dien_thoai') {
-              val = item.so_dien_thoai || item.sdt;
-            } else if (field.key === 'email') {
-              val = item.email || item.email_sv;
-            } else if (field.key === 'email_sv') {
-              val = item.email_sv || item.email;
-            } else if (field.key === 'que_quan') {
-              val = item.que_quan || item.quequan || item.chi_tiet_qq_cu;
-            } else if (field.key === 'tinh_tp_qq') {
-              val = item.tinh_tp_qq || item.tinh_tp_qq_cu;
-            } else if (field.key === 'xa_phuong_qq') {
-              val = item.xa_phuong_qq || item.xa_phuong_qq_cu;
-            } else if (field.key === 'tinh_tp_tt') {
-              val = item.tinh_tp_tt || item.tinh_tp_tt_cu;
-            } else if (field.key === 'xa_phuong_tt') {
-              val = item.xa_phuong_tt || item.xa_phuong_tt_cu;
-            } else if (field.key === 'chi_tiet_dc') {
-              val = item.chi_tiet_dc || item.chi_tiet_tt_cu;
+      const mappedData = [];
+      dataToExport.forEach((item, index) => {
+        if (!item) return;
+        try {
+          const row = { 'STT': index + 1 };
+          EXPORT_FIELDS.forEach(field => {
+            if (selectedExportFields.includes(field.key)) {
+              if (field.isDate) {
+                row[field.label] = formatDate(item[field.key]);
+              } else if (field.isSpecial === 'type') {
+                row[field.label] = item.dang_vien_du_bi ? "Dự bị" : "Chính thức";
+              } else if (field.isSpecial === 'status') {
+                row[field.label] = item.trang_thai === 'dang_sinh_hoat' ? 'Đang sinh hoạt' :
+                                   item.trang_thai === 'da_chuyen' ? 'Đã chuyển ra' :
+                                   item.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
+                                   item.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
+              } else {
+                let val = item[field.key];
+                if (field.key === 'so_dien_thoai') {
+                  val = item.so_dien_thoai || item.sdt;
+                } else if (field.key === 'email') {
+                  val = item.email || item.email_sv;
+                } else if (field.key === 'email_sv') {
+                  val = item.email_sv || item.email;
+                } else if (field.key === 'que_quan') {
+                  val = item.que_quan || item.quequan || item.chi_tiet_qq_cu;
+                } else if (field.key === 'tinh_tp_qq') {
+                  val = item.tinh_tp_qq || item.tinh_tp_qq_cu;
+                } else if (field.key === 'xa_phuong_qq') {
+                  val = item.xa_phuong_qq || item.xa_phuong_qq_cu;
+                } else if (field.key === 'tinh_tp_tt') {
+                  val = item.tinh_tp_tt || item.tinh_tp_tt_cu;
+                } else if (field.key === 'xa_phuong_tt') {
+                  val = item.xa_phuong_tt || item.xa_phuong_tt_cu;
+                } else if (field.key === 'chi_tiet_dc') {
+                  val = item.chi_tiet_dc || item.chi_tiet_tt_cu;
+                }
+                
+                if (val !== null && val !== undefined) {
+                  if (typeof val === 'object') {
+                    if (val.toDate) val = dayjs(val.toDate()).format('DD/MM/YYYY');
+                    else if (val.seconds) val = dayjs(val.seconds * 1000).format('DD/MM/YYYY');
+                    else val = JSON.stringify(val);
+                  } else {
+                    val = String(val);
+                  }
+                  
+                  // Truncate strings exceeding Excel cell character limit (32767)
+                  if (typeof val === 'string' && val.length > 32000) {
+                    val = val.substring(0, 32000) + '... (bị cắt do quá dài)';
+                  }
+                }
+                row[field.label] = val || "";
+              }
             }
-            row[field.label] = val || "";
-          }
+          });
+          mappedData.push(row);
+        } catch (itemErr) {
+          console.error("Lỗi khi xử lý item:", item, itemErr);
         }
       });
-      return row;
-    });
 
-    const ws = XLSX.utils.json_to_sheet(mappedData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "DangVien");
-    XLSX.writeFile(wb, "DanhSachDangVien_TuyChinh.xlsx");
-    
-    setIsExportModalVisible(false);
-    message.success(`Xuất Excel thành công ${dataToExport.length} Đảng viên!`);
+      const ws = XLSX.utils.json_to_sheet(mappedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "DangVien");
+      XLSX.writeFile(wb, "DanhSachDangVien_TuyChinh.xlsx");
+      
+      setIsExportModalVisible(false);
+      message.success(`Xuất Excel thành công ${mappedData.length} Đảng viên!`);
+    } catch (error) {
+      console.error("Lỗi khi xuất file Excel:", error);
+      message.error("Đã xảy ra lỗi: " + error.message);
+    }
   };
 
   const handleRowClick = (record) => {
@@ -1215,7 +1249,7 @@ const DangVien = () => {
           pagination={{ 
             defaultPageSize: 10, 
             showSizeChanger: true, 
-            pageSizeOptions: ['10', '20', '50'] 
+            pageSizeOptions: ['10', '20', '50', '1000'] 
           }}
         />
       </div>
@@ -2094,7 +2128,7 @@ const DangVien = () => {
             pagination={{ 
               defaultPageSize: 10, 
               showSizeChanger: true, 
-              pageSizeOptions: ['10', '20', '50', '100'] 
+              pageSizeOptions: ['10', '20', '50', '100', '1000'] 
             }}
             onRow={(record) => {
               return {
@@ -2312,7 +2346,7 @@ const DangVien = () => {
           pagination={{
             defaultPageSize: 20,
             showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
+            pageSizeOptions: ['10', '20', '50', '100', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} Đảng viên`
           }}
         />

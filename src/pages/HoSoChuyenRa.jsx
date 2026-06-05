@@ -428,18 +428,14 @@ const HoSoChuyenRa = ({ forceTab }) => {
     const list = [];
     if (transferType === 'chuyen_ra') {
       list.push({ key: 'mau1', label: '1. Mẫu 1. Đơn xin chuyển sinh hoạt Đảng (chính thức)', code: 'Mẫu 1' });
-      list.push({ key: 'mau2', label: '2. Mẫu 2. Đơn xin chuyển tạm thời', code: 'Mẫu 2' });
+      list.push({ key: 'mau4', label: '2. Mẫu 4. Bản kiểm điểm Đảng viên', code: 'Mẫu 4' });
       if (isProbationary) {
         list.push({ key: 'mau3', label: '3. Mẫu 3. Bản nhận xét Đảng viên dự bị ĐTN', code: 'Mẫu 3' });
-        if (generateGuiderDoc) {
-          list.push({ key: 'mau5', label: '4. Mẫu 5. Bản nhận xét Đảng viên dự bị Chuyển SHĐ ĐVHD', code: 'Mẫu 5' });
-        }
-        list.push({ key: 'mau8', label: '8. Mẫu 13. Nghị quyết đề nghị chính thức chi bộ', code: 'Mẫu 8' });
-      } else {
-        list.push({ key: 'mau4', label: '5. Mẫu 4. Bản kiểm điểm Đảng viên (chính thức)', code: 'Mẫu 4' });
+        list.push({ key: 'mau5', label: '4. Mẫu 5. Bản nhận xét ĐVHD', code: 'Mẫu 5' });
       }
     } else {
       list.push({ key: 'mau2', label: '1. Mẫu 2. Đơn xin chuyển sinh hoạt Đảng tạm thời', code: 'Mẫu 2' });
+      list.push({ key: 'mau4', label: '2. Mẫu 4. Bản kiểm điểm Đảng viên', code: 'Mẫu 4' });
     }
     
     return list;
@@ -1326,12 +1322,12 @@ const HoSoChuyenRa = ({ forceTab }) => {
       return;
     }
 
-    const mappedData = dataToExport.map(item => {
-      const row = {};
+    const mappedData = dataToExport.map((item, index) => {
+      const row = { 'STT': index + 1 };
       EXPORT_FIELDS.forEach(field => {
         if (selectedExportFields.includes(field.key)) {
           if (field.isDate) {
-            row[field.label] = item[field.key] ? dayjs(item[field.key]).format('DD/MM/YYYY') : '';
+            row[field.label] = item[field.key] ? (item[field.key]?.toDate ? dayjs(item[field.key].toDate()).format('DD/MM/YYYY') : (item[field.key]?.seconds ? dayjs(item[field.key].seconds * 1000).format('DD/MM/YYYY') : dayjs(item[field.key]).format('DD/MM/YYYY'))) : '';
           } else if (field.isSpecial === 'buoc') {
             row[field.label] = item.buoc === 1 ? 'Bước 1: Đã nộp hồ sơ' :
                                item.buoc === 2 ? 'Bước 2: Gửi Văn phòng Đảng ủy' :
@@ -1896,7 +1892,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
               pagination={{
                 defaultPageSize: 10,
                 showSizeChanger: true,
-                pageSizeOptions: ['5', '10', '20', '50'],
+                pageSizeOptions: ['5', '10', '20', '50', '1000'],
                 showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ chuyển đi đang xử lý`
               }}
               scroll={{ x: 'max-content' }}
@@ -2405,49 +2401,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
                             </div>
                           )}
                           
-                          {/* Mẫu 8 extra info for probationary */}
-                          {isProbationary && (
-                            <div style={{ marginTop: '20px', padding: '16px', borderRadius: '10px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
-                              <div style={{ fontWeight: 800, fontSize: '14px', color: '#1d4ed8', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <FileTextOutlined /> Thông tin phục vụ Mẫu 8 (Nghị quyết đề nghị chính thức chi bộ)
-                              </div>
-                              <Alert message="Số lượng Đảng viên được tính toán tự động dựa trên danh sách. Bạn có thể sửa tên chủ trì và thư ký." type="info" showIcon style={{ padding: '6px 12px', fontSize: '12px', marginBottom: 12 }} />
-                              <Row gutter={16}>
-                                <Col xs={24} sm={8}>
-                                  <Form.Item name="tong_so_dv" label="Tổng số Đảng viên" initialValue={activeMembers.length}>
-                                    <Input type="number" />
-                                  </Form.Item>
-                                </Col>
-                                <Col xs={24} sm={8}>
-                                  <Form.Item name="tong_so_dv_chinh_thuc" label="Số ĐV Chính thức" initialValue={activeMembers.filter(m => !m.dang_vien_du_bi).length}>
-                                    <Input type="number" />
-                                  </Form.Item>
-                                </Col>
-                                <Col xs={24} sm={8}>
-                                  <Form.Item name="tong_so_dv_du_bi" label="Số ĐV Dự bị" initialValue={activeMembers.filter(m => m.dang_vien_du_bi).length}>
-                                    <Input type="number" />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-                              <Row gutter={16}>
-                                <Col xs={24} sm={8}>
-                                  <Form.Item name="chu_tri" label="Người chủ trì" initialValue="Bùi Trung Hiệp">
-                                    <Input />
-                                  </Form.Item>
-                                </Col>
-                                <Col xs={24} sm={8}>
-                                  <Form.Item name="chuc_vu_chu_tri" label="Chức vụ chủ trì" initialValue="Bí thư Chi bộ">
-                                    <Input />
-                                  </Form.Item>
-                                </Col>
-                                <Col xs={24} sm={8}>
-                                  <Form.Item name="thu_ky" label="Thư ký" initialValue="Lê Vĩnh Diện">
-                                    <Input />
-                                  </Form.Item>
-                                </Col>
-                              </Row>
-                            </div>
-                          )}
+
                         </>
                       )}
 

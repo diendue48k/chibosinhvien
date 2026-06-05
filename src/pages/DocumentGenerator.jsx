@@ -7,13 +7,16 @@ import {
   FileWordOutlined, UserOutlined, AuditOutlined, TeamOutlined, 
   SettingOutlined, CheckCircleOutlined, BookOutlined, StarOutlined, EyeOutlined, FileZipOutlined, FileProtectOutlined
 } from '@ant-design/icons';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
 import { docGeneratorService } from '../services/docGeneratorService';
 import { uploadTemplate, deleteTemplate, getTemplateMeta, hasCustomTemplate, DOCUMENT_TYPES, VALID_PLACEHOLDERS } from '../services/templateStorageService';
 import dayjs from 'dayjs';
+import AddressWardSelect from '../components/AddressWardSelect';
+import AddressProvinceSelect from '../components/AddressProvinceSelect';
+import AddressDistrictSelect from '../components/AddressDistrictSelect';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -84,6 +87,21 @@ VALID_PLACEHOLDERS.forEach(p => {
 const DocumentGenerator = () => {
   const { currentUser } = useAuth();
   const [form] = Form.useForm();
+  
+  const watchTinhTpQq = Form.useWatch('tinh_tp_qq', form);
+  const watchQuanHuyenQq = Form.useWatch('quan_huyen_qq', form);
+  const watchTinhTpQqCu = Form.useWatch('tinh_tp_qq_cu', form);
+  const watchQuanHuyenQqCu = Form.useWatch('quan_huyen_qq_cu', form);
+  
+  const watchTinhTpTt = Form.useWatch('tinh_tp_tt', form);
+  const watchQuanHuyenTt = Form.useWatch('quan_huyen_tt', form);
+  const watchTinhTpTtCu = Form.useWatch('tinh_tp_tt_cu', form);
+  const watchQuanHuyenTtCu = Form.useWatch('quan_huyen_tt_cu', form);
+  
+  const watchTinhTpTamTru = Form.useWatch('tinh_tp_tam_tru', form);
+  const watchQuanHuyenTamTru = Form.useWatch('quan_huyen_tam_tru', form);
+  const watchTinhTpTamTruCu = Form.useWatch('tinh_tp_tam_tru_cu', form);
+  const watchQuanHuyenTamTruCu = Form.useWatch('quan_huyen_tam_tru_cu', form);
 
   // Role permissions
   const isManager = useMemo(() => {
@@ -286,7 +304,7 @@ const DocumentGenerator = () => {
         let stats = { total: 0, official: 0, probationary: 0 };
 
         allMembers.forEach(m => {
-          const isOfficial = m.loai_dang_vien === "Chính thức";
+          const isOfficial = m.ho_ten && !(m.loai_dang_vien === "Dự bị" || m.dang_vien_du_bi === true);
           const isProbationary = m.loai_dang_vien === "Dự bị" || m.dang_vien_du_bi === true;
           const isActive = !m.trang_thai || m.trang_thai === 'dang_sinh_hoat';
 
@@ -370,6 +388,34 @@ const DocumentGenerator = () => {
         que_quan: selectedMember.que_quan || selectedMember.tinh_tp_qq || '',
         dia_chi_thuong_tru: selectedMember.chi_tiet_dc || selectedMember.tinh_tp_tt || selectedMember.dia_chi_thuong_tru || '',
         dia_chi_tam_tru: selectedMember.dia_chi_tam_tru || '',
+        
+        tinh_tp_qq: selectedMember.tinh_tp_qq || '',
+        quan_huyen_qq: selectedMember.quan_huyen_qq || '',
+        xa_phuong_qq: selectedMember.xa_phuong_qq || '',
+        
+        tinh_tp_qq_cu: selectedMember.tinh_tp_qq_cu || '',
+        quan_huyen_qq_cu: selectedMember.quan_huyen_qq_cu || '',
+        xa_phuong_qq_cu: selectedMember.xa_phuong_qq_cu || '',
+        
+        tinh_tp_tt: selectedMember.tinh_tp_tt || '',
+        quan_huyen_tt: selectedMember.quan_huyen_tt || '',
+        xa_phuong_tt: selectedMember.xa_phuong_tt || '',
+        chi_tiet_tt: selectedMember.chi_tiet_tt || (!selectedMember.tinh_tp_tt ? (selectedMember.dia_chi_thuong_tru || selectedMember.chi_tiet_dc) : '') || '',
+
+        tinh_tp_tt_cu: selectedMember.tinh_tp_tt_cu || '',
+        quan_huyen_tt_cu: selectedMember.quan_huyen_tt_cu || '',
+        xa_phuong_tt_cu: selectedMember.xa_phuong_tt_cu || '',
+        chi_tiet_tt_cu: selectedMember.chi_tiet_tt_cu || '',
+
+        tinh_tp_tam_tru: selectedMember.tinh_tp_tam_tru || '',
+        quan_huyen_tam_tru: selectedMember.quan_huyen_tam_tru || '',
+        xa_phuong_tam_tru: selectedMember.xa_phuong_tam_tru || '',
+        chi_tiet_tam_tru: selectedMember.chi_tiet_tam_tru || (!selectedMember.tinh_tp_tam_tru ? selectedMember.dia_chi_tam_tru : '') || '',
+
+        tinh_tp_tam_tru_cu: selectedMember.tinh_tp_tam_tru_cu || '',
+        quan_huyen_tam_tru_cu: selectedMember.quan_huyen_tam_tru_cu || '',
+        xa_phuong_tam_tru_cu: selectedMember.xa_phuong_tam_tru_cu || '',
+        chi_tiet_tam_tru_cu: selectedMember.chi_tiet_tam_tru_cu || '',
         dvhd: selectedMember.dvhd || selectedMember.dangvienhuongdan || '',
         cccd: selectedMember.cccd || '',
         gioi_tinh: selectedMember.gioi_tinh || 'Nam',
@@ -388,16 +434,16 @@ const DocumentGenerator = () => {
         // Tab 2 defaults
         ngay_hop_lop: null,        // để trống, chỉ lấy năm khi xuất
         gvcn: '',
-        chu_tri_lop: 'Lớp trưởng',
-        thu_ky_lop: 'Bí thư Chi đoàn',
-        tong_so_sv_lop: 45,
-        tham_gia_lop: 45,
-        vang_lop: 0,               // mặc định 0
+        chu_tri_lop: '',
+        thu_ky_lop: '',
+        tong_so_sv_lop: null,
+        tham_gia_lop: null,
+        vang_lop: null,
 
         // Tab 3 defaults
         ngay_hop_chi_doan: null,   // để trống, chỉ lấy năm khi xuất
-        chu_tri_chi_doan: 'Bí thư Chi đoàn',
-        thu_ky_chi_doan: 'Phó Bí thư Chi đoàn',
+        chu_tri_chi_doan: '',
+        thu_ky_chi_doan: '',
         tong_so_dv_chi_doan: 28,
         tham_gia_chi_doan: 28,
         vang_chi_doan: 0,          // mặc định 0
@@ -407,8 +453,8 @@ const DocumentGenerator = () => {
         // Tab 4 defaults
         ngay_hop_lcd: null,        // để trống, chỉ lấy năm khi xuất
         dia_diem_hop_lcd: 'Trường Đại học Kinh tế', // mặc định
-        chu_tri_lcd: 'Trần Thị Lan Trinh',
-        thu_ky_lcd: 'Nguyễn Thị Xuân Hòa',
+        chu_tri_lcd: '',
+        thu_ky_lcd: '',
         tong_so_uy_vien_lcd: 11,
         tham_gia_lcd: 11,
         vang_lcd: 0,
@@ -484,6 +530,7 @@ const DocumentGenerator = () => {
 
     return {
       ...allValues,
+      thu_ky_chi_doan: allValues.thu_ky_lop || allValues.thu_ky_chi_doan,
       uu_diem: allValues.uu_diem !== undefined && allValues.uu_diem !== null ? allValues.uu_diem : defaultUuDiem,
       khuyet_diem: allValues.khuyet_diem !== undefined && allValues.khuyet_diem !== null ? allValues.khuyet_diem : defaultKhuyetDiem,
       bien_phap_khac_phuc: allValues.bien_phap_khac_phuc !== undefined && allValues.bien_phap_khac_phuc !== null ? allValues.bien_phap_khac_phuc : defaultBienPhap,
@@ -493,8 +540,107 @@ const DocumentGenerator = () => {
       ngay_hop_lop: allValues.ngay_hop_lop ? allValues.ngay_hop_lop.format('YYYY-MM-DD') : '',
       ngay_hop_chi_doan: allValues.ngay_hop_chi_doan ? allValues.ngay_hop_chi_doan.format('YYYY-MM-DD') : '',
       ngay_hop_lcd: allValues.ngay_hop_lcd ? allValues.ngay_hop_lcd.format('YYYY-MM-DD') : '',
-      ngay_hop_doan_truong: allValues.ngay_hop_doan_truong ? allValues.ngay_hop_doan_truong.format('YYYY-MM-DD') : ''
+      ngay_hop_doan_truong: allValues.ngay_hop_doan_truong ? allValues.ngay_hop_doan_truong.format('YYYY-MM-DD') : '',
+      tong_so_chi_uy_noi_cu_tru: (allValues.tong_so_chi_uy_noi_cu_tru === null || allValues.tong_so_chi_uy_noi_cu_tru === undefined || allValues.tong_so_chi_uy_noi_cu_tru === '') ? '      ' : allValues.tong_so_chi_uy_noi_cu_tru,
+      tong_so_to_chuc_ctxh: (allValues.tong_so_to_chuc_ctxh === null || allValues.tong_so_to_chuc_ctxh === undefined || allValues.tong_so_to_chuc_ctxh === '') ? '      ' : allValues.tong_so_to_chuc_ctxh
     };
+  };
+
+  const [isSavingMember, setIsSavingMember] = useState(false);
+
+  useEffect(() => {
+    if (selectedMember) {
+      form.setFieldsValue({
+        que_quan: selectedMember.que_quan || selectedMember.tinh_tp_qq || '',
+        dia_chi_thuong_tru: selectedMember.chi_tiet_dc || selectedMember.tinh_tp_tt || selectedMember.dia_chi_thuong_tru || '',
+        dia_chi_tam_tru: selectedMember.dia_chi_tam_tru || '',
+        ngay_sinh: selectedMember.ngay_sinh ? dayjs(selectedMember.ngay_sinh) : null,
+        ngay_vao_dang: selectedMember.ngay_vao_dang ? dayjs(selectedMember.ngay_vao_dang) : null,
+      });
+    }
+  }, [selectedMember, form]);
+
+  const handleSaveMemberInfo = async () => {
+    if (!selectedMember) return;
+    try {
+      setIsSavingMember(true);
+      const values = await form.validateFields([
+        'tinh_tp_qq', 'xa_phuong_qq',
+        'tinh_tp_qq_cu', 'quan_huyen_qq_cu', 'xa_phuong_qq_cu',
+        'tinh_tp_tt', 'xa_phuong_tt', 'chi_tiet_tt',
+        'tinh_tp_tt_cu', 'quan_huyen_tt_cu', 'xa_phuong_tt_cu', 'chi_tiet_tt_cu',
+        'tinh_tp_tam_tru', 'xa_phuong_tam_tru', 'chi_tiet_tam_tru',
+        'tinh_tp_tam_tru_cu', 'quan_huyen_tam_tru_cu', 'xa_phuong_tam_tru_cu', 'chi_tiet_tam_tru_cu',
+        'ngay_sinh', 'ngay_vao_dang'
+      ]);
+
+      const buildAddress = (tinh, huyen, xa, chiTiet) => {
+        const parts = [];
+        if (chiTiet) parts.push(chiTiet);
+        if (xa) parts.push(xa);
+        if (huyen) parts.push(huyen);
+        if (tinh) parts.push(tinh);
+        return parts.join(', ');
+      };
+
+      const queQuanMoi = buildAddress(values.tinh_tp_qq, values.quan_huyen_qq, values.xa_phuong_qq, null);
+      const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
+      const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
+
+      const thuongTruMoi = buildAddress(values.tinh_tp_tt, values.quan_huyen_tt, values.xa_phuong_tt, values.chi_tiet_tt);
+      const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
+      const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
+
+      const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, values.quan_huyen_tam_tru, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
+      const tamTruCu = buildAddress(values.tinh_tp_tam_tru_cu, values.quan_huyen_tam_tru_cu, values.xa_phuong_tam_tru_cu, values.chi_tiet_tam_tru_cu);
+      const diaChiTamTru = tamTruCu ? `${tamTruMoi} (Trước đây là ${tamTruCu})` : tamTruMoi;
+
+      const updatedData = {
+        que_quan: queQuan,
+        dia_chi_thuong_tru: diaChiThuongTru,
+        dia_chi_tam_tru: diaChiTamTru,
+        
+        tinh_tp_qq: values.tinh_tp_qq || '',
+        quan_huyen_qq: values.quan_huyen_qq || '',
+        xa_phuong_qq: values.xa_phuong_qq || '',
+        
+        tinh_tp_qq_cu: values.tinh_tp_qq_cu || '',
+        quan_huyen_qq_cu: values.quan_huyen_qq_cu || '',
+        xa_phuong_qq_cu: values.xa_phuong_qq_cu || '',
+        
+        tinh_tp_tt: values.tinh_tp_tt || '',
+        quan_huyen_tt: values.quan_huyen_tt || '',
+        xa_phuong_tt: values.xa_phuong_tt || '',
+        chi_tiet_tt: values.chi_tiet_tt || '',
+        
+        tinh_tp_tt_cu: values.tinh_tp_tt_cu || '',
+        quan_huyen_tt_cu: values.quan_huyen_tt_cu || '',
+        xa_phuong_tt_cu: values.xa_phuong_tt_cu || '',
+        chi_tiet_tt_cu: values.chi_tiet_tt_cu || '',
+
+        tinh_tp_tam_tru: values.tinh_tp_tam_tru || '',
+        quan_huyen_tam_tru: values.quan_huyen_tam_tru || '',
+        xa_phuong_tam_tru: values.xa_phuong_tam_tru || '',
+        chi_tiet_tam_tru: values.chi_tiet_tam_tru || '',
+
+        tinh_tp_tam_tru_cu: values.tinh_tp_tam_tru_cu || '',
+        quan_huyen_tam_tru_cu: values.quan_huyen_tam_tru_cu || '',
+        xa_phuong_tam_tru_cu: values.xa_phuong_tam_tru_cu || '',
+        chi_tiet_tam_tru_cu: values.chi_tiet_tam_tru_cu || '',
+
+        ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : null,
+        ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
+        updated_at: new Date().toISOString()
+      };
+      await updateDoc(doc(db, "dang_vien", selectedMember.id), updatedData);
+      message.success("Cập nhật thông tin Đảng viên thành công!");
+      setSelectedMember(prev => ({ ...prev, ...updatedData }));
+    } catch (e) {
+      console.error(e);
+      if (!e.errorFields) message.error("Lỗi khi cập nhật thông tin!");
+    } finally {
+      setIsSavingMember(false);
+    }
   };
 
   // Handle Preview Document
@@ -1575,6 +1721,155 @@ const DocumentGenerator = () => {
               {/* TOP SECTION: ALL FORMS */}
               <Form form={form} layout="vertical" className="premium-form">
                  <Card bordered={false} className="premium-card" style={{ marginBottom: 20, borderRadius: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5 }}>Thông tin cá nhân (Có thể chỉnh sửa)</div>
+                      <Button type="primary" loading={isSavingMember} onClick={handleSaveMemberInfo} style={{ backgroundColor: '#c62828', borderColor: '#c62828', borderRadius: '6px', fontWeight: 600 }}>
+                        Lưu cập nhật Đảng viên
+                      </Button>
+                    </div>
+                    
+                    <div style={{ marginBottom: 4 }}>
+                      <Text strong style={{ fontSize: 13 }}>Quê quán (Hiện tại)</Text>
+                    </div>
+                    <Row gutter={16}>
+                      <Col span={12}>
+                        <Form.Item name="tinh_tp_qq" label={<span className="premium-form-label">Tỉnh/Thành phố</span>}>
+                          <AddressProvinceSelect />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item name="xa_phuong_qq" label={<span className="premium-form-label">Phường/Xã</span>}>
+                          <AddressWardSelect province={watchTinhTpQq} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <div style={{ marginBottom: 4 }}>
+                      <Text strong style={{ fontSize: 13 }}>Quê quán (Trước đây - nếu có thay đổi đơn vị hành chính)</Text>
+                    </div>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item name="tinh_tp_qq_cu" label={<span className="premium-form-label">Tỉnh/Thành phố cũ</span>}>
+                          <AddressProvinceSelect isOld={true} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item name="quan_huyen_qq_cu" label={<span className="premium-form-label">Quận/Huyện cũ</span>}>
+                          <AddressDistrictSelect province={watchTinhTpQqCu} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item name="xa_phuong_qq_cu" label={<span className="premium-form-label">Phường/Xã cũ</span>}>
+                          <AddressWardSelect province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} isOld={true} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    
+                    <div style={{ marginBottom: 4 }}>
+                      <Text strong style={{ fontSize: 13 }}>Nơi cư trú / Thường trú (Hiện tại)</Text>
+                    </div>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item name="tinh_tp_tt" label={<span className="premium-form-label">Tỉnh/Thành phố</span>}>
+                          <AddressProvinceSelect />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item name="xa_phuong_tt" label={<span className="premium-form-label">Phường/Xã</span>}>
+                          <AddressWardSelect province={watchTinhTpTt} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item name="chi_tiet_tt" label={<span className="premium-form-label">Chi tiết</span>}>
+                          <Input placeholder="Số nhà, đường..." />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <div style={{ marginBottom: 4 }}>
+                      <Text strong style={{ fontSize: 13 }}>Nơi cư trú / Thường trú (Trước đây - nếu có thay đổi)</Text>
+                    </div>
+                    <Row gutter={16}>
+                      <Col span={6}>
+                        <Form.Item name="tinh_tp_tt_cu" label={<span className="premium-form-label">Tỉnh/Thành phố cũ</span>}>
+                          <AddressProvinceSelect isOld={true} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="quan_huyen_tt_cu" label={<span className="premium-form-label">Quận/Huyện cũ</span>}>
+                          <AddressDistrictSelect province={watchTinhTpTtCu} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="xa_phuong_tt_cu" label={<span className="premium-form-label">Phường/Xã cũ</span>}>
+                          <AddressWardSelect province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} isOld={true} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="chi_tiet_tt_cu" label={<span className="premium-form-label">Chi tiết cũ</span>}>
+                          <Input placeholder="Số nhà, đường..." />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <div style={{ marginBottom: 4 }}>
+                      <Text strong style={{ fontSize: 13 }}>Tạm trú (Hiện tại)</Text>
+                    </div>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item name="tinh_tp_tam_tru" label={<span className="premium-form-label">Tỉnh/Thành phố</span>}>
+                          <AddressProvinceSelect />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item name="xa_phuong_tam_tru" label={<span className="premium-form-label">Phường/Xã</span>}>
+                          <AddressWardSelect province={watchTinhTpTamTru} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item name="chi_tiet_tam_tru" label={<span className="premium-form-label">Chi tiết</span>}>
+                          <Input placeholder="Số nhà, đường..." />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <div style={{ marginBottom: 4 }}>
+                      <Text strong style={{ fontSize: 13 }}>Tạm trú (Trước đây - nếu có thay đổi)</Text>
+                    </div>
+                    <Row gutter={16}>
+                      <Col span={6}>
+                        <Form.Item name="tinh_tp_tam_tru_cu" label={<span className="premium-form-label">Tỉnh/Thành phố cũ</span>}>
+                          <AddressProvinceSelect isOld={true} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="quan_huyen_tam_tru_cu" label={<span className="premium-form-label">Quận/Huyện cũ</span>}>
+                          <AddressDistrictSelect province={watchTinhTpTamTruCu} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="xa_phuong_tam_tru_cu" label={<span className="premium-form-label">Phường/Xã cũ</span>}>
+                          <AddressWardSelect province={watchTinhTpTamTruCu} district={watchQuanHuyenTamTruCu} isOld={true} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="chi_tiet_tam_tru_cu" label={<span className="premium-form-label">Chi tiết cũ</span>}>
+                          <Input placeholder="Số nhà, đường..." />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16} style={{ marginTop: 8 }}>
+                      <Col span={12}>
+                        <Form.Item name="ngay_sinh" label={<span className="premium-form-label">Ngày sinh</span>}>
+                          <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item name="ngay_vao_dang" label={<span className="premium-form-label">Ngày vào Đảng</span>}>
+                          <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    
+                    <Divider dashed style={{ margin: '16px 0' }} />
                     <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 12 }}>Thông tin dùng chung & Đánh giá</div>
                     <Row gutter={16}>
                       <Col span={8}>
@@ -1617,29 +1912,37 @@ const DocumentGenerator = () => {
                     <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 12 }}>Đại diện các cấp & Số liệu họp</div>
                     
                     <Row gutter={16}>
+                      <Col span={24}>
+                        <Form.Item name="gvcn" label={<span className="premium-form-label">Giáo viên chủ nhiệm</span>}>
+                          <Input placeholder="Nhập tên Giáo viên chủ nhiệm..." />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    
+                    <Row gutter={16}>
                       <Col span={6}>
                         <Form.Item name="chu_tri_lop" label={<span className="premium-form-label">Chủ trì Lớp</span>}>
                           <Input placeholder="Lớp trưởng" />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
-                        <Form.Item name="thu_ky_lop" label={<span className="premium-form-label">Thư ký Lớp</span>}>
-                          <Input placeholder="Bí thư Chi đoàn" />
+                        <Form.Item name="thu_ky_lop" label={<span className="premium-form-label">Thư ký Lớp & CĐ</span>}>
+                          <Input placeholder="Lớp phó hoặc phó bí thư Chi Đoàn" />
                         </Form.Item>
                       </Col>
                       <Col span={4}>
                         <Form.Item name="tong_so_sv_lop" label={<span className="premium-form-label">TS SV Lớp</span>}>
-                          <InputNumber style={{width:'100%'}} />
+                          <InputNumber style={{width:'100%'}} placeholder="45" />
                         </Form.Item>
                       </Col>
                       <Col span={4}>
                         <Form.Item name="tham_gia_lop" label={<span className="premium-form-label">Có mặt (Lớp)</span>}>
-                          <InputNumber style={{width:'100%'}} />
+                          <InputNumber style={{width:'100%'}} placeholder="45" />
                         </Form.Item>
                       </Col>
                       <Col span={4}>
                         <Form.Item name="vang_lop" label={<span className="premium-form-label">Vắng (Lớp)</span>}>
-                          <InputNumber style={{width:'100%'}} />
+                          <InputNumber style={{width:'100%'}} placeholder="0" />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -1647,12 +1950,7 @@ const DocumentGenerator = () => {
                     <Row gutter={16}>
                       <Col span={6}>
                         <Form.Item name="chu_tri_chi_doan" label={<span className="premium-form-label">Chủ trì Chi đoàn</span>}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col span={6}>
-                        <Form.Item name="thu_ky_chi_doan" label={<span className="premium-form-label">Thư ký Chi đoàn</span>}>
-                          <Input />
+                          <Input placeholder="Bí thư Chi đoàn" />
                         </Form.Item>
                       </Col>
                       <Col span={4}>
@@ -1709,16 +2007,6 @@ const DocumentGenerator = () => {
                       <Col span={6}>
                         <Form.Item name="khong_tan_thanh_doan_truong" label={<span className="premium-form-label">Đoàn Trường: K.Tán thành</span>}>
                           <InputNumber style={{width:'100%'}} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={6}>
-                        <Form.Item name="ly_do_vang_chi_doan" label={<span className="premium-form-label">Lý do vắng (nếu có)</span>}>
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col span={6}>
-                        <Form.Item name="dia_diem_hop_lcd" label={<span className="premium-form-label">Địa điểm họp LCĐ</span>}>
-                          <Input />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -2382,3 +2670,4 @@ const DocumentGenerator = () => {
 };
 
 export default DocumentGenerator;
+

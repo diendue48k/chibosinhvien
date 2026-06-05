@@ -632,7 +632,7 @@ const XinVang = () => {
             pagination={{
               defaultPageSize: 5,
               showSizeChanger: true,
-              pageSizeOptions: ['5', '10', '25'],
+              pageSizeOptions: ['5', '10', '25', '1000'],
               showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đơn xin vắng của bạn`
             }}
           />
@@ -672,7 +672,7 @@ const XinVang = () => {
             pagination={{
               defaultPageSize: 10,
               showSizeChanger: true,
-              pageSizeOptions: ['5', '10', '25', '50'],
+              pageSizeOptions: ['5', '10', '25', '50', '1000'],
               showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đơn xin vắng toàn chi bộ`
             }}
           />

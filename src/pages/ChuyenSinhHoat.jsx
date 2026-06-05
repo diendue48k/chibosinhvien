@@ -191,6 +191,8 @@ const ChuyenSinhHoat = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
+    if (dateString.toDate) return dayjs(dateString.toDate()).format('DD/MM/YYYY');
+    if (dateString.seconds) return dayjs(dateString.seconds * 1000).format('DD/MM/YYYY');
     return dayjs(dateString).format('DD/MM/YYYY');
   };
 
@@ -215,12 +217,12 @@ const ChuyenSinhHoat = () => {
       return;
     }
 
-    const mappedData = dataToExport.map(item => {
-      const row = {};
+    const mappedData = dataToExport.map((item, index) => {
+      const row = { 'STT': index + 1 };
       EXPORT_FIELDS.forEach(field => {
         if (selectedExportFields.includes(field.key)) {
           if (field.isDate) {
-            row[field.label] = item[field.key] ? dayjs(item[field.key]).format('DD/MM/YYYY') : '';
+            row[field.label] = item[field.key] ? (item[field.key]?.toDate ? dayjs(item[field.key].toDate()).format('DD/MM/YYYY') : (item[field.key]?.seconds ? dayjs(item[field.key].seconds * 1000).format('DD/MM/YYYY') : dayjs(item[field.key]).format('DD/MM/YYYY'))) : '';
           } else if (field.isSpecial === 'type') {
             row[field.label] = item.dang_vien_du_bi ? "Dự bị" : "Chính thức";
           } else if (field.isSpecial === 'status') {
@@ -482,7 +484,7 @@ const ChuyenSinhHoat = () => {
         pagination={{
           defaultPageSize: 10,
           showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50'],
+          pageSizeOptions: ['5', '10', '20', '50', '1000'],
           showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đảng viên chuyển`
         }}
         style={{ cursor: 'pointer' }}

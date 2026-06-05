@@ -19,6 +19,7 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
 import addressData from '../data/addressData.json';
+import addressDataMoi from '../data/addressDataMoi.json';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../config';
@@ -31,7 +32,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 // Danh sách Tỉnh / Thành phố
-const PROVINCES = Object.keys(addressData || {}).sort((a, b) => a.localeCompare(b, 'vi'));
+const PROVINCES = Object.keys(addressDataMoi || {}).sort((a, b) => a.localeCompare(b, 'vi'));
 
 // Trạng thái config - dùng Ant Design icons thay vì emoji
 const TRANG_THAI_CONFIG = {
@@ -2143,7 +2144,7 @@ const DangKy213 = () => {
             pagination={{
               pageSize: 20,
               showSizeChanger: true,
-              pageSizeOptions: ['10', '20', '50', '100'],
+              pageSizeOptions: ['10', '20', '50', '100', '1000'],
               showTotal: (total) => <span style={{ fontWeight: 600 }}>Tổng: {total} đăng ký</span>
             }}
             size="small"
@@ -2490,6 +2491,13 @@ const DangKy213 = () => {
           style={{ marginBottom: 16, borderRadius: 8 }}
         />
         <Form form={completionForm} layout="vertical">
+          <Form.Item
+            name="chi_bo_noi_cu_tru"
+            label={<span style={{ fontWeight: 700 }}>Tên Chi bộ nơi cư trú <span style={{ color: '#ff4d4f' }}>*</span></span>}
+            rules={[{ required: true, message: 'Nhập tên Chi bộ nơi cư trú' }]}
+          >
+            <Input placeholder="Nhập tên chi bộ nơi cư trú..." />
+          </Form.Item>
           <Form.Item
             name="ten_bi_thu"
             label={<span style={{ fontWeight: 700 }}>Họ và tên Bí thư cấp uỷ nơi cư trú <span style={{ color: '#ff4d4f' }}>*</span></span>}
@@ -2940,10 +2948,6 @@ const DangKy213 = () => {
               </Form.Item>
             </Col>
           </Row>
-
-          <Form.Item name="chi_bo_noi_cu_tru" label="Chi bộ nơi cư trú" rules={[{ required: true, message: 'Vui lòng nhập chi bộ nơi cư trú' }]}>
-            <Input placeholder="Nhập tên chi bộ nơi cư trú..." />
-          </Form.Item>
 
           <Form.Item name="trang_thai" label="Trạng thái ban đầu" rules={[{ required: true }]}>
             <Select placeholder="Chọn trạng thái ban đầu">

@@ -4,7 +4,7 @@ import { BarChartOutlined, TableOutlined, TeamOutlined, FilterOutlined } from '@
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import addressData from '../data/addressData.json';
+import addressDataMoi from '../data/addressDataMoi.json';
 import dayjs from 'dayjs';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
@@ -183,7 +183,7 @@ const Dashboard = () => {
     let batch = {};
     let province = {};
 
-    Object.keys(addressData || {}).forEach(prov => {
+    Object.keys(addressDataMoi || {}).forEach(prov => {
       province[prov] = { name: prov, ChinhThuc: 0, DuBi: 0 };
     });
 

@@ -1249,7 +1249,7 @@ const HoSoDaChinhThuc = () => {
           pagination={{
             defaultPageSize: 10,
             showSizeChanger: true,
-            pageSizeOptions: ['5', '10', '20', '50'],
+            pageSizeOptions: ['5', '10', '20', '50', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ`
           }}
           onRow={(record) => ({
@@ -1435,7 +1435,7 @@ const HoSoDaChinhThuc = () => {
           pagination={{
             defaultPageSize: 20,
             showSizeChanger: true,
-            pageSizeOptions: ['10', '20', '50', '100'],
+            pageSizeOptions: ['10', '20', '50', '100', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ`
           }}
           onRow={(record) => ({

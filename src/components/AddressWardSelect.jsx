@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Select, Input, Space, Button } from 'antd';
 import { CloseOutlined } from '@ant-design/icons';
-import addressData from '../data/addressData.json';
+import addressDataMoi from '../data/addressDataMoi.json';
+import addressDataCu from '../data/addressDataCu.json';
 
 const { Option } = Select;
 
-const AddressWardSelect = ({ value, onChange, province, district }) => {
+const AddressWardSelect = ({ value, onChange, province, district, isOld = false }) => {
   const [isManual, setIsManual] = useState(false);
 
   const options = React.useMemo(() => {
     if (!province) return [];
-    const provData = addressData[province] || {};
+    
+    if (!isOld) {
+      // New Address format: just a list of wards under the province
+      return addressDataMoi[province] ? [...addressDataMoi[province]].sort() : [];
+    }
+
+    // Old Address format: Province -> District -> Ward
+    const provData = addressDataCu[province] || {};
     if (district) {
       return provData[district] || [];
     }
@@ -23,7 +31,7 @@ const AddressWardSelect = ({ value, onChange, province, district }) => {
     });
     // Remove duplicates and sort
     return Array.from(new Set(allWards)).sort();
-  }, [province, district]);
+  }, [province, district, isOld]);
 
   useEffect(() => {
     if (value && options.length > 0) {

@@ -1,10 +1,12 @@
 import React from 'react';
 import { Select } from 'antd';
-import addressData from '../data/addressData.json';
+import addressDataMoi from '../data/addressDataMoi.json';
+import addressDataCu from '../data/addressDataCu.json';
 
 const { Option } = Select;
 
-const AddressProvinceSelect = ({ value, onChange, placeholder, size }) => {
+const AddressProvinceSelect = ({ value, onChange, placeholder, size, isOld = false }) => {
+  const addressData = isOld ? addressDataCu : addressDataMoi;
   const options = Object.keys(addressData);
 
   return (

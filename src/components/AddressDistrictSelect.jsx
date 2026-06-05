@@ -1,11 +1,11 @@
 import React from 'react';
 import { Select } from 'antd';
-import addressData from '../data/addressData.json';
+import addressDataCu from '../data/addressDataCu.json';
 
 const { Option } = Select;
 
 const AddressDistrictSelect = ({ value, onChange, province, placeholder, size }) => {
-  const options = province ? Object.keys(addressData[province] || {}).sort() : [];
+  const options = province ? Object.keys(addressDataCu[province] || {}).sort() : [];
 
   return (
     <Select 

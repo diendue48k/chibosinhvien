@@ -2181,7 +2181,7 @@ const Attendance = () => {
                   pagination={{
                     defaultPageSize: 10,
                     showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '50', '100'],
+                    pageSizeOptions: ['10', '20', '50', '100', '1000'],
                     showTotal: (total) => `Tổng cộng: ${total}/${dangVienList.length} Đảng viên`
                   }}
                 />
@@ -2197,7 +2197,7 @@ const Attendance = () => {
                   pagination={{
                     defaultPageSize: 10,
                     showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '50', '100'],
+                    pageSizeOptions: ['10', '20', '50', '100', '1000'],
                     showTotal: (total) => `Tổng cộng: ${total} Đảng viên vắng mặt`
                   }}
                 />
@@ -2253,7 +2253,7 @@ const Attendance = () => {
                   pagination={{
                     defaultPageSize: 10,
                     showSizeChanger: true,
-                    pageSizeOptions: ['10', '20', '50', '100'],
+                    pageSizeOptions: ['10', '20', '50', '100', '1000'],
                     showTotal: (total) => `Tổng cộng: ${total} Đảng viên`
                   }}
                 />
