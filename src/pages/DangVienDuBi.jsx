@@ -780,6 +780,8 @@ const DangVienDuBi = () => {
               setEditingRecord(record);
               form.setFieldsValue({
                 ...record,
+                dvhd_theo_doi: record.dvhd_theo_doi || record.dvhd || undefined,
+                dvhd_ho_so: record.dvhd_ho_so || record.dvhd || undefined,
                 ngay_sinh: record.ngay_sinh ? dayjs(record.ngay_sinh) : null,
                 ngay_vao_dang: record.ngay_vao_dang ? dayjs(record.ngay_vao_dang) : null,
                 ngay_cong_nhan_dvct: record.ngay_cong_nhan_dvct ? dayjs(record.ngay_cong_nhan_dvct) : null,
@@ -1492,6 +1494,8 @@ const DangVienDuBi = () => {
                 setEditingRecord(record);
                 form.setFieldsValue({
                   ...record,
+                  dvhd_theo_doi: record.dvhd_theo_doi || record.dvhd || undefined,
+                  dvhd_ho_so: record.dvhd_ho_so || record.dvhd || undefined,
                   ngay_sinh: record.ngay_sinh ? dayjs(record.ngay_sinh) : null,
                   ngay_vao_dang: record.ngay_vao_dang ? dayjs(record.ngay_vao_dang) : null,
                   ngay_cong_nhan_dvct: record.ngay_cong_nhan_dvct ? dayjs(record.ngay_cong_nhan_dvct) : null,
@@ -2240,8 +2244,14 @@ const DangVienDuBi = () => {
                 </Form.Item>
               </Col>
             </Row>
+            <Row gutter={16} style={{ marginTop: '16px' }}>
+              <Col span={24}>
+                <Form.Item name="ghi_chu" label="Ghi chú hồ sơ" style={{ marginBottom: 0 }}>
+                  <Input.TextArea rows={3} placeholder="Ghi chú về tiến độ hồ sơ, các giấy tờ còn thiếu, v.v..." style={{ borderRadius: '6px' }} />
+                </Form.Item>
+              </Col>
+            </Row>
           </div>
-
 
         </Form>
       </Drawer>

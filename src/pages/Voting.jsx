@@ -1352,21 +1352,60 @@ const Voting = () => {
             ) : (
               <>
                 {/* Summary */}
-                <Card bordered={false} style={{ borderRadius: 10, marginBottom: 20, background: 'linear-gradient(135deg,#c62828 0%,#8e0000 100%)' }}>
-                  <Row gutter={0} style={{ textAlign: 'center' }}>
-                    {[
-                      { label: 'Ứng viên', value: results.length, color: '#fff' },
-                      { label: 'Đạt', value: results.filter(r => r.passed).length, color: '#a5f3a5' },
-                      { label: 'Không đạt', value: results.filter(r => !r.passed).length, color: '#fca5a5' },
-                      { label: 'Tổng phiếu', value: results.reduce((s, r) => s + r.total, 0), color: '#fde68a' },
-                    ].map((item, i) => (
-                      <Col span={6} key={i}>
-                        <div style={{ fontSize: 32, fontWeight: 900, color: item.color }}>{item.value}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)' }}>{item.label}</div>
-                      </Col>
-                    ))}
-                  </Row>
-                </Card>
+                <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+                  <Col span={6}>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', 
+                      borderRadius: 12, 
+                      padding: '12px', 
+                      textAlign: 'center',
+                      border: '1px solid #bfdbfe',
+                      boxShadow: '0 2px 8px rgba(30, 64, 175, 0.04)'
+                    }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: '#1d4ed8', lineHeight: 1.2 }}>{results.length}</div>
+                      <div style={{ fontSize: 11, color: '#1e40af', fontWeight: 700, marginTop: 4 }}>Ứng viên</div>
+                    </div>
+                  </Col>
+                  <Col span={6}>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', 
+                      borderRadius: 12, 
+                      padding: '12px', 
+                      textAlign: 'center',
+                      border: '1px solid #bbf7d0',
+                      boxShadow: '0 2px 8px rgba(22, 101, 52, 0.04)'
+                    }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: '#15803d', lineHeight: 1.2 }}>{results.filter(r => r.passed).length}</div>
+                      <div style={{ fontSize: 11, color: '#166534', fontWeight: 700, marginTop: 4 }}>Đạt</div>
+                    </div>
+                  </Col>
+                  <Col span={6}>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', 
+                      borderRadius: 12, 
+                      padding: '12px', 
+                      textAlign: 'center',
+                      border: '1px solid #fecaca',
+                      boxShadow: '0 2px 8px rgba(185, 28, 28, 0.04)'
+                    }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: '#b91c1c', lineHeight: 1.2 }}>{results.filter(r => !r.passed).length}</div>
+                      <div style={{ fontSize: 11, color: '#991b1b', fontWeight: 700, marginTop: 4 }}>Không đạt</div>
+                    </div>
+                  </Col>
+                  <Col span={6}>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', 
+                      borderRadius: 12, 
+                      padding: '12px', 
+                      textAlign: 'center',
+                      border: '1px solid #fde68a',
+                      boxShadow: '0 2px 8px rgba(217, 119, 6, 0.04)'
+                    }}>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: '#d97706', lineHeight: 1.2 }}>{new Set(votes.map(v => v.voterId)).size}</div>
+                      <div style={{ fontSize: 11, color: '#92400e', fontWeight: 700, marginTop: 4 }}>Tổng số phiếu</div>
+                    </div>
+                  </Col>
+                </Row>
                 {results.map(renderResultCard)}
               </>
             )}

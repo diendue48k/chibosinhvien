@@ -133,8 +133,8 @@ export default function DangKyChuyenSinhHoat() {
         loai_chuyen: values.loai_chuyen || '',
         noi_chuyen_den: combinedNoiChuyenDen,
         ly_do: values.ly_do || '',
-        uu_diem: values.uu_diem || '',
-        khuyet_diem: values.khuyet_diem || '',
+        uu_diem: values.uu_diem || "- Có phẩm chất chính trị tốt...\n- Có lối sống đạo đức trong sáng...",
+        khuyet_diem: values.khuyet_diem || "- Không có khuyết điểm gì lớn",
         trang_thai: 'cho_duyet',
         updated_at: new Date().toISOString()
       };
@@ -384,16 +384,7 @@ export default function DangKyChuyenSinhHoat() {
               <Form.Item name="ly_do" label={<span style={{ fontWeight: 600 }}>Lý do chuyển</span>} rules={[{ required: true, message: 'Vui lòng nhập lý do!' }]}>
                 <Input.TextArea rows={3} placeholder="VD: Đã hoàn thành chương trình học..." />
               </Form.Item>
-              <Form.Item 
-                name="uu_diem" 
-                label={<span style={{ fontWeight: 600 }}>Ưu điểm</span>}
-                initialValue="- Có phẩm chất chính trị tốt...\n- Có lối sống đạo đức trong sáng..."
-              >
-                <Input.TextArea rows={6} />
-              </Form.Item>
-              <Form.Item name="khuyet_diem" label={<span style={{ fontWeight: 600 }}>Khuyết điểm</span>} initialValue="- Không có khuyết điểm gì lớn">
-                <Input.TextArea rows={2} />
-              </Form.Item>
+
               <Form.Item style={{ marginTop: 24, marginBottom: 0, textAlign: 'right' }}>
                 <Button type="primary" htmlType="submit" size="large" loading={submitting} 
                   style={{ padding: '0 40px', borderRadius: 8, height: 44, fontWeight: 600, background: 'linear-gradient(90deg, #c62828 0%, #b71c1c 100%)', border: 'none' }}

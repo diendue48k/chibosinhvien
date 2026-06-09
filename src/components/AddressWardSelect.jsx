@@ -6,7 +6,7 @@ import addressDataCu from '../data/addressDataCu.json';
 
 const { Option } = Select;
 
-const AddressWardSelect = ({ value, onChange, province, district, isOld = false }) => {
+const AddressWardSelect = ({ value, onChange, province, district, isOld = false, disabled }) => {
   const [isManual, setIsManual] = useState(false);
 
   const options = React.useMemo(() => {
@@ -58,8 +58,9 @@ const AddressWardSelect = ({ value, onChange, province, district, isOld = false 
           onChange={(e) => onChange?.(e.target.value)} 
           placeholder="Nhập Xã/Phường" 
           size="large"
+          disabled={disabled}
         />
-        <Button size="large" onClick={() => { setIsManual(false); onChange?.(undefined); }} icon={<CloseOutlined />} />
+        <Button size="large" onClick={() => { setIsManual(false); onChange?.(undefined); }} icon={<CloseOutlined />} disabled={disabled} />
       </Space.Compact>
     );
   }
@@ -72,7 +73,7 @@ const AddressWardSelect = ({ value, onChange, province, district, isOld = false 
       onChange={handleSelectChange} 
       placeholder={province ? "Chọn Xã/Phường" : "Chọn Tỉnh/TP trước"} 
       size="large"
-      disabled={!province}
+      disabled={disabled || !province}
       filterOption={(input, option) => 
         option.children?.toString().toLowerCase().includes(input.toLowerCase())
       }

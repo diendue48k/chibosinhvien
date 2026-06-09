@@ -5,7 +5,7 @@ import addressDataCu from '../data/addressDataCu.json';
 
 const { Option } = Select;
 
-const AddressProvinceSelect = ({ value, onChange, placeholder, size, isOld = false }) => {
+const AddressProvinceSelect = ({ value, onChange, placeholder, size, isOld = false, disabled }) => {
   const addressData = isOld ? addressDataCu : addressDataMoi;
   const options = Object.keys(addressData);
 
@@ -17,6 +17,7 @@ const AddressProvinceSelect = ({ value, onChange, placeholder, size, isOld = fal
       onChange={onChange} 
       placeholder={placeholder || "Chọn Tỉnh/TP"} 
       size={size}
+      disabled={disabled}
       filterOption={(input, option) => 
         option.children?.toString().toLowerCase().includes(input.toLowerCase())
       }

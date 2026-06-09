@@ -122,6 +122,13 @@ const prepareTemplateData = (data, docType) => {
       ? Math.round((data.tham_gia_lop / data.tong_so_sv_lop) * 100)
       : 100,
 
+    // Chi bộ voting results (Mẫu 13)
+    tan_thanh_chi_bo: data.tan_thanh_chi_bo !== undefined && data.tan_thanh_chi_bo !== null && data.tan_thanh_chi_bo !== '' ? Number(data.tan_thanh_chi_bo) : (data.tong_so_dv_chinh_thuc ? Number(data.tong_so_dv_chinh_thuc) : 0),
+    khong_tan_thanh_chi_bo: data.khong_tan_thanh_chi_bo !== undefined && data.khong_tan_thanh_chi_bo !== null && data.khong_tan_thanh_chi_bo !== '' ? Number(data.khong_tan_thanh_chi_bo) : 0,
+    ti_le_chi_bo: data.tong_so_dv_chinh_thuc && data.tan_thanh_chi_bo !== undefined && data.tan_thanh_chi_bo !== null && data.tan_thanh_chi_bo !== ''
+      ? Math.round((Number(data.tan_thanh_chi_bo) / Number(data.tong_so_dv_chinh_thuc)) * 100)
+      : 100,
+
     // Đoàn Trường vote rate (always 100% by default)
     ti_le_doan_truong: 100,
     khong_tan_thanh_doan_truong: data.khong_tan_thanh_doan_truong || 0,
@@ -413,7 +420,11 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         { find: '144', replace: String(data.tong_so_dv_du_bi || '') },
         { find: 'Bùi Trung Hiệp', replace: data.chu_tri_chi_bo || '....................' },
         { find: 'Bí thư Chi bộ', replace: data.chuc_vu_chu_tri_chi_bo || '....................' },
-        { find: 'Lê Vĩnh Diện', replace: data.thu_ky_chi_bo || '....................' }
+        { find: 'Lê Vĩnh Diện', replace: data.thu_ky_chi_bo || '....................' },
+        { find: '234 đ/c (đạt 100%)', replace: `${data.tan_thanh_chi_bo} đ/c (đạt ${data.ti_le_chi_bo}%)` },
+        { find: '234 đ/c (đạt 100% )', replace: `${data.tan_thanh_chi_bo} đ/c (đạt ${data.ti_le_chi_bo}%)` },
+        { find: 'Số không tán thành: 0 đ/c', replace: `Số không tán thành: ${data.khong_tan_thanh_chi_bo} đ/c` },
+        { find: 'Số không tán thành: 0đ/c', replace: `Số không tán thành: ${data.khong_tan_thanh_chi_bo} đ/c` }
       );
     } else if (docType === 'tong_hop_nhan_xet_mau12') {
       mappings.push(
