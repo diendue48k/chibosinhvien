@@ -469,12 +469,12 @@ const DocumentGenerator = () => {
         chu_tri_chi_bo: selectedMember.chu_tri_chi_bo || '',
         chuc_vu_chu_tri_chi_bo: selectedMember.chuc_vu_chu_tri_chi_bo || '',
         thu_ky_chi_bo: selectedMember.thu_ky_chi_bo || '',
-        tong_so_dv: selectedMember.tong_so_dv || null,
-        tong_so_dv_chinh_thuc: selectedMember.tong_so_dv_chinh_thuc || null,
-        tong_so_dv_du_bi: selectedMember.tong_so_dv_du_bi || null,
+        tong_so_dv: selectedMember.tong_so_dv || activeStats?.total || null,
+        tong_so_dv_chinh_thuc: selectedMember.tong_so_dv_chinh_thuc || activeStats?.official || null,
+        tong_so_dv_du_bi: selectedMember.tong_so_dv_du_bi || activeStats?.probationary || null,
       });
     }
-  }, [selectedMember, form]);
+  }, [selectedMember, form, activeStats]);
 
 
   const getFieldsToValidate = (docType) => {
@@ -765,7 +765,7 @@ const DocumentGenerator = () => {
       background: '#fff',
       color: '#000',
       fontFamily: '"Times New Roman", Times, serif',
-      fontSize: '13pt',
+      fontSize: '14pt',
       lineHeight: '1.45',
       boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
       margin: '0 auto',
