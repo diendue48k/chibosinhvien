@@ -116,24 +116,18 @@ const prepareTemplateData = (data, docType) => {
     khong_tan_thanh_bb_lop: 0,
     ly_do_khong_tan_thanh_bb_lop: '',
     
-    ti_le_bb_chi_doan: data.tong_so_dv_chi_doan && data.tham_gia_chi_doan
-      ? Math.round((data.tham_gia_chi_doan / data.tong_so_dv_chi_doan) * 100)
-      : 100,
+    ti_le_bb_chi_doan: 100,
       
-    ti_le_bb_lop: data.tong_so_sv_lop && data.tham_gia_lop
-      ? Math.round((data.tham_gia_lop / data.tong_so_sv_lop) * 100)
-      : 100,
+    ti_le_bb_lop: 100,
 
     // Chi bộ voting results (Mẫu 13)
-    tan_thanh_chi_bo: data.tan_thanh_chi_bo !== undefined && data.tan_thanh_chi_bo !== null && data.tan_thanh_chi_bo !== '' ? Number(data.tan_thanh_chi_bo) : (data.tong_so_dv_chinh_thuc ? Number(data.tong_so_dv_chinh_thuc) : 0),
-    khong_tan_thanh_chi_bo: data.khong_tan_thanh_chi_bo !== undefined && data.khong_tan_thanh_chi_bo !== null && data.khong_tan_thanh_chi_bo !== '' ? Number(data.khong_tan_thanh_chi_bo) : 0,
-    ti_le_chi_bo: data.tong_so_dv_chinh_thuc && data.tan_thanh_chi_bo !== undefined && data.tan_thanh_chi_bo !== null && data.tan_thanh_chi_bo !== ''
-      ? Math.round((Number(data.tan_thanh_chi_bo) / Number(data.tong_so_dv_chinh_thuc)) * 100)
-      : 100,
+    tan_thanh_chi_bo: data.tong_so_dv_chinh_thuc ? Number(data.tong_so_dv_chinh_thuc) : 0,
+    khong_tan_thanh_chi_bo: 0,
+    ti_le_chi_bo: 100,
 
     // Đoàn Trường vote rate (always 100% by default)
     ti_le_doan_truong: 100,
-    khong_tan_thanh_doan_truong: data.khong_tan_thanh_doan_truong || 0,
+    khong_tan_thanh_doan_truong: 0,
 
     // Transfer fields
     ngay_sinh_formatted: safeParse(data.ngay_sinh) ? safeParse(data.ngay_sinh).format('DD/MM/YYYY') : '....................',
@@ -682,6 +676,59 @@ function replaceTextInParagraph(pNode, searchText, replaceText) {
       
       node.textContent = prefix + replaceText + suffix;
       node.setAttribute('xml:space', 'preserve');
+      
+      // Preserve formatting by merging rPr (run properties) from cleared nodes
+      const doc = node.ownerDocument;
+      const firstRun = node.parentNode;
+      if (doc && firstRun) {
+        const runs = [firstRun];
+        for (const clearNode of nodesToClear) {
+          if (clearNode.parentNode && !runs.includes(clearNode.parentNode)) {
+            runs.push(clearNode.parentNode);
+          }
+        }
+        
+        let bestRPr = null;
+        for (const r of runs) {
+          const rPrs = r.getElementsByTagName('w:rPr');
+          if (rPrs.length > 0) {
+            const rPr = rPrs[0];
+            const hasSz = rPr.getElementsByTagName('w:sz').length > 0;
+            const hasFonts = rPr.getElementsByTagName('w:rFonts').length > 0;
+            if (hasSz || hasFonts) {
+              bestRPr = rPr;
+              break;
+            }
+            if (!bestRPr && rPr.childNodes.length > 0) {
+              bestRPr = rPr;
+            }
+          }
+        }
+        
+        if (bestRPr) {
+          let firstRPrs = firstRun.getElementsByTagName('w:rPr');
+          let firstRPr;
+          if (firstRPrs.length === 0) {
+            firstRPr = doc.createElement('w:rPr');
+            firstRun.insertBefore(firstRPr, firstRun.firstChild);
+          } else {
+            firstRPr = firstRPrs[0];
+          }
+          
+          if (bestRPr !== firstRPr) {
+            const children = Array.from(bestRPr.childNodes);
+            for (const child of children) {
+              if (child.nodeType === 1) {
+                const tagName = child.nodeName;
+                const existing = firstRPr.getElementsByTagName(tagName);
+                if (existing.length === 0) {
+                  firstRPr.appendChild(child.cloneNode(true));
+                }
+              }
+            }
+          }
+        }
+      }
       
       for (const clearNode of nodesToClear) {
         clearNode.textContent = '';
