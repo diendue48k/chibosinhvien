@@ -1717,6 +1717,8 @@ const DocumentGenerator = () => {
                       const ts = changedValues.tong_so_uy_vien_lcd;
                       updates.tham_gia_lcd = ts;
                       updates.vang_lcd = 0;
+                    } else if ('tan_thanh_doan_truong' in changedValues) {
+                      updates.khong_tan_thanh_doan_truong = 0;
                     }
                     if (Object.keys(updates).length > 0) {
                       form.setFieldsValue(updates);
@@ -2026,14 +2028,9 @@ const DocumentGenerator = () => {
                     </Row>
 
                     <Row gutter={16}>
-                      <Col span={6}>
-                        <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">Đoàn Trường: Tán thành</span>}>
-                          <InputNumber style={{width:'100%'}} placeholder="15" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={6}>
-                        <Form.Item name="khong_tan_thanh_doan_truong" label={<span className="premium-form-label">Đoàn Trường: K.Tán thành</span>}>
-                          <InputNumber style={{width:'100%'}} placeholder="0" />
+                      <Col span={8}>
+                        <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">Tổng số UV BCH Đoàn trường</span>}>
+                          <InputNumber style={{width:'100%'}} placeholder="28" />
                         </Form.Item>
                       </Col>
                     </Row>
