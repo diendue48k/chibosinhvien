@@ -162,9 +162,9 @@ const ImportExcel = ({ open, onCancel, onSuccess }) => {
       "CCCD": "012345678912",
       "Dân tộc": "Kinh",
       "Tôn giáo": "Không",
-      "Lớp": "K20 MT",
+      "Lớp": "48K01.1",
       "Khoa": "CNTT",
-      "Nhóm sinh hoạt": "Nhóm 1",
+      "Nhóm sinh hoạt": "Phát triển Đảng",
       "SĐT": "0987654321",
       "Email cá nhân": "nva@gmail.com",
       "Email sinh viên": "20110001@student.edu.vn",
@@ -172,7 +172,13 @@ const ImportExcel = ({ open, onCancel, onSuccess }) => {
       "Địa chỉ tạm trú": "Ký túc xá khu A",
       "Chi tiết địa chỉ thường trú": "Phòng 101",
       "Xã/phường thường trú": "Linh Trung",
+      "Quận/huyện thường trú": "Thành phố Thủ Đức",
       "Tỉnh/TP thường trú": "Thành phố Hồ Chí Minh",
+      "Chi tiết thường trú cũ": "Số 12 đường B",
+      "Xã/phường thường trú cũ": "Phường C",
+      "Quận/huyện thường trú cũ": "Quận D",
+      "Tỉnh/TP thường trú cũ": "Tỉnh E",
+      "Quê quán (chi tiết)": "Xã A, Huyện B, Tỉnh C",
       "Xã/phường quê quán": "Xã A",
       "Tỉnh/TP quê quán": "Tỉnh B",
       "Họ tên người thân": "Nguyễn Văn B",
@@ -223,17 +229,6 @@ const ImportExcel = ({ open, onCancel, onSuccess }) => {
         };
 
         const parsedData = jsonData.map((row, index) => {
-          const xa_phuong_tt = row["Xã/phường thường trú"] || row["Xã/phường (tạm trú)"] || "";
-          const tinh_tp_tt = row["Tỉnh/TP thường trú"] || row["Tỉnh/TP (tạm trú)"] || "";
-          let chi_tiet_dc = row["Chi tiết địa chỉ thường trú"] || row["Chi tiết địa chỉ"] || "";
-
-          if (!chi_tiet_dc) {
-            const parts = [];
-            if (xa_phuong_tt) parts.push(xa_phuong_tt);
-            if (tinh_tp_tt) parts.push(tinh_tp_tt);
-            chi_tiet_dc = parts.join(", ");
-          }
-
           const statusStr = row["Trạng thái sinh hoạt"] || "";
           const trang_thai = statusStr === "Đã chuyển ra" ? "da_chuyen" :
             statusStr === "Chờ kết nạp" ? "cho_ket_nap" :
@@ -256,11 +251,28 @@ const ImportExcel = ({ open, onCancel, onSuccess }) => {
             email_sv: row["Email sinh viên"] || "",
             facebook: row["Facebook"] || "",
             dia_chi_tam_tru: row["Địa chỉ tạm trú"] || "",
-            chi_tiet_dc: chi_tiet_dc,
-            xa_phuong_tt: xa_phuong_tt,
-            tinh_tp_tt: tinh_tp_tt,
-            xa_phuong_qq: row["Xã/phường (quê quán)"] || row["Xã/phường quê quán"] || "",
-            tinh_tp_qq: row["Tỉnh/TP (quê quán)"] || row["Tỉnh/TP quê quán"] || "",
+            
+            // New Address
+            chi_tiet_dc: row["Chi tiết địa chỉ thường trú"] || row["Chi tiết địa chỉ"] || "",
+            xa_phuong_tt: row["Xã/phường thường trú"] || "",
+            quan_huyen_tt: row["Quận/huyện thường trú"] || "",
+            tinh_tp_tt: row["Tỉnh/TP thường trú"] || "",
+            
+            // Old Address
+            chi_tiet_tt_cu: row["Chi tiết thường trú cũ"] || "",
+            xa_phuong_tt_cu: row["Xã/phường thường trú cũ"] || "",
+            quan_huyen_tt_cu: row["Quận/huyện thường trú cũ"] || "",
+            tinh_tp_tt_cu: row["Tỉnh/TP thường trú cũ"] || "",
+            
+            // Quê quán
+            que_quan: row["Quê quán (chi tiết)"] || row["Quê quán chi tiết"] || row["Quê quán"] || "",
+            xa_phuong_qq: row["Xã/phường quê quán"] || "",
+            quan_huyen_qq: row["Quận/huyện quê quán"] || "",
+            tinh_tp_qq: row["Tỉnh/TP quê quán"] || "",
+            xa_phuong_qq_cu: row["Xã/phường quê quán cũ"] || "",
+            quan_huyen_qq_cu: row["Quận/huyện quê quán cũ"] || "",
+            tinh_tp_qq_cu: row["Tỉnh/TP quê quán cũ"] || "",
+            
             ho_ten_nguoi_than: row["Họ tên người thân"] || "",
             sdt_nguoi_than: row["SĐT người thân"]?.toString() || "",
             ngay_vao_dang: parseDate(row["Ngày vào Đảng"]),
@@ -270,7 +282,7 @@ const ImportExcel = ({ open, onCancel, onSuccess }) => {
             ngay_chuyen_vao: parseDate(row["Ngày chuyển vào"]),
             dang_vien_du_bi: (row["Loại Đảng viên (Dự bị / Chính thức)"] || row["Trạng thái (Dự bị / Chính thức)"]) === "Dự bị",
             trang_thai: trang_thai,
-            dvhd: row["Đảng viên hướng dẫn"] || row["Đơn vị hướng dẫn"] || "",
+            dvhd: row["Đảng viên hướng dẫn"] || "",
             anh_ca_nhan: row["Link ảnh cá nhân"] || ""
           };
         });
@@ -745,35 +757,84 @@ const ImportExcel = ({ open, onCancel, onSuccess }) => {
                 </Col>
               </Row>
               <Row gutter={12}>
-                <Col span={12}>
+                <Col span={8}>
                   <Form.Item name="dia_chi_tam_tru" label="Địa chỉ tạm trú">
                     <Input />
                   </Form.Item>
                 </Col>
-                <Col span={12}>
-                  <Form.Item name="chi_tiet_dc" label="Địa chỉ thường trú">
+                <Col span={8}>
+                  <Form.Item name="chi_tiet_dc" label="Địa chỉ thường trú mới">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="chi_tiet_tt_cu" label="Địa chỉ thường trú cũ">
                     <Input />
                   </Form.Item>
                 </Col>
               </Row>
               <Row gutter={12}>
                 <Col span={6}>
-                  <Form.Item name="xa_phuong_tt" label="Xã/phường TT">
+                  <Form.Item name="xa_phuong_tt" label="Xã/phường thường trú mới">
                     <Input />
                   </Form.Item>
                 </Col>
                 <Col span={6}>
-                  <Form.Item name="tinh_tp_tt" label="Tỉnh/TP TT">
+                  <Form.Item name="quan_huyen_tt" label="Quận/huyện thường trú mới">
                     <Input />
                   </Form.Item>
                 </Col>
                 <Col span={6}>
-                  <Form.Item name="xa_phuong_qq" label="Xã/phường QQ">
+                  <Form.Item name="tinh_tp_tt" label="Tỉnh/TP thường trú mới">
                     <Input />
                   </Form.Item>
                 </Col>
                 <Col span={6}>
-                  <Form.Item name="tinh_tp_qq" label="Tỉnh/TP QQ">
+                  <Form.Item name="xa_phuong_tt_cu" label="Xã/phường thường trú cũ">
+                    <Input />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={12}>
+                <Col span={6}>
+                  <Form.Item name="quan_huyen_tt_cu" label="Quận/huyện thường trú cũ">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item name="xa_phuong_qq" label="Xã/phường quê quán">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item name="quan_huyen_qq" label="Quận/huyện quê quán">
+                    <Input />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={12}>
+                <Col span={6}>
+                  <Form.Item name="tinh_tp_qq" label="Tỉnh/TP quê quán">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item name="xa_phuong_qq_cu" label="Xã/phường quê quán cũ">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item name="quan_huyen_qq_cu" label="Quận/huyện quê quán cũ">
+                    <Input />
+                  </Form.Item>
+                </Col>
+                <Col span={6}>
+                  <Form.Item name="tinh_tp_qq_cu" label="Tỉnh/TP quê quán cũ">
                     <Input />
                   </Form.Item>
                 </Col>

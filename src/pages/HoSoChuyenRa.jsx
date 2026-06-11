@@ -1540,29 +1540,33 @@ const HoSoChuyenRa = ({ forceTab }) => {
       render: (_, __, index) => index + 1
     },
     { 
-      title: 'MSSV', 
-      dataIndex: 'mssv', 
-      key: 'mssv',
-      width: 90,
-      sorter: (a, b) => (a.mssv || '').localeCompare(b.mssv || ''),
-      render: (text) => <Text style={{ fontFamily: 'monospace', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{text}</Text>
-    },
-    { 
-      title: 'Họ tên', 
-      dataIndex: 'ho_ten', 
-      key: 'ho_ten',
-      width: 140,
+      title: 'Họ tên / MSSV', 
+      key: 'ho_ten_mssv',
+      width: 160,
       sorter: (a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || ''),
-      render: (text, record) => (
-        <span 
-          style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 600, transition: 'color 0.15s', whiteSpace: 'nowrap' }} 
-          onClick={(e) => {
-            e.stopPropagation();
-            handleOpenEditProcessModal(record);
-          }}
-          className="hover-underline"
-        >
-          {text}
+      render: (_, record) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span 
+            style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 600, transition: 'color 0.15s', whiteSpace: 'nowrap' }} 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleOpenEditProcessModal(record);
+            }}
+            className="hover-underline"
+          >
+            {record.ho_ten}
+          </span>
+          <span style={{ fontSize: '11px', color: '#64748b' }}>{record.mssv}</span>
+        </div>
+      )
+    },
+    {
+      title: 'SĐT',
+      key: 'so_dien_thoai',
+      width: 100,
+      render: (_, record) => (
+        <span style={{ fontSize: '12px', color: '#475569', whiteSpace: 'nowrap' }}>
+          {record.so_dien_thoai || record.sdt || '--'}
         </span>
       )
     },
@@ -1578,7 +1582,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
       )
     },
     { 
-      title: 'Loại', 
+      title: 'Loại chuyển', 
       dataIndex: 'loai_chuyen', 
       key: 'loai_chuyen',
       width: 90,
@@ -2658,7 +2662,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
               </Col>
               <Col xs={24} sm={8}>
                 <Text type="secondary">MSSV: </Text>
-                <Text strong style={{ display: 'block', fontFamily: 'monospace' }}>{editingProcessRecord.mssv || 'N/A'}</Text>
+                <Text strong style={{ display: 'block' }}>{editingProcessRecord.mssv || 'N/A'}</Text>
               </Col>
               <Col xs={24} sm={8}>
                 <Text type="secondary">Giới tính: </Text>
@@ -2945,7 +2949,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
                 </Col>
                 <Col xs={24} sm={8}>
                   <Text type="secondary">MSSV: </Text>
-                  <Text strong style={{ display: 'block', fontFamily: 'monospace' }}>{selectedMemberForAdd.mssv || 'N/A'}</Text>
+                  <Text strong style={{ display: 'block' }}>{selectedMemberForAdd.mssv || 'N/A'}</Text>
                 </Col>
                 <Col xs={24} sm={8}>
                   <Text type="secondary">Giới tính: </Text>

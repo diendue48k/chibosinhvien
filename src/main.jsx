@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           colorSuccess: '#389e0d',
           colorWarning: '#fbc02d',
           colorError: '#cf1322',
-          fontFamily: 'Inter, system-ui, Avenir, Helvetica, Arial, sans-serif',
+          fontFamily: "'SVN-Gilroy', 'svn-gilroy', 'SVN - Gilroy', 'Gilroy', 'SVN Gilroy', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
         },
         components: {
           Layout: {

@@ -301,7 +301,7 @@ const XinVang = () => {
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 700, color: '#c62828' }}>{record.ho_ten}</div>
-          <div style={{ fontSize: '11px', color: '#64748b', fontFamily: 'monospace' }}>MSSV: {record.mssv}</div>
+          <div style={{ fontSize: '11px', color: '#64748b' }}>MSSV: {record.mssv}</div>
           <div style={{ fontSize: '11px', color: '#64748b' }}>CCCD: {record.cccd || '--'}</div>
         </div>
       )
@@ -492,7 +492,7 @@ const XinVang = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: '13px', color: '#475569' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#8c8c8c' }}><IdcardOutlined style={{ marginRight: 6 }} /> MSSV:</span>
-                    <strong style={{ color: '#1e293b', fontFamily: 'monospace' }}>{memberData.mssv}</strong>
+                    <strong style={{ color: '#1e293b' }}>{memberData.mssv}</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: '#8c8c8c' }}><IdcardOutlined style={{ marginRight: 6 }} /> Số CCCD:</span>

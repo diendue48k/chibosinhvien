@@ -18,7 +18,7 @@ import {
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { ROLES } from '../services/permissionService';
+import { ROLES, permissionService } from '../services/permissionService';
 import dayjs from 'dayjs';
 import { API_BASE_URL } from '../config';
 
@@ -219,8 +219,12 @@ const Voting = () => {
   const { currentUser } = useAuth();
 
   // Role flags
-  const canManage = [ROLES.BITHU, ROLES.ADMIN].includes(currentUser?.role);
-  const canMonitor = canManage || [ROLES.CAPUY, ROLES.PHOBIHU, ROLES.KIEMTRA].includes(currentUser?.role);
+  const canManage = useMemo(() => {
+    return currentUser ? permissionService.hasActionAccess(currentUser.role, 'voting', 'manage') : false;
+  }, [currentUser]);
+  const canMonitor = useMemo(() => {
+    return canManage || (currentUser ? [ROLES.CAPUY, ROLES.PHOBIHU, ROLES.KIEMTRA].includes(currentUser.role) : false);
+  }, [currentUser, canManage]);
   
   // Data states
   const [officialMembers, setOfficialMembers] = useState([]);

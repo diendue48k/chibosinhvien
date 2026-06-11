@@ -80,7 +80,9 @@ const prepareTemplateData = (data, docType) => {
     // Signature Date - strictly dots for all parts if empty
     ngay_ky_d: safeParse(data.ngay_ky) ? safeParse(data.ngay_ky).format('DD') : '',
     ngay_ky_m: safeParse(data.ngay_ky) ? safeParse(data.ngay_ky).format('MM') : '',
-    ngay_ky_y: safeParse(data.ngay_ky) ? safeParse(data.ngay_ky).format('YYYY') : '',
+    ngay_ky_y: docType === 'nhan_xet_dang_vien_giup_do_mau11' && getY(data.ngay_vao_dang, false)
+      ? String(Number(getY(data.ngay_vao_dang, false)) + 1)
+      : (safeParse(data.ngay_ky) ? safeParse(data.ngay_ky).format('YYYY') : ''),
     
     // Meeting Dates - day and month ALWAYS dots, year falls back to current year if empty
     ngay_hop_lop_d: '',
@@ -148,6 +150,26 @@ const prepareTemplateData = (data, docType) => {
     dvhd_ngay_vao_dang: safeParse(data.dvhd_ngay_vao_dang) ? safeParse(data.dvhd_ngay_vao_dang).format('DD/MM/YYYY') : '....................',
     dvhd_ngay_chinh_thuc: safeParse(data.dvhd_ngay_chinh_thuc) ? safeParse(data.dvhd_ngay_chinh_thuc).format('DD/MM/YYYY') : '....................',
     ngay_phan_cong: formatVietnameseDate(data.ngay_phan_cong),
+
+    // Chi bộ templates specific mapping additions
+    dang_uy_truong_caps: (data.dang_uy_truong || 'Trường Đại học Kinh tế').toUpperCase(),
+    chi_bo_sinh_hoat_caps: (data.chi_bo_sinh_hoat || 'Sinh viên').toUpperCase(),
+    khong_tan_thanh_ctxh: 0,
+    
+    ngay_phan_cong_d: getD(data.ngay_phan_cong),
+    ngay_phan_cong_m: getM(data.ngay_phan_cong),
+    ngay_phan_cong_y: getY(data.ngay_phan_cong, false),
+    
+    ngay_hop_chi_bo_d: getD(data.ngay_hop_chi_bo || data.ngay_hop),
+    ngay_hop_chi_bo_m: getM(data.ngay_hop_chi_bo || data.ngay_hop),
+    ngay_hop_chi_bo_y: getY(data.ngay_hop_chi_bo || data.ngay_hop, true),
+    
+    vang_chi_bo: data.vang_chi_bo !== undefined && data.vang_chi_bo !== null && data.vang_chi_bo !== '' ? Number(data.vang_chi_bo) : 0,
+    vang_chinh_thuc_chi_bo: data.vang_chinh_thuc_chi_bo !== undefined && data.vang_chinh_thuc_chi_bo !== null && data.vang_chinh_thuc_chi_bo !== '' ? Number(data.vang_chinh_thuc_chi_bo) : 0,
+    vang_du_bi_chi_bo: data.vang_du_bi_chi_bo !== undefined && data.vang_du_bi_chi_bo !== null && data.vang_du_bi_chi_bo !== '' ? Number(data.vang_du_bi_chi_bo) : 0,
+    ti_le_khong_tan_thanh_chi_bo: data.tong_so_dv_chinh_thuc && data.khong_tan_thanh_chi_bo !== undefined && data.khong_tan_thanh_chi_bo !== null && data.khong_tan_thanh_chi_bo !== ''
+      ? Math.round((Number(data.khong_tan_thanh_chi_bo) / Number(data.tong_so_dv_chinh_thuc)) * 100)
+      : 0,
   };
 
   // Add user-friendly Vietnamese keys for custom template editors
@@ -438,6 +460,8 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         { find: '3', replace: String(data.tong_so_chi_uy_noi_cu_tru || '') }
       );
     } else if (docType === 'nhan_xet_dang_vien_giup_do_mau11') {
+      const ngayVaoDangY = data.ngay_vao_dang_y;
+      const namKyMau11 = ngayVaoDangY ? String(Number(ngayVaoDangY) + 1) : '2026';
       mappings.push(
         { find: 'Lê Vĩnh Diện', replace: data.dvhd || '....................' },
         { find: '01/04/2004', replace: data.dvhd_ngay_sinh_formatted || '....................' },
@@ -448,8 +472,8 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         { find: '26/07/2022', replace: data.dvhd_ngay_vao_dang || '....................' },
         { find: 'ngày 30 tháng 5 năm 2025', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
         { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten || '....................' },
-        { find: 'năm 2026', replace: `năm ${data.nam_vao_chi_bo_dvhd || data.ngay_vao_dang_y || '2026'}` },
-        { find: '2026', replace: data.nam_vao_chi_bo_dvhd || data.ngay_vao_dang_y || '2026' }
+        { find: 'năm 2026', replace: `năm ${namKyMau11}` },
+        { find: '2026', replace: namKyMau11 }
       );
     } else {
       // Standard mappings for Mẫu 1, 2, 3, 4
@@ -553,7 +577,7 @@ const replaceTagsInDocx = async (defaultPath, rawData, docType) => {
   
   // 1. Xác định URL/path sẽ dùng — ưu tiên custom template từ Firebase nếu có
   let fetchUrl = defaultPath;
-  if (docType) {
+  if (docType && docType !== 'tong_hop_nhan_xet_mau12') {
     try {
       const customUrl = await getTemplateUrl(docType);
       if (customUrl) fetchUrl = customUrl;

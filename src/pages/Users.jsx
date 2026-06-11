@@ -949,6 +949,7 @@ const Users = () => {
       description: 'Tổ chức các phiên biểu quyết, bỏ phiếu tín nhiệm trong Chi bộ.',
       actions: [
         { key: 'view', label: 'Xem & Bỏ phiếu' },
+        { key: 'create', label: 'Tạo phiên biểu quyết' },
         { key: 'manage', label: 'Quản lý phiên biểu quyết' }
       ]
     },

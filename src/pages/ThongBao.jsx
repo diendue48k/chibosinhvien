@@ -53,6 +53,7 @@ const ThongBao = () => {
   const [isSendEmailModalVisible, setIsSendEmailModalVisible] = useState(false);
   const [sendEmailTarget, setSendEmailTarget] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendEmailType, setSendEmailType] = useState('both');
 
   // Data states
   const [loading, setLoading] = useState(true);
@@ -82,6 +83,7 @@ const ThongBao = () => {
   const watchedImageUrl = Form.useWatch('image_url', form);
   const watchedSenderEmail = Form.useWatch('sender_email', form);
   const watchedSenderPhone = Form.useWatch('sender_phone', form);
+  const watchedSendEmail = Form.useWatch('send_email', form);
 
   // ── Email HTML Generator ──────────────────────────────────────────────────
   const generateEmailHtml = (title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone, attachments = []) => {
@@ -517,8 +519,26 @@ const ThongBao = () => {
   };
 
   // ── Send Email helper ─────────────────────────────────────────────────────
-  const doSendEmail = async (title, content, imageUrl, createdBy, deadline, recipientList, senderEmail, senderPhone, attachments = []) => {
-    const emails = recipientList.map(r => r.email || r.email_sv).filter(e => e?.trim() && e.includes('@'));
+  const doSendEmail = async (title, content, imageUrl, createdBy, deadline, recipientList, senderEmail, senderPhone, attachments = [], emailType = 'both') => {
+    const emails = [];
+    recipientList.forEach(r => {
+      const personal = (r.email || r.email_sv || '').trim(); // Fallback if r.email is actually email_sv
+      const school = (r.email_sv || '').trim();
+      
+      if (emailType === 'personal') {
+        const val = r.email ? r.email.trim() : personal;
+        if (val && val.includes('@')) emails.push(val);
+      } else if (emailType === 'school') {
+        if (school && school.includes('@')) emails.push(school);
+      } else { // both
+        const pVal = r.email ? r.email.trim() : '';
+        const sVal = school;
+        if (pVal && pVal.includes('@')) emails.push(pVal);
+        if (sVal && sVal.includes('@') && sVal !== pVal) emails.push(sVal);
+        if (!pVal && !sVal && personal && personal.includes('@')) emails.push(personal);
+      }
+    });
+
     if (emails.length === 0) {
       message.warning('Không có Đảng viên nào có địa chỉ email hợp lệ!');
       return { sent: 0, failed: 0 };
@@ -535,7 +555,7 @@ const ThongBao = () => {
         const err = await response.json().catch(() => ({}));
         throw new Error(err.error || `HTTP ${response.status}`);
       }
-      if (noEmailCount > 0) message.warning(`⚠ ${noEmailCount} Đảng viên không có email hợp lệ, đã bỏ qua.`, 5);
+      if (noEmailCount > 0 && noEmailCount !== recipientList.length) message.warning(`⚠ Gửi thành công nhưng có một số Đảng viên không có email hợp lệ, đã bỏ qua.`, 5);
       return { sent: emails.length, failed: 0 };
     } catch (err) {
       if (err.message.includes('fetch') || err.message.includes('Failed') || err.message.includes('NetworkError')) {
@@ -551,7 +571,7 @@ const ThongBao = () => {
       await form.validateFields(['title', 'content', 'created_by', 'recipient_type']);
       const values = form.getFieldsValue();
       setSubmitting(true);
-      const { title, content, deadline, image_url, created_by, recipient_type, send_email, sender_email, sender_phone } = values;
+      const { title, content, deadline, image_url, created_by, recipient_type, send_email, email_type, sender_email, sender_phone } = values;
 
       const resolvedRecipients = resolveRecipients(values);
       if (resolvedRecipients.length === 0) {
@@ -562,7 +582,7 @@ const ThongBao = () => {
       if (send_email) {
         emailEnabled = true;
         try {
-          const r = await doSendEmail(title, content, image_url, created_by, deadline, resolvedRecipients, sender_email, sender_phone, uploadedFiles);
+          const r = await doSendEmail(title, content, image_url, created_by, deadline, resolvedRecipients, sender_email, sender_phone, uploadedFiles, email_type || 'both');
           emailSentCount = r.sent; emailFailCount = r.failed;
         } catch (err) {
           emailFailCount = resolvedRecipients.length;
@@ -577,9 +597,10 @@ const ThongBao = () => {
         image_url: image_url || null,
         recipient_type,
         send_email: emailEnabled,
+        email_type: emailEnabled ? (email_type || 'both') : null,
         email_sent_count: emailSentCount,
         email_fail_count: emailFailCount,
-        recipients: resolvedRecipients.map(r => ({ id: r.id, mssv: r.mssv, ho_ten: r.ho_ten, email: r.email || r.email_sv || '' })),
+        recipients: resolvedRecipients.map(r => ({ id: r.id, mssv: r.mssv, ho_ten: r.ho_ten, email: r.email || '', email_sv: r.email_sv || '' })),
         sender_email: sender_email || null,
         sender_phone: sender_phone || null,
         attachments: uploadedFiles
@@ -616,7 +637,7 @@ const ThongBao = () => {
     setSendingEmail(true);
     try {
       const { title, content, image_url, created_by, deadline, recipients, sender_email, sender_phone, attachments } = sendEmailTarget;
-      const result = await doSendEmail(title, content, image_url, created_by, deadline, recipients || [], sender_email, sender_phone, attachments || []);
+      const result = await doSendEmail(title, content, image_url, created_by, deadline, recipients || [], sender_email, sender_phone, attachments || [], sendEmailType);
 
       // Update Firestore document with new email counts
       await updateDoc(doc(db, 'notifications', sendEmailTarget.id), {
@@ -1003,7 +1024,7 @@ const ThongBao = () => {
               {/* Send email switch - only for new notifications */}
               {!editingRecord && (
                 <div style={{ padding: '10px 14px', background: '#f8f8f8', borderRadius: 8, border: '1px solid #f0f0f0', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: watchedSendEmail ? 10 : 0 }}>
                     <div>
                       <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                         <MailOutlined style={{ color: '#c62828' }} /> Đồng thời gửi Email
@@ -1014,6 +1035,15 @@ const ThongBao = () => {
                       <Switch checkedChildren="Gửi Email" unCheckedChildren="Không gửi" />
                     </Form.Item>
                   </div>
+                  {watchedSendEmail && (
+                    <Form.Item name="email_type" label={<b>Chọn loại email nhận</b>} initialValue="both" style={{ marginBottom: 0, marginTop: 8 }}>
+                      <Select style={{ width: '100%' }}>
+                        <Option value="both">Gửi cả 2 email (Cá nhân & Sinh viên)</Option>
+                        <Option value="personal">Chỉ gửi Email Cá nhân (email)</Option>
+                        <Option value="school">Chỉ gửi Email Sinh viên (email_sv)</Option>
+                      </Select>
+                    </Form.Item>
+                  )}
                 </div>
               )}
 
@@ -1077,6 +1107,14 @@ const ThongBao = () => {
               <div style={{ marginBottom: 8 }}><b>Tiêu đề:</b> {sendEmailTarget.title}</div>
               <div style={{ marginBottom: 8 }}><b>Người phát hành:</b> {sendEmailTarget.created_by}</div>
               <div><b>Đối tượng:</b> {getRecipientTypeTag(sendEmailTarget.recipient_type)} ({(sendEmailTarget.recipients || []).length} Đảng viên)</div>
+            </div>
+            <div style={{ marginTop: 16, marginBottom: 12 }}>
+              <span style={{ fontWeight: 700, display: 'block', marginBottom: 6 }}>Chọn loại email nhận:</span>
+              <Select value={sendEmailType} onChange={setSendEmailType} style={{ width: '100%' }}>
+                <Option value="both">Gửi cả 2 email (Cá nhân & Sinh viên)</Option>
+                <Option value="personal">Chỉ gửi Email Cá nhân (email)</Option>
+                <Option value="school">Chỉ gửi Email Sinh viên (email_sv)</Option>
+              </Select>
             </div>
           </div>
         )}

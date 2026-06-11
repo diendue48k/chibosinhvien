@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import MainLayout from './layout/MainLayout';
@@ -46,48 +45,40 @@ function App() {
   }, []);
 
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          fontFamily: "'SVN-Gilroy', 'svn-gilroy', 'SVN - Gilroy', 'Gilroy', 'SVN Gilroy', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-        }
-      }}
-    >
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="dang-vien" element={<ProtectedRoute><DangVien /></ProtectedRoute>} />
-              <Route path="dang-vien-du-bi" element={<Navigate to="/ho-so-chinh-thuc" replace />} />
-              <Route path="chuyen-tam-thoi" element={<ProtectedRoute><ChuyenTamThoi /></ProtectedRoute>} />
-              <Route path="chuyen-sinh-hoat" element={<ProtectedRoute><ChuyenSinhHoat /></ProtectedRoute>} />
-              <Route path="ho-so-chuyen-ra" element={<ProtectedRoute><HoSoChuyenRa forceTab="1" /></ProtectedRoute>} />
-              <Route path="tao-bieu-mau-chuyen-ra" element={<ProtectedRoute><HoSoChuyenRa forceTab="2" /></ProtectedRoute>} />
-              <Route path="ho-so-ket-nap" element={<ProtectedRoute><HoSoKetNap /></ProtectedRoute>} />
-              <Route path="ho-so-da-ket-nap" element={<ProtectedRoute><HoSoDaKetNap /></ProtectedRoute>} />
-              <Route path="thong-ke-ho-so" element={<ProtectedRoute><ThongKeHoSoKetNap /></ProtectedRoute>} />
-              <Route path="ho-so-chinh-thuc" element={<ProtectedRoute><DangVienDuBi /></ProtectedRoute>} />
-              <Route path="ho-so-da-chinh-thuc" element={<ProtectedRoute><HoSoDaChinhThuc /></ProtectedRoute>} />
-              <Route path="thong-ke-chinh-thuc" element={<ProtectedRoute><ThongKeHoSoChinhThuc /></ProtectedRoute>} />
-              <Route path="thong-bao" element={<ProtectedRoute><ThongBao /></ProtectedRoute>} />
-              <Route path="users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
-              <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="weekly-plan" element={<ProtectedRoute><WeeklyPlan /></ProtectedRoute>} />
-              <Route path="attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-              <Route path="voting" element={<ProtectedRoute><Voting /></ProtectedRoute>} />
-              <Route path="dang-ky-213" element={<ProtectedRoute><DangKy213 /></ProtectedRoute>} />
-              <Route path="dang-ky-chuyen-sinh-hoat" element={<ProtectedRoute><DangKyChuyenSinhHoat /></ProtectedRoute>} />
-              <Route path="lich-hop" element={<ProtectedRoute><LichHop /></ProtectedRoute>} />
-              <Route path="xin-vang" element={<ProtectedRoute><XinVang /></ProtectedRoute>} />
-              <Route path="document-generator" element={<ProtectedRoute><DocumentGenerator /></ProtectedRoute>} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </ConfigProvider>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="dang-vien" element={<ProtectedRoute><DangVien /></ProtectedRoute>} />
+            <Route path="dang-vien-du-bi" element={<Navigate to="/ho-so-chinh-thuc" replace />} />
+            <Route path="chuyen-tam-thoi" element={<ProtectedRoute><ChuyenTamThoi /></ProtectedRoute>} />
+            <Route path="chuyen-sinh-hoat" element={<ProtectedRoute><ChuyenSinhHoat /></ProtectedRoute>} />
+            <Route path="ho-so-chuyen-ra" element={<ProtectedRoute><HoSoChuyenRa forceTab="1" /></ProtectedRoute>} />
+            <Route path="tao-bieu-mau-chuyen-ra" element={<ProtectedRoute><HoSoChuyenRa forceTab="2" /></ProtectedRoute>} />
+            <Route path="ho-so-ket-nap" element={<ProtectedRoute><HoSoKetNap /></ProtectedRoute>} />
+            <Route path="ho-so-da-ket-nap" element={<ProtectedRoute><HoSoDaKetNap /></ProtectedRoute>} />
+            <Route path="thong-ke-ho-so" element={<ProtectedRoute><ThongKeHoSoKetNap /></ProtectedRoute>} />
+            <Route path="ho-so-chinh-thuc" element={<ProtectedRoute><DangVienDuBi /></ProtectedRoute>} />
+            <Route path="ho-so-da-chinh-thuc" element={<ProtectedRoute><HoSoDaChinhThuc /></ProtectedRoute>} />
+            <Route path="thong-ke-chinh-thuc" element={<ProtectedRoute><ThongKeHoSoChinhThuc /></ProtectedRoute>} />
+            <Route path="thong-bao" element={<ProtectedRoute><ThongBao /></ProtectedRoute>} />
+            <Route path="users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+            <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="weekly-plan" element={<ProtectedRoute><WeeklyPlan /></ProtectedRoute>} />
+            <Route path="attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+            <Route path="voting" element={<ProtectedRoute><Voting /></ProtectedRoute>} />
+            <Route path="dang-ky-213" element={<ProtectedRoute><DangKy213 /></ProtectedRoute>} />
+            <Route path="dang-ky-chuyen-sinh-hoat" element={<ProtectedRoute><DangKyChuyenSinhHoat /></ProtectedRoute>} />
+            <Route path="lich-hop" element={<ProtectedRoute><LichHop /></ProtectedRoute>} />
+            <Route path="xin-vang" element={<ProtectedRoute><XinVang /></ProtectedRoute>} />
+            <Route path="document-generator" element={<ProtectedRoute><DocumentGenerator /></ProtectedRoute>} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

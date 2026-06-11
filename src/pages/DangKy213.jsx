@@ -12,7 +12,7 @@ import {
   EnvironmentOutlined, DownloadOutlined, EyeOutlined,
   InboxOutlined, FileDoneOutlined, BellOutlined,
   MailOutlined, AppstoreOutlined, UnorderedListOutlined,
-  FileExcelOutlined, PlusOutlined
+  FileExcelOutlined, PlusOutlined, CloseCircleOutlined, EditOutlined, CloseOutlined
 } from '@ant-design/icons';
 import { collection, getDocs, addDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -39,7 +39,8 @@ const TRANG_THAI_CONFIG = {
   da_nhan: { label: 'Đã nhận', color: '#faad14', bgColor: '#fffbe6', borderColor: '#ffe58f', Icon: InboxOutlined },
   da_lam: { label: 'Đã làm', color: '#1890ff', bgColor: '#e6f7ff', borderColor: '#91d5ff', Icon: FileDoneOutlined },
   cho_den_nhan: { label: 'Chờ đến nhận', color: '#52c41a', bgColor: '#f6ffed', borderColor: '#b7eb8f', Icon: BellOutlined },
-  hoan_thanh: { label: 'Hoàn thành', color: '#722ed1', bgColor: '#f9f0ff', borderColor: '#d3adf7', Icon: CheckCircleOutlined }
+  hoan_thanh: { label: 'Hoàn thành', color: '#722ed1', bgColor: '#f9f0ff', borderColor: '#d3adf7', Icon: CheckCircleOutlined },
+  can_sua: { label: 'Cần sửa đổi', color: '#ff4d4f', bgColor: '#fff1f0', borderColor: '#ffa39e', Icon: CloseCircleOutlined }
 };
 
 // Roles có quyền quản lý (admin view)
@@ -445,6 +446,17 @@ const DangKy213 = () => {
   const [submittingCompletion, setSubmittingCompletion] = useState(false);
   const [selectedRegForCompletion, setSelectedRegForCompletion] = useState(null);
   const [completionForm] = Form.useForm();
+
+  // === REJECT MODAL STATE ===
+  const [isRejectModalVisible, setIsRejectModalVisible] = useState(false);
+  const [rejectingReg, setRejectingReg] = useState(null);
+  const [rejectForm] = Form.useForm();
+
+  // === EDIT MODAL STATE ===
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [editingReg, setEditingReg] = useState(null);
+  const [editForm] = Form.useForm();
+  const [editSelectedCity, setEditSelectedCity] = useState('Đà Nẵng');
 
   const [customFields, setCustomFields] = useState({
     line1: 'ĐẢNG BỘ ỦY BAN NHÂN DÂN TPĐN',

@@ -22,7 +22,6 @@ const EXPORT_FIELDS = [
   { key: 'cccd', label: 'CCCD', group: 'basic' },
   { key: 'dan_toc', label: 'Dân tộc', group: 'basic' },
   { key: 'ton_giao', label: 'Tôn giáo', group: 'basic' },
-  { key: 'anh_ca_nhan', label: 'Link ảnh cá nhân', group: 'basic' },
   
   { key: 'lop', label: 'Lớp', group: 'org' },
   { key: 'khoa', label: 'Khoa', group: 'org' },
@@ -34,30 +33,33 @@ const EXPORT_FIELDS = [
   { key: 'facebook', label: 'Facebook', group: 'contact' },
   { key: 'dia_chi_tam_tru', label: 'Địa chỉ tạm trú', group: 'contact' },
   
-  { key: 'chi_tiet_dc', label: 'Chi tiết ĐC thường trú', group: 'address' },
+  { key: 'chi_tiet_dc', label: 'Chi tiết địa chỉ thường trú', group: 'address' },
   { key: 'xa_phuong_tt', label: 'Xã/phường thường trú', group: 'address' },
+  { key: 'quan_huyen_tt', label: 'Quận/huyện thường trú', group: 'address' },
   { key: 'tinh_tp_tt', label: 'Tỉnh/TP thường trú', group: 'address' },
-  { key: 'que_quan', label: 'Quê quán (chi tiết)', group: 'address' },
-  { key: 'xa_phuong_qq', label: 'Xã/phường quê quán', group: 'address' },
-  { key: 'tinh_tp_qq', label: 'Tỉnh/TP quê quán', group: 'address' },
-  { key: 'chi_tiet_qq_cu', label: 'Chi tiết quê quán cũ', group: 'address' },
-  { key: 'xa_phuong_qq_cu', label: 'Xã/phường quê quán cũ', group: 'address' },
-  { key: 'quan_huyen_qq_cu', label: 'Quận/huyện quê quán cũ', group: 'address' },
-  { key: 'tinh_tp_qq_cu', label: 'Tỉnh/TP quê quán cũ', group: 'address' },
   { key: 'chi_tiet_tt_cu', label: 'Chi tiết thường trú cũ', group: 'address' },
   { key: 'xa_phuong_tt_cu', label: 'Xã/phường thường trú cũ', group: 'address' },
   { key: 'quan_huyen_tt_cu', label: 'Quận/huyện thường trú cũ', group: 'address' },
   { key: 'tinh_tp_tt_cu', label: 'Tỉnh/TP thường trú cũ', group: 'address' },
+  { key: 'xa_phuong_qq', label: 'Xã/phường quê quán', group: 'address' },
+  { key: 'quan_huyen_qq', label: 'Quận/huyện quê quán', group: 'address' },
+  { key: 'tinh_tp_qq', label: 'Tỉnh/TP quê quán', group: 'address' },
+  { key: 'xa_phuong_qq_cu', label: 'Xã/phường quê quán cũ', group: 'address' },
+  { key: 'quan_huyen_qq_cu', label: 'Quận/huyện quê quán cũ', group: 'address' },
+  { key: 'tinh_tp_qq_cu', label: 'Tỉnh/TP quê quán cũ', group: 'address' },
+  
+  { key: 'ho_ten_nguoi_than', label: 'Họ tên người thân', group: 'family' },
+  { key: 'sdt_nguoi_than', label: 'SĐT người thân', group: 'family' },
   
   { key: 'ngay_vao_dang', label: 'Ngày vào Đảng', group: 'party', isDate: true },
   { key: 'ngay_chinh_thuc', label: 'Ngày chính thức', group: 'party', isDate: true },
   { key: 'so_the_dang', label: 'Số thẻ Đảng', group: 'party' },
-  { key: 'dang_vien_du_bi', label: 'Loại Đảng viên', group: 'party', isSpecial: 'type' },
+  { key: 'noi_chuyen_di', label: 'Nơi chuyển đi', group: 'party' },
+  { key: 'ngay_chuyen_vao', label: 'Ngày chuyển vào', group: 'party', isDate: true },
+  { key: 'dang_vien_du_bi', label: 'Loại Đảng viên (Dự bị / Chính thức)', group: 'party', isSpecial: 'type' },
   { key: 'trang_thai', label: 'Trạng thái sinh hoạt', group: 'party', isSpecial: 'status' },
   { key: 'dvhd', label: 'Đảng viên hướng dẫn', group: 'party' },
-  
-  { key: 'ho_ten_nguoi_than', label: 'Họ tên người thân', group: 'family' },
-  { key: 'sdt_nguoi_than', label: 'SĐT người thân', group: 'family' }
+  { key: 'anh_ca_nhan', label: 'Link ảnh cá nhân', group: 'basic' }
 ];
 
 const FIELD_GROUPS = {
@@ -2130,9 +2132,19 @@ const DangVien = () => {
               showSizeChanger: true, 
               pageSizeOptions: ['10', '20', '50', '100', '1000'] 
             }}
-            onRow={(record) => {
+             onRow={(record) => {
               return {
-                onClick: () => handleRowClick(record),
+                onClick: (event) => {
+                  if (
+                    event.target.closest('.ant-table-selection-column') ||
+                    event.target.closest('.ant-checkbox-wrapper') ||
+                    event.target.closest('.ant-checkbox') ||
+                    event.target.tagName === 'INPUT'
+                  ) {
+                    return;
+                  }
+                  handleRowClick(record);
+                },
                 style: { cursor: 'pointer' }
               };
             }}

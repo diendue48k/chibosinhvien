@@ -368,16 +368,6 @@ const DocumentGenerator = () => {
   // Sync selectedMember to form fields
   useEffect(() => {
     if (selectedMember) {
-      // Calculate defaults based on profile
-      const defaultUuDiem = selectedMember.uu_diem || 
-        "- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.\n" +
-        "- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.\n" +
-        "- Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.\n" +
-        "- Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.\n" +
-        "- Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.";
-
-      const defaultKhuyetDiem = selectedMember.khuyet_diem || "Không có khuyết điểm gì lớn";
-
       form.setFieldsValue({
         ho_ten: selectedMember.ho_ten,
         mssv: selectedMember.mssv,
@@ -417,70 +407,74 @@ const DocumentGenerator = () => {
         xa_phuong_tam_tru_cu: selectedMember.xa_phuong_tam_tru_cu || '',
         chi_tiet_tam_tru_cu: selectedMember.chi_tiet_tam_tru_cu || '',
         dvhd: selectedMember.dvhd || selectedMember.dangvienhuongdan || '',
+        dvhd_ngay_sinh: selectedMember.dvhd_ngay_sinh ? dayjs(selectedMember.dvhd_ngay_sinh) : null,
+        dvhd_ngay_vao_dang: selectedMember.dvhd_ngay_vao_dang ? dayjs(selectedMember.dvhd_ngay_vao_dang) : null,
+        dvhd_ngay_chinh_thuc: selectedMember.dvhd_ngay_chinh_thuc ? dayjs(selectedMember.dvhd_ngay_chinh_thuc) : null,
+        nam_vao_chi_bo_dvhd: selectedMember.nam_vao_chi_bo_dvhd || '',
         cccd: selectedMember.cccd || '',
         gioi_tinh: selectedMember.gioi_tinh || 'Nam',
-        sdt: selectedMember.so_dien_thoai || '',
+        sdt: selectedMember.so_dien_thoai || selectedMember.sdt || '',
         email: selectedMember.email || '',
 
-        // Tab 1 defaults
-        chi_bo_ket_nap: 'Chi bộ Sinh viên',
-        co_quan_cong_tac: 'Trường Đại học Kinh tế - Đại học Đà Nẵng',
-        chi_bo_sinh_hoat: 'Chi bộ Sinh viên',
-        uu_diem: defaultUuDiem,
-        khuyet_diem: defaultKhuyetDiem,
-        bien_phap_khac_phuc: '',   // không bắt buộc, để trống
-        ngay_ky: null,             // để trống, điền sau
+        // Tab 1 defaults (load from selectedMember)
+        chi_bo_ket_nap: selectedMember.chi_bo_ket_nap || '',
+        co_quan_cong_tac: selectedMember.co_quan_cong_tac || '',
+        chi_bo_sinh_hoat: selectedMember.chi_bo_sinh_hoat || '',
+        uu_diem: selectedMember.uu_diem || '',
+        khuyet_diem: selectedMember.khuyet_diem || '',
+        bien_phap_khac_phuc: selectedMember.bien_phap_khac_phuc || '',
+        ngay_ky: selectedMember.ngay_ky ? dayjs(selectedMember.ngay_ky) : null,
 
         // Tab 2 defaults
-        ngay_hop_lop: null,        // để trống, chỉ lấy năm khi xuất
-        gvcn: '',
-        chu_tri_lop: '',
-        thu_ky_lop: '',
-        tong_so_sv_lop: null,
-        tham_gia_lop: null,
-        vang_lop: null,
+        ngay_hop_lop: selectedMember.ngay_hop_lop ? dayjs(selectedMember.ngay_hop_lop) : null,
+        gvcn: selectedMember.gvcn || '',
+        chu_tri_lop: selectedMember.chu_tri_lop || '',
+        thu_ky_lop: selectedMember.thu_ky_lop || '',
+        tong_so_sv_lop: selectedMember.tong_so_sv_lop || null,
+        tham_gia_lop: selectedMember.tham_gia_lop || null,
+        vang_lop: selectedMember.vang_lop !== undefined && selectedMember.vang_lop !== null ? Number(selectedMember.vang_lop) : null,
 
         // Tab 3 defaults
-        ngay_hop_chi_doan: null,   // để trống, chỉ lấy năm khi xuất
-        chu_tri_chi_doan: '',
-        thu_ky_chi_doan: '',
-        tong_so_dv_chi_doan: 28,
-        tham_gia_chi_doan: 28,
-        vang_chi_doan: 0,          // mặc định 0
-        ly_do_vang_chi_doan: '',   // để trống
-        bi_thu_chi_doan: selectedMember.ho_ten || '',
+        ngay_hop_chi_doan: selectedMember.ngay_hop_chi_doan ? dayjs(selectedMember.ngay_hop_chi_doan) : null,
+        chu_tri_chi_doan: selectedMember.chu_tri_chi_doan || '',
+        thu_ky_chi_doan: selectedMember.thu_ky_chi_doan || '',
+        tong_so_dv_chi_doan: selectedMember.tong_so_dv_chi_doan || null,
+        tham_gia_chi_doan: selectedMember.tham_gia_chi_doan || null,
+        vang_chi_doan: selectedMember.vang_chi_doan !== undefined && selectedMember.vang_chi_doan !== null ? Number(selectedMember.vang_chi_doan) : null,
+        ly_do_vang_chi_doan: selectedMember.ly_do_vang_chi_doan || '',
+        bi_thu_chi_doan: selectedMember.bi_thu_chi_doan || selectedMember.ho_ten || '',
 
         // Tab 4 defaults
-        ngay_hop_lcd: null,        // để trống, chỉ lấy năm khi xuất
-        dia_diem_hop_lcd: 'Trường Đại học Kinh tế', // mặc định
-        chu_tri_lcd: '',
-        thu_ky_lcd: '',
-        tong_so_uy_vien_lcd: 11,
-        tham_gia_lcd: 11,
-        vang_lcd: 0,
-        bi_thu_lcd: 'Trần Thị Lan Trinh',
+        ngay_hop_lcd: selectedMember.ngay_hop_lcd ? dayjs(selectedMember.ngay_hop_lcd) : null,
+        dia_diem_hop_lcd: selectedMember.dia_diem_hop_lcd || '',
+        chu_tri_lcd: selectedMember.chu_tri_lcd || '',
+        thu_ky_lcd: selectedMember.thu_ky_lcd || '',
+        tong_so_uy_vien_lcd: selectedMember.tong_so_uy_vien_lcd || null,
+        tham_gia_lcd: selectedMember.tham_gia_lcd || null,
+        vang_lcd: selectedMember.vang_lcd !== undefined && selectedMember.vang_lcd !== null ? Number(selectedMember.vang_lcd) : null,
+        bi_thu_lcd: selectedMember.bi_thu_lcd || '',
 
         // Tab 5 defaults
-        so_nq_doan_truong: '     -NQ/ĐTN-ĐHKT',  // mặc định có khoảng trống phía trước
-        ngay_hop_doan_truong: null,// để trống, chỉ lấy năm khi xuất
-        tan_thanh_doan_truong: 28,
-        khong_tan_thanh_doan_truong: 0,
-        bi_thu_doan_truong: '',     // để trống, điền sau
+        so_nq_doan_truong: selectedMember.so_nq_doan_truong || '',
+        ngay_hop_doan_truong: selectedMember.ngay_hop_doan_truong ? dayjs(selectedMember.ngay_hop_doan_truong) : null,
+        tan_thanh_doan_truong: selectedMember.tan_thanh_doan_truong || null,
+        khong_tan_thanh_doan_truong: selectedMember.khong_tan_thanh_doan_truong !== undefined && selectedMember.khong_tan_thanh_doan_truong !== null ? Number(selectedMember.khong_tan_thanh_doan_truong) : null,
+        bi_thu_doan_truong: selectedMember.bi_thu_doan_truong || '',
 
         // Tab 6 & Mẫu 13 defaults
-        chi_uy_noi_cu_tru: '',
-        tong_so_chi_uy_noi_cu_tru: 3,
-        tong_so_to_chuc_ctxh: 100,
+        chi_uy_noi_cu_tru: selectedMember.chi_uy_noi_cu_tru || '',
+        tong_so_chi_uy_noi_cu_tru: selectedMember.tong_so_chi_uy_noi_cu_tru || null,
+        tong_so_to_chuc_ctxh: selectedMember.tong_so_to_chuc_ctxh || null,
 
-        chu_tri_chi_bo: 'Bùi Trung Hiệp',
-        chuc_vu_chu_tri_chi_bo: 'Bí thư Chi bộ',
-        thu_ky_chi_bo: 'Lê Vĩnh Diện',
-        tong_so_dv: activeStats.total || 0,
-        tong_so_dv_chinh_thuc: activeStats.official || 0,
-        tong_so_dv_du_bi: activeStats.probationary || 0,
+        chu_tri_chi_bo: selectedMember.chu_tri_chi_bo || '',
+        chuc_vu_chu_tri_chi_bo: selectedMember.chuc_vu_chu_tri_chi_bo || '',
+        thu_ky_chi_bo: selectedMember.thu_ky_chi_bo || '',
+        tong_so_dv: selectedMember.tong_so_dv || null,
+        tong_so_dv_chinh_thuc: selectedMember.tong_so_dv_chinh_thuc || null,
+        tong_so_dv_du_bi: selectedMember.tong_so_dv_du_bi || null,
       });
     }
-  }, [selectedMember, form, activeStats]);
+  }, [selectedMember, form]);
 
 
   const getFieldsToValidate = (docType) => {
@@ -564,15 +558,8 @@ const DocumentGenerator = () => {
     if (!selectedMember) return;
     try {
       setIsSavingMember(true);
-      const values = await form.validateFields([
-        'tinh_tp_qq', 'xa_phuong_qq',
-        'tinh_tp_qq_cu', 'quan_huyen_qq_cu', 'xa_phuong_qq_cu',
-        'tinh_tp_tt', 'xa_phuong_tt', 'chi_tiet_tt',
-        'tinh_tp_tt_cu', 'quan_huyen_tt_cu', 'xa_phuong_tt_cu', 'chi_tiet_tt_cu',
-        'tinh_tp_tam_tru', 'xa_phuong_tam_tru', 'chi_tiet_tam_tru',
-        'tinh_tp_tam_tru_cu', 'quan_huyen_tam_tru_cu', 'xa_phuong_tam_tru_cu', 'chi_tiet_tam_tru_cu',
-        'ngay_sinh', 'ngay_vao_dang'
-      ]);
+      
+      const values = form.getFieldsValue();
 
       const buildAddress = (tinh, huyen, xa, chiTiet) => {
         const parts = [];
@@ -596,48 +583,35 @@ const DocumentGenerator = () => {
       const diaChiTamTru = tamTruCu ? `${tamTruMoi} (Trước đây là ${tamTruCu})` : tamTruMoi;
 
       const updatedData = {
+        ...values,
         que_quan: queQuan,
         dia_chi_thuong_tru: diaChiThuongTru,
         dia_chi_tam_tru: diaChiTamTru,
-        
-        tinh_tp_qq: values.tinh_tp_qq || '',
-        quan_huyen_qq: values.quan_huyen_qq || '',
-        xa_phuong_qq: values.xa_phuong_qq || '',
-        
-        tinh_tp_qq_cu: values.tinh_tp_qq_cu || '',
-        quan_huyen_qq_cu: values.quan_huyen_qq_cu || '',
-        xa_phuong_qq_cu: values.xa_phuong_qq_cu || '',
-        
-        tinh_tp_tt: values.tinh_tp_tt || '',
-        quan_huyen_tt: values.quan_huyen_tt || '',
-        xa_phuong_tt: values.xa_phuong_tt || '',
-        chi_tiet_tt: values.chi_tiet_tt || '',
-        
-        tinh_tp_tt_cu: values.tinh_tp_tt_cu || '',
-        quan_huyen_tt_cu: values.quan_huyen_tt_cu || '',
-        xa_phuong_tt_cu: values.xa_phuong_tt_cu || '',
-        chi_tiet_tt_cu: values.chi_tiet_tt_cu || '',
-
-        tinh_tp_tam_tru: values.tinh_tp_tam_tru || '',
-        quan_huyen_tam_tru: values.quan_huyen_tam_tru || '',
-        xa_phuong_tam_tru: values.xa_phuong_tam_tru || '',
-        chi_tiet_tam_tru: values.chi_tiet_tam_tru || '',
-
-        tinh_tp_tam_tru_cu: values.tinh_tp_tam_tru_cu || '',
-        quan_huyen_tam_tru_cu: values.quan_huyen_tam_tru_cu || '',
-        xa_phuong_tam_tru_cu: values.xa_phuong_tam_tru_cu || '',
-        chi_tiet_tam_tru_cu: values.chi_tiet_tam_tru_cu || '',
-
-        ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : null,
-        ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
-        updated_at: new Date().toISOString()
       };
+
+      // Convert dayjs objects to YYYY-MM-DD strings for database
+      const dateFields = [
+        'ngay_sinh', 'ngay_vao_dang', 'ngay_hop_lop', 'ngay_hop_chi_doan',
+        'ngay_hop_lcd', 'ngay_hop_doan_truong', 'ngay_ky',
+        'dvhd_ngay_sinh', 'dvhd_ngay_vao_dang', 'dvhd_ngay_chinh_thuc'
+      ];
+      
+      for (const field of dateFields) {
+        if (updatedData[field] && typeof updatedData[field].format === 'function') {
+          updatedData[field] = updatedData[field].format('YYYY-MM-DD');
+        } else if (updatedData[field] === undefined) {
+          updatedData[field] = null;
+        }
+      }
+
+      updatedData.updated_at = new Date().toISOString();
+
       await updateDoc(doc(db, "dang_vien", selectedMember.id), updatedData);
       message.success("Cập nhật thông tin Đảng viên thành công!");
       setSelectedMember(prev => ({ ...prev, ...updatedData }));
     } catch (e) {
       console.error(e);
-      if (!e.errorFields) message.error("Lỗi khi cập nhật thông tin!");
+      message.error("Lỗi khi cập nhật thông tin!");
     } finally {
       setIsSavingMember(false);
     }
@@ -1720,9 +1694,76 @@ const DocumentGenerator = () => {
 
               {/* TOP SECTION: ALL FORMS */}
               <Form form={form} layout="vertical" className="premium-form">
-                 <Card bordered={false} className="premium-card" style={{ marginBottom: 20, borderRadius: 16 }}>
+                  {/* Card 1: Read-only Personal Info Container */}
+                  <Card bordered={false} className="premium-card" style={{ marginBottom: 20, borderRadius: 16 }}>
+                    <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 16 }}>
+                      Thông tin cá nhân (Chỉ xem - Hệ thống tự động đồng bộ từ Hồ sơ Đảng viên)
+                    </div>
+                    <Row gutter={16}>
+                      <Col xs={24} sm={12} md={6}>
+                        <Form.Item name="ho_ten" label={<span className="premium-form-label">Họ và tên</span>}>
+                          <Input disabled style={{ color: '#334155', fontWeight: 600 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Form.Item name="mssv" label={<span className="premium-form-label">MSSV</span>}>
+                          <Input disabled style={{ color: '#334155', fontWeight: 600 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Form.Item name="lop" label={<span className="premium-form-label">Lớp</span>}>
+                          <Input disabled style={{ color: '#334155', fontWeight: 600 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Form.Item name="khoa" label={<span className="premium-form-label">Khoa</span>}>
+                          <Input disabled style={{ color: '#334155', fontWeight: 600 }} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
+                      <Col xs={24} sm={12} md={6}>
+                        <Form.Item name="cccd" label={<span className="premium-form-label">Số CCCD</span>}>
+                          <Input disabled style={{ color: '#334155', fontWeight: 600 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Form.Item name="gioi_tinh" label={<span className="premium-form-label">Giới tính</span>}>
+                          <Select disabled style={{ color: '#334155', fontWeight: 600 }}>
+                            <Option value="Nam">Nam</Option>
+                            <Option value="Nữ">Nữ</Option>
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Form.Item name="sdt" label={<span className="premium-form-label">Số điện thoại</span>}>
+                          <Input disabled style={{ color: '#334155', fontWeight: 600 }} />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Form.Item name="email" label={<span className="premium-form-label">Email</span>}>
+                          <Input disabled style={{ color: '#334155', fontWeight: 600 }} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                    <Row gutter={16}>
+                      <Col xs={24} sm={12} md={12}>
+                        <Form.Item name="ngay_sinh" label={<span className="premium-form-label">Ngày sinh</span>}>
+                          <DatePicker format="DD/MM/YYYY" style={{ width: '100%', color: '#334155', fontWeight: 600 }} disabled />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24} sm={12} md={12}>
+                        <Form.Item name="ngay_vao_dang" label={<span className="premium-form-label">Ngày vào Đảng</span>}>
+                          <DatePicker format="DD/MM/YYYY" style={{ width: '100%', color: '#334155', fontWeight: 600 }} disabled />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Card>
+
+                  {/* Card 2: Editable Address & Relocation Info */}
+                  <Card bordered={false} className="premium-card" style={{ marginBottom: 20, borderRadius: 16 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                      <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5 }}>Thông tin cá nhân (Có thể chỉnh sửa)</div>
+                      <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5 }}>Quê quán & Địa chỉ cư trú (Có thể chỉnh sửa)</div>
                       <Button type="primary" loading={isSavingMember} onClick={handleSaveMemberInfo} style={{ backgroundColor: '#c62828', borderColor: '#c62828', borderRadius: '6px', fontWeight: 600 }}>
                         Lưu cập nhật Đảng viên
                       </Button>
@@ -1856,18 +1897,7 @@ const DocumentGenerator = () => {
                       </Col>
                     </Row>
 
-                    <Row gutter={16} style={{ marginTop: 8 }}>
-                      <Col span={12}>
-                        <Form.Item name="ngay_sinh" label={<span className="premium-form-label">Ngày sinh</span>}>
-                          <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <Form.Item name="ngay_vao_dang" label={<span className="premium-form-label">Ngày vào Đảng</span>}>
-                          <DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} />
-                        </Form.Item>
-                      </Col>
-                    </Row>
+
                     
                     <Divider dashed style={{ margin: '16px 0' }} />
                     <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 12 }}>Thông tin dùng chung & Đánh giá</div>
@@ -1891,12 +1921,18 @@ const DocumentGenerator = () => {
                     <Row gutter={16}>
                       <Col span={12}>
                         <Form.Item name="uu_diem" label={<span className="premium-form-label">Ưu điểm</span>}>
-                          <Input.TextArea rows={4} />
+                          <Input.TextArea 
+                            rows={4} 
+                            placeholder="- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.&#10;- Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.&#10;- Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.&#10;- Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.&#10;- Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm." 
+                          />
                         </Form.Item>
                       </Col>
                       <Col span={12}>
                         <Form.Item name="khuyet_diem" label={<span className="premium-form-label">Khuyết điểm</span>}>
-                          <Input.TextArea rows={4} />
+                          <Input.TextArea 
+                            rows={4} 
+                            placeholder="Không có khuyết điểm gì lớn" 
+                          />
                         </Form.Item>
                       </Col>
                     </Row>
