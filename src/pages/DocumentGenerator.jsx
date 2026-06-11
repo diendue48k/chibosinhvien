@@ -418,8 +418,8 @@ const DocumentGenerator = () => {
 
         // Tab 1 defaults (load from selectedMember)
         chi_bo_ket_nap: selectedMember.chi_bo_ket_nap || '',
-        co_quan_cong_tac: selectedMember.co_quan_cong_tac || '',
-        chi_bo_sinh_hoat: selectedMember.chi_bo_sinh_hoat || '',
+        co_quan_cong_tac: selectedMember.co_quan_cong_tac || 'Trường Đại học Kinh tế',
+        chi_bo_sinh_hoat: selectedMember.chi_bo_sinh_hoat || 'Chi bộ Sinh viên',
         uu_diem: selectedMember.uu_diem || '',
         khuyet_diem: selectedMember.khuyet_diem || '',
         bien_phap_khac_phuc: selectedMember.bien_phap_khac_phuc || '',
@@ -1933,18 +1933,8 @@ const DocumentGenerator = () => {
                     <Divider dashed style={{ margin: '16px 0' }} />
                     <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 12 }}>Thông tin dùng chung & Đánh giá</div>
                     <Row gutter={16}>
-                      <Col span={8}>
+                      <Col span={24}>
                         <Form.Item name="chi_bo_ket_nap" label={<span className="premium-form-label">Chi bộ kết nạp</span>}>
-                          <Input placeholder="Chi bộ Sinh viên" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={8}>
-                        <Form.Item name="co_quan_cong_tac" label={<span className="premium-form-label">Cơ quan công tác</span>}>
-                          <Input placeholder="Trường Đại học Kinh tế..." />
-                        </Form.Item>
-                      </Col>
-                      <Col span={8}>
-                        <Form.Item name="chi_bo_sinh_hoat" label={<span className="premium-form-label">Chi bộ sinh hoạt</span>}>
                           <Input placeholder="Chi bộ Sinh viên" />
                         </Form.Item>
                       </Col>
