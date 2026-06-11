@@ -450,8 +450,8 @@ const DocumentGenerator = () => {
         chu_tri_lcd: selectedMember.chu_tri_lcd || '',
         thu_ky_lcd: selectedMember.thu_ky_lcd || '',
         tong_so_uy_vien_lcd: selectedMember.tong_so_uy_vien_lcd || null,
-        tham_gia_lcd: selectedMember.tham_gia_lcd || null,
-        vang_lcd: selectedMember.vang_lcd !== undefined && selectedMember.vang_lcd !== null ? Number(selectedMember.vang_lcd) : null,
+        tham_gia_lcd: selectedMember.tham_gia_lcd || selectedMember.tong_so_uy_vien_lcd || null,
+        vang_lcd: selectedMember.vang_lcd !== undefined && selectedMember.vang_lcd !== null ? Number(selectedMember.vang_lcd) : 0,
         bi_thu_lcd: selectedMember.bi_thu_lcd || '',
 
         // Tab 5 defaults
@@ -1693,32 +1693,36 @@ const DocumentGenerator = () => {
             <>
 
               {/* TOP SECTION: ALL FORMS */}
-               <Form 
-                 form={form} 
-                 layout="vertical" 
-                 className="premium-form"
-                 onValuesChange={(changedValues, allValues) => {
-                   const updates = {};
-                   if ('tong_so_sv_lop' in changedValues) {
-                     const ts = changedValues.tong_so_sv_lop;
-                     updates.tong_so_dv_chi_doan = ts;
-                     updates.tham_gia_lop = ts;
-                     updates.tham_gia_chi_doan = ts;
-                     updates.vang_lop = 0;
-                     updates.vang_chi_doan = 0;
-                   } else if ('tong_so_dv_chi_doan' in changedValues) {
-                     const ts = changedValues.tong_so_dv_chi_doan;
-                     updates.tong_so_sv_lop = ts;
-                     updates.tham_gia_lop = ts;
-                     updates.tham_gia_chi_doan = ts;
-                     updates.vang_lop = 0;
-                     updates.vang_chi_doan = 0;
-                   }
-                   if (Object.keys(updates).length > 0) {
-                     form.setFieldsValue(updates);
-                   }
-                 }}
-               >
+                <Form 
+                  form={form} 
+                  layout="vertical" 
+                  className="premium-form"
+                  onValuesChange={(changedValues, allValues) => {
+                    const updates = {};
+                    if ('tong_so_sv_lop' in changedValues) {
+                      const ts = changedValues.tong_so_sv_lop;
+                      updates.tong_so_dv_chi_doan = ts;
+                      updates.tham_gia_lop = ts;
+                      updates.tham_gia_chi_doan = ts;
+                      updates.vang_lop = 0;
+                      updates.vang_chi_doan = 0;
+                    } else if ('tong_so_dv_chi_doan' in changedValues) {
+                      const ts = changedValues.tong_so_dv_chi_doan;
+                      updates.tong_so_sv_lop = ts;
+                      updates.tham_gia_lop = ts;
+                      updates.tham_gia_chi_doan = ts;
+                      updates.vang_lop = 0;
+                      updates.vang_chi_doan = 0;
+                    } else if ('tong_so_uy_vien_lcd' in changedValues) {
+                      const ts = changedValues.tong_so_uy_vien_lcd;
+                      updates.tham_gia_lcd = ts;
+                      updates.vang_lcd = 0;
+                    }
+                    if (Object.keys(updates).length > 0) {
+                      form.setFieldsValue(updates);
+                    }
+                  }}
+                >
                   {/* Card 1: Read-only Personal Info Container */}
                   <Card bordered={false} className="premium-card" style={{ marginBottom: 20, borderRadius: 16 }}>
                     <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 16 }}>
@@ -1987,46 +1991,18 @@ const DocumentGenerator = () => {
                         </Form.Item>
                       </Col>
                       <Col span={6}>
-                        <Form.Item name="thu_ky_lop" label={<span className="premium-form-label">Thư ký Lớp & CĐ</span>}>
-                          <Input placeholder="Lớp phó hoặc phó bí thư Chi Đoàn" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={4}>
-                        <Form.Item name="tong_so_sv_lop" label={<span className="premium-form-label">TS SV Lớp</span>}>
-                          <InputNumber style={{width:'100%'}} placeholder="45" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={4}>
-                        <Form.Item name="tham_gia_lop" label={<span className="premium-form-label">Có mặt (Lớp)</span>}>
-                          <InputNumber style={{width:'100%'}} placeholder="45" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={4}>
-                        <Form.Item name="vang_lop" label={<span className="premium-form-label">Vắng (Lớp)</span>}>
-                          <InputNumber style={{width:'100%'}} placeholder="0" />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                      <Col span={6}>
                         <Form.Item name="chu_tri_chi_doan" label={<span className="premium-form-label">Chủ trì Chi đoàn</span>}>
                           <Input placeholder="Bí thư Chi đoàn" />
                         </Form.Item>
                       </Col>
-                      <Col span={4}>
-                        <Form.Item name="tong_so_dv_chi_doan" label={<span className="premium-form-label">TS ĐV CĐ</span>}>
-                          <InputNumber style={{width:'100%'}} />
+                      <Col span={6}>
+                        <Form.Item name="thu_ky_lop" label={<span className="premium-form-label">Thư ký Lớp & CĐ</span>}>
+                          <Input placeholder="Lớp phó hoặc phó bí thư Chi Đoàn" />
                         </Form.Item>
                       </Col>
-                      <Col span={4}>
-                        <Form.Item name="tham_gia_chi_doan" label={<span className="premium-form-label">Có mặt (CĐ)</span>}>
-                          <InputNumber style={{width:'100%'}} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={4}>
-                        <Form.Item name="vang_chi_doan" label={<span className="premium-form-label">Vắng (CĐ)</span>}>
-                          <InputNumber style={{width:'100%'}} />
+                      <Col span={6}>
+                        <Form.Item name="tong_so_sv_lop" label={<span className="premium-form-label">Sĩ số lớp / Chi đoàn</span>}>
+                          <InputNumber style={{width:'100%'}} placeholder="Ví dụ: 45" />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -2034,27 +2010,17 @@ const DocumentGenerator = () => {
                     <Row gutter={16}>
                       <Col span={6}>
                         <Form.Item name="chu_tri_lcd" label={<span className="premium-form-label">Chủ trì LCĐ</span>}>
-                          <Input />
+                          <Input placeholder="Bí thư Liên chi Đoàn" />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
                         <Form.Item name="thu_ky_lcd" label={<span className="premium-form-label">Thư ký LCĐ</span>}>
-                          <Input />
+                          <Input placeholder="Thư ký Liên chi Đoàn" />
                         </Form.Item>
                       </Col>
                       <Col span={4}>
                         <Form.Item name="tong_so_uy_vien_lcd" label={<span className="premium-form-label">TS UV LCĐ</span>}>
-                          <InputNumber style={{width:'100%'}} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={4}>
-                        <Form.Item name="tham_gia_lcd" label={<span className="premium-form-label">Có mặt (LCĐ)</span>}>
-                          <InputNumber style={{width:'100%'}} />
-                        </Form.Item>
-                      </Col>
-                      <Col span={4}>
-                        <Form.Item name="vang_lcd" label={<span className="premium-form-label">Vắng (LCĐ)</span>}>
-                          <InputNumber style={{width:'100%'}} />
+                          <InputNumber style={{width:'100%'}} placeholder="11" />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -2062,12 +2028,12 @@ const DocumentGenerator = () => {
                     <Row gutter={16}>
                       <Col span={6}>
                         <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">Đoàn Trường: Tán thành</span>}>
-                          <InputNumber style={{width:'100%'}} />
+                          <InputNumber style={{width:'100%'}} placeholder="15" />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
                         <Form.Item name="khong_tan_thanh_doan_truong" label={<span className="premium-form-label">Đoàn Trường: K.Tán thành</span>}>
-                          <InputNumber style={{width:'100%'}} />
+                          <InputNumber style={{width:'100%'}} placeholder="0" />
                         </Form.Item>
                       </Col>
                     </Row>
