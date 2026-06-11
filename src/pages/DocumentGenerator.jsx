@@ -430,17 +430,17 @@ const DocumentGenerator = () => {
         gvcn: selectedMember.gvcn || '',
         chu_tri_lop: selectedMember.chu_tri_lop || '',
         thu_ky_lop: selectedMember.thu_ky_lop || '',
-        tong_so_sv_lop: selectedMember.tong_so_sv_lop || null,
-        tham_gia_lop: selectedMember.tham_gia_lop || null,
-        vang_lop: selectedMember.vang_lop !== undefined && selectedMember.vang_lop !== null ? Number(selectedMember.vang_lop) : null,
+        tong_so_sv_lop: selectedMember.tong_so_sv_lop || selectedMember.tong_so_dv_chi_doan || null,
+        tham_gia_lop: selectedMember.tham_gia_lop || selectedMember.tong_so_sv_lop || selectedMember.tong_so_dv_chi_doan || null,
+        vang_lop: selectedMember.vang_lop !== undefined && selectedMember.vang_lop !== null ? Number(selectedMember.vang_lop) : 0,
 
         // Tab 3 defaults
         ngay_hop_chi_doan: selectedMember.ngay_hop_chi_doan ? dayjs(selectedMember.ngay_hop_chi_doan) : null,
         chu_tri_chi_doan: selectedMember.chu_tri_chi_doan || '',
         thu_ky_chi_doan: selectedMember.thu_ky_chi_doan || '',
-        tong_so_dv_chi_doan: selectedMember.tong_so_dv_chi_doan || null,
-        tham_gia_chi_doan: selectedMember.tham_gia_chi_doan || null,
-        vang_chi_doan: selectedMember.vang_chi_doan !== undefined && selectedMember.vang_chi_doan !== null ? Number(selectedMember.vang_chi_doan) : null,
+        tong_so_dv_chi_doan: selectedMember.tong_so_dv_chi_doan || selectedMember.tong_so_sv_lop || null,
+        tham_gia_chi_doan: selectedMember.tham_gia_chi_doan || selectedMember.tong_so_dv_chi_doan || selectedMember.tong_so_sv_lop || null,
+        vang_chi_doan: selectedMember.vang_chi_doan !== undefined && selectedMember.vang_chi_doan !== null ? Number(selectedMember.vang_chi_doan) : 0,
         ly_do_vang_chi_doan: selectedMember.ly_do_vang_chi_doan || '',
         bi_thu_chi_doan: selectedMember.bi_thu_chi_doan || selectedMember.ho_ten || '',
 
@@ -1693,7 +1693,32 @@ const DocumentGenerator = () => {
             <>
 
               {/* TOP SECTION: ALL FORMS */}
-              <Form form={form} layout="vertical" className="premium-form">
+               <Form 
+                 form={form} 
+                 layout="vertical" 
+                 className="premium-form"
+                 onValuesChange={(changedValues, allValues) => {
+                   const updates = {};
+                   if ('tong_so_sv_lop' in changedValues) {
+                     const ts = changedValues.tong_so_sv_lop;
+                     updates.tong_so_dv_chi_doan = ts;
+                     updates.tham_gia_lop = ts;
+                     updates.tham_gia_chi_doan = ts;
+                     updates.vang_lop = 0;
+                     updates.vang_chi_doan = 0;
+                   } else if ('tong_so_dv_chi_doan' in changedValues) {
+                     const ts = changedValues.tong_so_dv_chi_doan;
+                     updates.tong_so_sv_lop = ts;
+                     updates.tham_gia_lop = ts;
+                     updates.tham_gia_chi_doan = ts;
+                     updates.vang_lop = 0;
+                     updates.vang_chi_doan = 0;
+                   }
+                   if (Object.keys(updates).length > 0) {
+                     form.setFieldsValue(updates);
+                   }
+                 }}
+               >
                   {/* Card 1: Read-only Personal Info Container */}
                   <Card bordered={false} className="premium-card" style={{ marginBottom: 20, borderRadius: 16 }}>
                     <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 16 }}>
