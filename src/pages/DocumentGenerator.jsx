@@ -2092,7 +2092,7 @@ const DocumentGenerator = () => {
                             </Form.Item>
                           </Col>
                           <Col span={4}>
-                            <Form.Item name="nam_vao_chi_bo_dvhd" label={<span className="premium-form-label">Năm sinh hoạt</span>}>
+                            <Form.Item name="nam_vao_chi_bo_dvhd" label={<span className="premium-form-label">Năm hướng dẫn</span>}>
                               <Input placeholder="2022" />
                             </Form.Item>
                           </Col>
