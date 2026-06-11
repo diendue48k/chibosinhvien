@@ -2092,36 +2092,36 @@ const DocumentGenerator = () => {
                         </Row>
 
                         <Row gutter={16}>
-                          <Col span={6}>
+                          <Col span={8}>
                             <Form.Item name="chu_tri_chi_bo" label={<span className="premium-form-label">Chủ trì (Mẫu 13)</span>}>
                               <Input />
                             </Form.Item>
                           </Col>
-                          <Col span={6}>
+                          <Col span={8}>
                             <Form.Item name="chuc_vu_chu_tri_chi_bo" label={<span className="premium-form-label">Chức vụ</span>}>
                               <Input />
                             </Form.Item>
                           </Col>
-                          <Col span={6}>
+                          <Col span={8}>
                             <Form.Item name="thu_ky_chi_bo" label={<span className="premium-form-label">Thư ký Chi bộ</span>}>
                               <Input />
                             </Form.Item>
                           </Col>
                         </Row>
                         <Row gutter={16}>
-                          <Col span={4}>
+                          <Col span={8}>
                             <Form.Item name="tong_so_dv" label={<span className="premium-form-label">Tổng số ĐV</span>}>
-                              <InputNumber style={{width:'100%'}} />
+                              <InputNumber disabled style={{width:'100%'}} />
                             </Form.Item>
                           </Col>
-                          <Col span={4}>
+                          <Col span={8}>
                             <Form.Item name="tong_so_dv_chinh_thuc" label={<span className="premium-form-label">ĐV Chính thức</span>}>
-                              <InputNumber style={{width:'100%'}} />
+                              <InputNumber disabled style={{width:'100%'}} />
                             </Form.Item>
                           </Col>
-                          <Col span={4}>
+                          <Col span={8}>
                             <Form.Item name="tong_so_dv_du_bi" label={<span className="premium-form-label">ĐV Dự bị</span>}>
-                              <InputNumber style={{width:'100%'}} />
+                              <InputNumber disabled style={{width:'100%'}} />
                             </Form.Item>
                           </Col>
                         </Row>
