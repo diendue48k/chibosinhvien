@@ -1969,9 +1969,14 @@ const DocumentGenerator = () => {
                     <div style={{ fontWeight: 800, color: '#1e293b', fontSize: 13.5, marginBottom: 12 }}>Đại diện các cấp & Số liệu họp</div>
                     
                     <Row gutter={16}>
-                      <Col span={24}>
+                      <Col span={18}>
                         <Form.Item name="gvcn" label={<span className="premium-form-label">Giáo viên chủ nhiệm</span>}>
                           <Input placeholder="Nhập tên Giáo viên chủ nhiệm..." />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="tong_so_sv_lop" label={<span className="premium-form-label">Sĩ số lớp / Chi đoàn</span>}>
+                          <InputNumber style={{width:'100%'}} placeholder="Ví dụ: 45" />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -1987,14 +1992,9 @@ const DocumentGenerator = () => {
                           <Input placeholder="Bí thư Chi đoàn" />
                         </Form.Item>
                       </Col>
-                      <Col span={6}>
+                      <Col span={12}>
                         <Form.Item name="thu_ky_lop" label={<span className="premium-form-label">Thư ký Lớp & CĐ</span>}>
                           <Input placeholder="Lớp phó hoặc phó bí thư Chi Đoàn" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={6}>
-                        <Form.Item name="tong_so_sv_lop" label={<span className="premium-form-label">Sĩ số lớp / Chi đoàn</span>}>
-                          <InputNumber style={{width:'100%'}} placeholder="Ví dụ: 45" />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -2010,16 +2010,13 @@ const DocumentGenerator = () => {
                           <Input placeholder="Thư ký Liên chi Đoàn" />
                         </Form.Item>
                       </Col>
-                      <Col span={4}>
+                      <Col span={6}>
                         <Form.Item name="tong_so_uy_vien_lcd" label={<span className="premium-form-label">TS UV LCĐ</span>}>
                           <InputNumber style={{width:'100%'}} placeholder="11" />
                         </Form.Item>
                       </Col>
-                    </Row>
-
-                    <Row gutter={16}>
-                      <Col span={8}>
-                        <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">Tổng số UV BCH Đoàn trường</span>}>
+                      <Col span={6}>
+                        <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">TS UV BCH Đoàn trường</span>}>
                           <InputNumber style={{width:'100%'}} placeholder="28" />
                         </Form.Item>
                       </Col>
