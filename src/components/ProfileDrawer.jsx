@@ -550,6 +550,28 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
           updated_at: new Date().toISOString()
         };
         await updateDoc(doc(db, "ho_so_ket_nap", data.id), mappedBack);
+
+        if (data.da_chuyen_sinh_hoat || data.trangthai === 8) {
+          const mssvStr = String(mappedBack.mssv || '').trim();
+          if (mssvStr) {
+            const existingDvDoc = await findDocByMssv("dang_vien", mssvStr);
+            if (existingDvDoc) {
+              await updateDoc(doc(db, "dang_vien", existingDvDoc.id), {
+                soqd: mappedBack.soqd || '',
+                ngaykiqd: mappedBack.ngaykiqd || null,
+                updated_at: new Date().toISOString()
+              });
+            }
+            const existingDshDoc = await findDocByMssv("dang_vien_dang_sinh_hoat", mssvStr);
+            if (existingDshDoc) {
+              await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", existingDshDoc.id), {
+                so_qd: mappedBack.soqd || '',
+                ngay_ki_qd: mappedBack.ngaykiqd || null,
+                updated_at: new Date().toISOString()
+              });
+            }
+          }
+        }
       } else {
         const updateData = {
           ...formatted,

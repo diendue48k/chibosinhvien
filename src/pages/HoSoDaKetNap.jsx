@@ -8,7 +8,7 @@ import {
   SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, 
   InfoCircleOutlined, DownloadOutlined, CloseOutlined, FilterOutlined, 
   UploadOutlined, TableOutlined, UnlockOutlined, MailOutlined, CalendarOutlined,
-  HistoryOutlined, SendOutlined, UserAddOutlined, CheckCircleOutlined
+  HistoryOutlined, SendOutlined, UserAddOutlined, CheckCircleOutlined, SyncOutlined
 } from '@ant-design/icons';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { dbMain, dbStudent } from '../firebase';
@@ -427,6 +427,32 @@ const HoSoDaKetNap = () => {
         if (row.isUpdate && row.docId) {
           cleanData.updated_at = new Date().toISOString();
           promises.push(updateDoc(doc(dbMain, "ho_so_ket_nap", row.docId), cleanData));
+
+          // If the dossier was already transferred, propagate imported decision details to active collections
+          const existingRec = dbHoSoList.find(d => d.id === row.docId);
+          if (existingRec && (existingRec.da_chuyen_sinh_hoat || existingRec.trangthai === 8)) {
+            const mssvStr = String(row.mssv || '').trim();
+            if (mssvStr) {
+              promises.push((async () => {
+                const existingDvDoc = await findDocByMssv("dang_vien", mssvStr);
+                if (existingDvDoc) {
+                  await updateDoc(doc(dbMain, "dang_vien", existingDvDoc.id), {
+                    soqd: row.soqd || '',
+                    ngaykiqd: row.ngaykiqd || null,
+                    updated_at: new Date().toISOString()
+                  });
+                }
+                const existingDshDoc = await findDocByMssv("dang_vien_dang_sinh_hoat", mssvStr);
+                if (existingDshDoc) {
+                  await updateDoc(doc(dbMain, "dang_vien_dang_sinh_hoat", existingDshDoc.id), {
+                    so_qd: row.soqd || '',
+                    ngay_ki_qd: row.ngaykiqd || null,
+                    updated_at: new Date().toISOString()
+                  });
+                }
+              })());
+            }
+          }
         } else {
           cleanData.created_at = new Date().toISOString();
           promises.push(addDoc(collection(dbMain, "ho_so_ket_nap"), cleanData));
@@ -1098,7 +1124,7 @@ const HoSoDaKetNap = () => {
       if (editingId) {
         await updateDoc(doc(dbMain, "ho_so_ket_nap", editingId), formatted);
         
-        // Propagate changes to dang_vien collection if the dossier has already been transferred
+        // Propagate changes to dang_vien and dang_vien_dang_sinh_hoat collections if the dossier has already been transferred
         const originalRecord = data.find(d => d.id === editingId);
         if (originalRecord && (originalRecord.da_chuyen_sinh_hoat || originalRecord.trangthai === 8)) {
           const mssvStr = String(values.mssv || '').trim();
@@ -1108,6 +1134,14 @@ const HoSoDaKetNap = () => {
               await updateDoc(doc(dbMain, "dang_vien", existingDvDoc.id), {
                 soqd: values.soqd || '',
                 ngaykiqd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : null,
+                updated_at: new Date().toISOString()
+              });
+            }
+            const existingDshDoc = await findDocByMssv("dang_vien_dang_sinh_hoat", mssvStr);
+            if (existingDshDoc) {
+              await updateDoc(doc(dbMain, "dang_vien_dang_sinh_hoat", existingDshDoc.id), {
+                so_qd: values.soqd || '',
+                ngay_ki_qd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : null,
                 updated_at: new Date().toISOString()
               });
             }
@@ -1232,6 +1266,27 @@ const HoSoDaKetNap = () => {
 
           // Add to "dang_vien" collection
           await addDoc(collection(dbMain, "dang_vien"), newDangVien);
+
+          // Also write to "dang_vien_dang_sinh_hoat" collection for sync
+          const newDsh = {
+            mssv: record.mssv,
+            ho_ten: record.hoten,
+            cccd: record.cccd || '',
+            lop: record.lop || '',
+            khoa: record.khoa || '',
+            ngay_sinh: record.ngaysinh || null,
+            gioi_tinh: record.gioitinh || 'Nam',
+            que_quan: record.quequan || '',
+            email: record.email || '',
+            so_dien_thoai: record.sdt || '',
+            facebook: record.link_fb || '',
+            ngay_vao_dang: record.ngayvaodang || null,
+            so_qd: record.soqd || '',
+            ngay_ki_qd: record.ngaykiqd || null,
+            dang_vien_huong_dan: record.dangvienhuongdan || '',
+            created_at: new Date().toISOString()
+          };
+          await addDoc(collection(dbMain, "dang_vien_dang_sinh_hoat"), newDsh);
 
           // Update "ho_so_ket_nap" collection to mark as transferred
           await updateDoc(doc(dbMain, "ho_so_ket_nap", record.id), {
@@ -1381,6 +1436,27 @@ const HoSoDaKetNap = () => {
 
             await addDoc(collection(dbMain, "dang_vien"), newDangVien);
             
+            // Also write to "dang_vien_dang_sinh_hoat" collection for sync
+            const newDsh = {
+              mssv: record.mssv,
+              ho_ten: record.hoten,
+              cccd: record.cccd || '',
+              lop: record.lop || '',
+              khoa: record.khoa || '',
+              ngay_sinh: record.ngaysinh || null,
+              gioi_tinh: record.gioitinh || 'Nam',
+              que_quan: record.quequan || '',
+              email: record.email || '',
+              so_dien_thoai: record.sdt || '',
+              facebook: record.link_fb || '',
+              ngay_vao_dang: record.ngayvaodang || null,
+              so_qd: record.soqd || '',
+              ngay_ki_qd: record.ngaykiqd || null,
+              dang_vien_huong_dan: record.dangvienhuongdan || '',
+              created_at: new Date().toISOString()
+            };
+            await addDoc(collection(dbMain, "dang_vien_dang_sinh_hoat"), newDsh);
+            
             await updateDoc(doc(dbMain, "ho_so_ket_nap", record.id), {
               da_chuyen_sinh_hoat: true,
               updated_at: new Date().toISOString()
@@ -1453,6 +1529,83 @@ const HoSoDaKetNap = () => {
       message.error("Lỗi kiểm tra CSDL: " + err.message);
       setLoading(false);
     }
+  };
+
+  const handleSyncAllDecisions = async () => {
+    const transferredList = data.filter(r => r.da_chuyen_sinh_hoat || r.trangthai === 8);
+    if (transferredList.length === 0) {
+      message.warning("Không có hồ sơ nào đã chuyển sinh hoạt để đồng bộ!");
+      return;
+    }
+
+    Modal.confirm({
+      title: 'Đồng bộ quyết định kết nạp?',
+      content: `Hệ thống sẽ đồng bộ Số quyết định và Ngày ký quyết định của ${transferredList.length} hồ sơ đã kết nạp sang danh sách Đảng viên tương ứng theo MSSV. Bạn có chắc chắn muốn thực hiện?`,
+      okText: 'Bắt đầu đồng bộ',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        setLoading(true);
+        const hideLoading = message.loading("Đang thực hiện đồng bộ quyết định...", 0);
+        let count = 0;
+        try {
+          // Fetch all active members from 'dang_vien'
+          const dvSnapshot = await getDocs(collection(dbMain, "dang_vien"));
+          const dvList = dvSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          // Fetch all active members from 'dang_vien_dang_sinh_hoat'
+          const dshSnapshot = await getDocs(collection(dbMain, "dang_vien_dang_sinh_hoat"));
+          const dshList = dshSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+          const promises = [];
+
+          transferredList.forEach(record => {
+            const mssvStr = String(record.mssv || '').trim();
+            if (!mssvStr) return;
+
+            // 1. Find and update in 'dang_vien'
+            const dvDoc = dvList.find(d => String(d.mssv || '').trim() === mssvStr);
+            if (dvDoc) {
+              const needsUpdate = dvDoc.soqd !== record.soqd || dvDoc.ngaykiqd !== record.ngaykiqd;
+              if (needsUpdate) {
+                promises.push(updateDoc(doc(dbMain, "dang_vien", dvDoc.id), {
+                  soqd: record.soqd || '',
+                  ngaykiqd: record.ngaykiqd || null,
+                  updated_at: new Date().toISOString()
+                }));
+                count++;
+              }
+            }
+
+            // 2. Find and update in 'dang_vien_dang_sinh_hoat'
+            const dshDoc = dshList.find(d => String(d.mssv || '').trim() === mssvStr);
+            if (dshDoc) {
+              const needsUpdateDsh = dshDoc.so_qd !== record.soqd || dshDoc.ngay_ki_qd !== record.ngaykiqd;
+              if (needsUpdateDsh) {
+                promises.push(updateDoc(doc(dbMain, "dang_vien_dang_sinh_hoat", dshDoc.id), {
+                  so_qd: record.soqd || '',
+                  ngay_ki_qd: record.ngaykiqd || null,
+                  updated_at: new Date().toISOString()
+                }));
+              }
+            }
+          });
+
+          if (promises.length > 0) {
+            await Promise.all(promises);
+            message.success(`Đã đồng bộ thành công quyết định kết nạp cho ${count} Đảng viên!`);
+          } else {
+            message.info("Dữ liệu quyết định kết nạp của tất cả Đảng viên đã được đồng bộ khớp sẵn!");
+          }
+        } catch (e) {
+          console.error("Lỗi đồng bộ quyết định:", e);
+          message.error("Lỗi đồng bộ quyết định: " + e.message);
+        } finally {
+          hideLoading();
+          setLoading(false);
+          fetchData();
+        }
+      }
+    });
   };
 
   const handleOpenExportModal = () => {
@@ -1679,6 +1832,14 @@ const HoSoDaKetNap = () => {
             style={{ borderRadius: '6px', fontWeight: 500, color: '#555555' }}
           >
             Nhập từ Excel
+          </Button>
+
+          <Button 
+            icon={<SyncOutlined />} 
+            onClick={handleSyncAllDecisions} 
+            style={{ borderRadius: '6px', fontWeight: 500, color: '#1890ff', borderColor: '#1890ff' }}
+          >
+            Đồng bộ Quyết định
           </Button>
 
           <Button icon={<DownloadOutlined />} onClick={handleOpenExportModal} style={{ borderRadius: '6px', fontWeight: 500 }}>
