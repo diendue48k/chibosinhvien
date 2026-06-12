@@ -1025,19 +1025,19 @@ const Profile = () => {
                 <Field name="chi_tiet_dc" label="Chi tiết địa chỉ thường trú" span={24} editable><Input size="large" /></Field>
               </Row>
               <Row gutter={16}>
-                <Field name="xa_phuong_tt" label="Xã/Phường Thường trú" span={12} editable>
-                  <AddressWardSelect province={watchTinhTpTt} />
-                </Field>
                 <Field name="tinh_tp_tt" label="Tỉnh/TP Thường Trú" span={12} editable>
                   <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
                 </Field>
+                <Field name="xa_phuong_tt" label="Xã/Phường Thường trú" span={12} editable>
+                  <AddressWardSelect province={watchTinhTpTt} />
+                </Field>
               </Row>
               <Row gutter={16}>
-                <Field name="xa_phuong_qq" label="Xã/Phường (Quê quán)" span={12} editable>
-                  <AddressWardSelect province={watchTinhTpQq} />
-                </Field>
                 <Field name="tinh_tp_qq" label="Tỉnh/TP (Quê quán)" span={12} editable>
                   <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} />
+                </Field>
+                <Field name="xa_phuong_qq" label="Xã/Phường (Quê quán)" span={12} editable>
+                  <AddressWardSelect province={watchTinhTpQq} />
                 </Field>
               </Row>
 

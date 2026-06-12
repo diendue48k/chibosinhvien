@@ -246,13 +246,13 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             </Row>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="xa_phuong_tt" label="Xã/Phường thường trú">
-                  <AddressWardSelect province={watchTinhTpTt} />
+                <Form.Item name="tinh_tp_tt" label="Tỉnh/TP thường trú">
+                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} size="large" />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="tinh_tp_tt" label="Tỉnh/TP thường trú">
-                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} size="large" />
+                <Form.Item name="xa_phuong_tt" label="Xã/Phường thường trú">
+                  <AddressWardSelect province={watchTinhTpTt} />
                 </Form.Item>
               </Col>
             </Row>
@@ -260,13 +260,13 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Quê quán</Divider>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="xa_phuong_qq" label="Xã/Phường quê quán">
-                  <AddressWardSelect province={watchTinhTpQq} />
+                <Form.Item name="tinh_tp_qq" label="Tỉnh/TP quê quán">
+                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} size="large" />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="tinh_tp_qq" label="Tỉnh/TP quê quán">
-                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} size="large" />
+                <Form.Item name="xa_phuong_qq" label="Xã/Phường quê quán">
+                  <AddressWardSelect province={watchTinhTpQq} />
                 </Form.Item>
               </Col>
             </Row>

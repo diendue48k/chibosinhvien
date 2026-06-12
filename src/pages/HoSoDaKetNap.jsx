@@ -1173,13 +1173,20 @@ const HoSoDaKetNap = () => {
             khoa: record.khoa || '',
             cccd: record.cccd || '',
             sdt: record.sdt || '',
+            so_dien_thoai: record.sdt || '',
             email: record.email || '',
             ngay_sinh: record.ngaysinh || null,
+            gioi_tinh: record.gioitinh || 'Nam',
             que_quan: record.quequan || '',
             ngay_vao_dang: record.ngayvaodang || null,
-            noi_chuyen_di: 'Chi bộ Sinh viên DUE',
+            noi_chuyen_di: record.noi_chuyen_di || 'Chi bộ Sinh viên DUE',
             ngay_chuyen_vao: record.ngayvaodang || null,
             dvhd: record.dangvienhuongdan || '',
+            soqd: record.soqd || '',
+            so_qd: record.soqd || '',
+            ngaykiqd: record.ngaykiqd || null,
+            ngay_ki_qd: record.ngaykiqd || null,
+            facebook: record.link_fb || '',
             trang_thai: 'dang_sinh_hoat',
             dang_vien_du_bi: true, // newly admitted is always Preparatory (Dự bị)
             loai_dang_vien: 'Dự bị',
@@ -1189,6 +1196,22 @@ const HoSoDaKetNap = () => {
 
           if (record.xa_phuong_qq) newDangVien.xa_phuong_qq = record.xa_phuong_qq;
           if (record.tinh_tp_qq) newDangVien.tinh_tp_qq = record.tinh_tp_qq;
+          if (record.tinh_tp_qq_cu) newDangVien.tinh_tp_qq_cu = record.tinh_tp_qq_cu;
+          if (record.quan_huyen_qq_cu) newDangVien.quan_huyen_qq_cu = record.quan_huyen_qq_cu;
+          if (record.xa_phuong_qq_cu) newDangVien.xa_phuong_qq_cu = record.xa_phuong_qq_cu;
+          
+          if (record.dia_chi_tam_tru) newDangVien.dia_chi_tam_tru = record.dia_chi_tam_tru;
+          if (record.chi_tiet_dc) newDangVien.chi_tiet_dc = record.chi_tiet_dc;
+          if (record.xa_phuong_tt) newDangVien.xa_phuong_tt = record.xa_phuong_tt;
+          if (record.tinh_tp_tt) newDangVien.tinh_tp_tt = record.tinh_tp_tt;
+          
+          if (record.chi_tiet_tt_cu) newDangVien.chi_tiet_tt_cu = record.chi_tiet_tt_cu;
+          if (record.tinh_tp_tt_cu) newDangVien.tinh_tp_tt_cu = record.tinh_tp_tt_cu;
+          if (record.quan_huyen_tt_cu) newDangVien.quan_huyen_tt_cu = record.quan_huyen_tt_cu;
+          if (record.xa_phuong_tt_cu) newDangVien.xa_phuong_tt_cu = record.xa_phuong_tt_cu;
+          
+          if (record.ho_ten_nguoi_than) newDangVien.ho_ten_nguoi_than = record.ho_ten_nguoi_than;
+          if (record.sdt_nguoi_than) newDangVien.sdt_nguoi_than = record.sdt_nguoi_than;
 
           // Add to "dang_vien" collection
           await addDoc(collection(dbMain, "dang_vien"), newDangVien);
@@ -1299,13 +1322,20 @@ const HoSoDaKetNap = () => {
               khoa: record.khoa || '',
               cccd: record.cccd || '',
               sdt: record.sdt || '',
+              so_dien_thoai: record.sdt || '',
               email: record.email || '',
               ngay_sinh: record.ngaysinh || null,
+              gioi_tinh: record.gioitinh || 'Nam',
               que_quan: record.quequan || '',
               ngay_vao_dang: record.ngayvaodang || null,
-              noi_chuyen_di: 'Chi bộ Sinh viên DUE',
+              noi_chuyen_di: record.noi_chuyen_di || 'Chi bộ Sinh viên DUE',
               ngay_chuyen_vao: record.ngayvaodang || null,
               dvhd: record.dangvienhuongdan || '',
+              soqd: record.soqd || '',
+              so_qd: record.soqd || '',
+              ngaykiqd: record.ngaykiqd || null,
+              ngay_ki_qd: record.ngaykiqd || null,
+              facebook: record.link_fb || '',
               trang_thai: 'dang_sinh_hoat',
               dang_vien_du_bi: true,
               loai_dang_vien: 'Dự bị',
@@ -1315,6 +1345,22 @@ const HoSoDaKetNap = () => {
 
             if (record.xa_phuong_qq) newDangVien.xa_phuong_qq = record.xa_phuong_qq;
             if (record.tinh_tp_qq) newDangVien.tinh_tp_qq = record.tinh_tp_qq;
+            if (record.tinh_tp_qq_cu) newDangVien.tinh_tp_qq_cu = record.tinh_tp_qq_cu;
+            if (record.quan_huyen_qq_cu) newDangVien.quan_huyen_qq_cu = record.quan_huyen_qq_cu;
+            if (record.xa_phuong_qq_cu) newDangVien.xa_phuong_qq_cu = record.xa_phuong_qq_cu;
+            
+            if (record.dia_chi_tam_tru) newDangVien.dia_chi_tam_tru = record.dia_chi_tam_tru;
+            if (record.chi_tiet_dc) newDangVien.chi_tiet_dc = record.chi_tiet_dc;
+            if (record.xa_phuong_tt) newDangVien.xa_phuong_tt = record.xa_phuong_tt;
+            if (record.tinh_tp_tt) newDangVien.tinh_tp_tt = record.tinh_tp_tt;
+            
+            if (record.chi_tiet_tt_cu) newDangVien.chi_tiet_tt_cu = record.chi_tiet_tt_cu;
+            if (record.tinh_tp_tt_cu) newDangVien.tinh_tp_tt_cu = record.tinh_tp_tt_cu;
+            if (record.quan_huyen_tt_cu) newDangVien.quan_huyen_tt_cu = record.quan_huyen_tt_cu;
+            if (record.xa_phuong_tt_cu) newDangVien.xa_phuong_tt_cu = record.xa_phuong_tt_cu;
+            
+            if (record.ho_ten_nguoi_than) newDangVien.ho_ten_nguoi_than = record.ho_ten_nguoi_than;
+            if (record.sdt_nguoi_than) newDangVien.sdt_nguoi_than = record.sdt_nguoi_than;
 
             await addDoc(collection(dbMain, "dang_vien"), newDangVien);
             

@@ -1152,21 +1152,21 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                     <Field name="chi_tiet_dc" label="Chi tiết địa chỉ thường trú" span={24}><Input size="large" placeholder="Số nhà, tên đường, tổ/thôn/bản..." /></Field>
                   </Row>
                   <Row gutter={16}>
-                    <Field name="xa_phuong_tt" label="Xã/Phường thường trú" span={12}>
-                       <AddressWardSelect province={watchTinhTpTt} />
-                    </Field>
                     <Field name="tinh_tp_tt" label="Tỉnh/TP thường trú" span={12}>
                        <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
+                    </Field>
+                    <Field name="xa_phuong_tt" label="Xã/Phường thường trú" span={12}>
+                       <AddressWardSelect province={watchTinhTpTt} />
                     </Field>
                   </Row>
                   
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Quê quán</Divider>
                   <Row gutter={16}>
-                    <Field name="xa_phuong_qq" label="Xã/Phường quê quán" span={12}>
-                       <AddressWardSelect province={watchTinhTpQq} />
-                    </Field>
                     <Field name="tinh_tp_qq" label="Tỉnh/TP quê quán" span={12}>
                        <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} />
+                    </Field>
+                    <Field name="xa_phuong_qq" label="Xã/Phường quê quán" span={12}>
+                       <AddressWardSelect province={watchTinhTpQq} />
                     </Field>
                   </Row>
 
