@@ -512,6 +512,23 @@ const Profile = () => {
       const values = await form.validateFields();
       setSaving(true);
 
+      const buildAddress = (tinh, huyen, xa, chiTiet) => {
+        const parts = [];
+        if (chiTiet) parts.push(chiTiet);
+        if (xa) parts.push(xa);
+        if (huyen) parts.push(huyen);
+        if (tinh) parts.push(tinh);
+        return parts.join(', ');
+      };
+
+      const queQuanMoi = buildAddress(values.tinh_tp_qq, null, values.xa_phuong_qq, null);
+      const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
+      const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
+
+      const thuongTruMoi = buildAddress(values.tinh_tp_tt, null, values.xa_phuong_tt, values.chi_tiet_dc);
+      const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
+      const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
+
       // Only allow editing all fields except mssv, ho_ten, nhom
       const formatted = {
         cccd: values.cccd || '',
@@ -546,6 +563,8 @@ const Profile = () => {
         tinh_tp_tt_cu: values.tinh_tp_tt_cu || '',
         quan_huyen_tt_cu: values.quan_huyen_tt_cu || '',
         xa_phuong_tt_cu: values.xa_phuong_tt_cu || '',
+        que_quan: queQuan,
+        dia_chi_thuong_tru: diaChiThuongTru,
         ho_ten_nguoi_than: values.ho_ten_nguoi_than || '',
         sdt_nguoi_than: values.sdt_nguoi_than || '',
         updatedAt: new Date().toISOString()
@@ -1018,20 +1037,7 @@ const Profile = () => {
 
             {/* SECTION 5 */}
             <Card title={<><HomeOutlined style={{ marginRight: 8 }} /> Địa chỉ</>} bordered={false} style={cardStyle} headStyle={headStyle}>
-              <Row gutter={16}>
-                <Field name="dia_chi_tam_tru" label="Địa chỉ tạm trú" span={24} editable><Input size="large" /></Field>
-              </Row>
-              <Row gutter={16}>
-                <Field name="chi_tiet_dc" label="Chi tiết địa chỉ thường trú" span={24} editable><Input size="large" /></Field>
-              </Row>
-              <Row gutter={16}>
-                <Field name="tinh_tp_tt" label="Tỉnh/TP Thường Trú" span={12} editable>
-                  <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
-                </Field>
-                <Field name="xa_phuong_tt" label="Xã/Phường Thường trú" span={12} editable>
-                  <AddressWardSelect province={watchTinhTpTt} />
-                </Field>
-              </Row>
+              <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Quê quán</Divider>
               <Row gutter={16}>
                 <Field name="tinh_tp_qq" label="Tỉnh/TP (Quê quán)" span={12} editable>
                   <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} />
@@ -1054,15 +1060,30 @@ const Profile = () => {
                 </Field>
               </Row>
 
+              <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
+              <Row gutter={16}>
+                <Field name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24} editable>
+                  <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
+                </Field>
+              </Row>
+              <Row gutter={16}>
+                <Field name="tinh_tp_tt" label="Tỉnh/TP Thường Trú" span={12} editable>
+                  <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
+                </Field>
+                <Field name="xa_phuong_tt" label="Xã/Phường Thường trú" span={12} editable>
+                  <AddressWardSelect province={watchTinhTpTt} />
+                </Field>
+              </Row>
+
               <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
               <Row gutter={16}>
-                <Field name="chi_tiet_tt_cu" label="Chi tiết thường trú cũ" span={24} editable>
-                  <Input size="large" placeholder="Số nhà, tên đường, tổ/thôn/bản cũ..." />
+                <Field name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ" span={24} editable>
+                  <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
                 </Field>
               </Row>
               <Row gutter={16}>
                 <Field name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" span={8} editable>
-                   <AddressProvinceSelect isOld={true} size="large" onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} size="large" />
+                   <AddressProvinceSelect isOld={true} size="large" onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} />
                 </Field>
                 <Field name="quan_huyen_tt_cu" label="Quận/Huyện thường trú cũ" span={8} editable>
                    <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} size="large" />
@@ -1070,6 +1091,11 @@ const Profile = () => {
                 <Field name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ" span={8} editable>
                    <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
                 </Field>
+              </Row>
+
+              <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
+              <Row gutter={16}>
+                <Field name="dia_chi_tam_tru" label="Địa chỉ tạm trú" span={24} editable><Input size="large" /></Field>
               </Row>
             </Card>
 

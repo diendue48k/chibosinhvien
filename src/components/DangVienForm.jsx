@@ -82,6 +82,23 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
 
 
   const onFinish = (values) => {
+    const buildAddress = (tinh, huyen, xa, chiTiet) => {
+      const parts = [];
+      if (chiTiet) parts.push(chiTiet);
+      if (xa) parts.push(xa);
+      if (huyen) parts.push(huyen);
+      if (tinh) parts.push(tinh);
+      return parts.join(', ');
+    };
+
+    const queQuanMoi = buildAddress(values.tinh_tp_qq, null, values.xa_phuong_qq, null);
+    const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
+    const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
+
+    const thuongTruMoi = buildAddress(values.tinh_tp_tt, null, values.xa_phuong_tt, values.chi_tiet_dc);
+    const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
+    const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
+
     let chiTiet = values.chi_tiet_dc;
     if (!chiTiet) {
       const parts = [];
@@ -93,6 +110,8 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
     const formattedValues = {
       ...values,
       chi_tiet_dc: chiTiet,
+      que_quan: queQuan,
+      dia_chi_thuong_tru: diaChiThuongTru,
       ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : null,
       ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
       ngay_chuyen_vao: values.ngay_chuyen_vao ? values.ngay_chuyen_vao.format('YYYY-MM-DD') : null,
@@ -242,7 +261,11 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             
             <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
             <Row gutter={16}>
-              <Col span={24}><Form.Item name="chi_tiet_dc" label="Chi tiết địa chỉ thường trú"><Input placeholder="Số nhà, tên đường, tổ/thôn/bản..." style={{ height: 40 }} /></Form.Item></Col>
+              <Col span={24}>
+                <Form.Item name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
+                  <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ height: 40 }} />
+                </Form.Item>
+              </Col>
             </Row>
             <Row gutter={16}>
               <Col span={12}>
@@ -292,7 +315,11 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
 
             <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
             <Row gutter={16}>
-              <Col span={24}><Form.Item name="chi_tiet_tt_cu" label="Chi tiết thường trú cũ"><Input placeholder="Số nhà, tên đường, tổ/thôn/bản cũ..." style={{ height: 40 }} /></Form.Item></Col>
+              <Col span={24}>
+                <Form.Item name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ">
+                  <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." style={{ height: 40 }} />
+                </Form.Item>
+              </Col>
             </Row>
             <Row gutter={16}>
               <Col span={8}>

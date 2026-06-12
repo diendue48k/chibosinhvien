@@ -390,7 +390,7 @@ const DocumentGenerator = () => {
         tinh_tp_tt: selectedMember.tinh_tp_tt || '',
         quan_huyen_tt: selectedMember.quan_huyen_tt || '',
         xa_phuong_tt: selectedMember.xa_phuong_tt || '',
-        chi_tiet_tt: selectedMember.chi_tiet_tt || (!selectedMember.tinh_tp_tt ? (selectedMember.dia_chi_thuong_tru || selectedMember.chi_tiet_dc) : '') || '',
+        chi_tiet_dc: selectedMember.chi_tiet_dc || '',
 
         tinh_tp_tt_cu: selectedMember.tinh_tp_tt_cu || '',
         quan_huyen_tt_cu: selectedMember.quan_huyen_tt_cu || '',
@@ -574,7 +574,7 @@ const DocumentGenerator = () => {
       const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
       const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
 
-      const thuongTruMoi = buildAddress(values.tinh_tp_tt, values.quan_huyen_tt, values.xa_phuong_tt, values.chi_tiet_tt);
+      const thuongTruMoi = buildAddress(values.tinh_tp_tt, values.quan_huyen_tt, values.xa_phuong_tt, values.chi_tiet_dc);
       const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
       const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
 
@@ -1851,8 +1851,8 @@ const DocumentGenerator = () => {
                         </Form.Item>
                       </Col>
                       <Col span={8}>
-                        <Form.Item name="chi_tiet_tt" label={<span className="premium-form-label">Chi tiết</span>}>
-                          <Input placeholder="Số nhà, đường..." />
+                        <Form.Item name="chi_tiet_dc" label={<span className="premium-form-label">Số nhà, tên đường, tổ dân phố, thôn, xóm...</span>}>
+                          <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -1876,8 +1876,8 @@ const DocumentGenerator = () => {
                         </Form.Item>
                       </Col>
                       <Col span={6}>
-                        <Form.Item name="chi_tiet_tt_cu" label={<span className="premium-form-label">Chi tiết cũ</span>}>
-                          <Input placeholder="Số nhà, đường..." />
+                        <Form.Item name="chi_tiet_tt_cu" label={<span className="premium-form-label">Số nhà, tên đường, tổ dân phố, thôn, xóm cũ</span>}>
+                          <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -1897,8 +1897,8 @@ const DocumentGenerator = () => {
                         </Form.Item>
                       </Col>
                       <Col span={8}>
-                        <Form.Item name="chi_tiet_tam_tru" label={<span className="premium-form-label">Chi tiết</span>}>
-                          <Input placeholder="Số nhà, đường..." />
+                        <Form.Item name="chi_tiet_tam_tru" label={<span className="premium-form-label">Số nhà, tên đường, tổ dân phố, thôn, xóm...</span>}>
+                          <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -1922,8 +1922,8 @@ const DocumentGenerator = () => {
                         </Form.Item>
                       </Col>
                       <Col span={6}>
-                        <Form.Item name="chi_tiet_tam_tru_cu" label={<span className="premium-form-label">Chi tiết cũ</span>}>
-                          <Input placeholder="Số nhà, đường..." />
+                        <Form.Item name="chi_tiet_tam_tru_cu" label={<span className="premium-form-label">Số nhà, tên đường, tổ dân phố, thôn, xóm cũ</span>}>
+                          <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
                         </Form.Item>
                       </Col>
                     </Row>

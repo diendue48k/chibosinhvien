@@ -436,6 +436,23 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
       }
       values.mssv = mssvStr;
 
+      const buildAddress = (tinh, huyen, xa, chiTiet) => {
+        const parts = [];
+        if (chiTiet) parts.push(chiTiet);
+        if (xa) parts.push(xa);
+        if (huyen) parts.push(huyen);
+        if (tinh) parts.push(tinh);
+        return parts.join(', ');
+      };
+
+      const queQuanMoi = buildAddress(values.tinh_tp_qq, null, values.xa_phuong_qq, null);
+      const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
+      const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
+
+      const thuongTruMoi = buildAddress(values.tinh_tp_tt, null, values.xa_phuong_tt, values.chi_tiet_dc);
+      const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
+      const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
+
       let chiTiet = values.chi_tiet_dc;
       if (!chiTiet) {
         const parts = [];
@@ -448,6 +465,8 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
       const formatted = {
         ...values,
         chi_tiet_dc: chiTiet,
+        que_quan: queQuan,
+        dia_chi_thuong_tru: diaChiThuongTru,
         ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : null,
         ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
         ngay_chuyen_vao: values.ngay_chuyen_vao ? values.ngay_chuyen_vao.format('YYYY-MM-DD') : null,
@@ -1143,23 +1162,6 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                 </Card>
 
                 <Card title={<><HomeOutlined style={{marginRight: 8}}/> Địa chỉ</>} bordered={false} style={cardStyle} headStyle={headStyle}>
-                  <Row gutter={16}>
-                    <Field name="dia_chi_tam_tru" label="Địa chỉ tạm trú" span={24}><Input size="large" placeholder="Nhập địa chỉ tạm trú hiện tại..." /></Field>
-                  </Row>
-                  
-                  <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
-                  <Row gutter={16}>
-                    <Field name="chi_tiet_dc" label="Chi tiết địa chỉ thường trú" span={24}><Input size="large" placeholder="Số nhà, tên đường, tổ/thôn/bản..." /></Field>
-                  </Row>
-                  <Row gutter={16}>
-                    <Field name="tinh_tp_tt" label="Tỉnh/TP thường trú" span={12}>
-                       <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
-                    </Field>
-                    <Field name="xa_phuong_tt" label="Xã/Phường thường trú" span={12}>
-                       <AddressWardSelect province={watchTinhTpTt} />
-                    </Field>
-                  </Row>
-                  
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Quê quán</Divider>
                   <Row gutter={16}>
                     <Field name="tinh_tp_qq" label="Tỉnh/TP quê quán" span={12}>
@@ -1183,9 +1185,26 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                     </Field>
                   </Row>
 
+                  <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
+                  <Row gutter={16}>
+                    <Field name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24}>
+                      <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
+                    </Field>
+                  </Row>
+                  <Row gutter={16}>
+                    <Field name="tinh_tp_tt" label="Tỉnh/TP thường trú" span={12}>
+                       <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
+                    </Field>
+                    <Field name="xa_phuong_tt" label="Xã/Phường thường trú" span={12}>
+                       <AddressWardSelect province={watchTinhTpTt} />
+                    </Field>
+                  </Row>
+
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
                   <Row gutter={16}>
-                    <Field name="chi_tiet_tt_cu" label="Chi tiết thường trú cũ" span={24}><Input size="large" placeholder="Số nhà, tên đường, tổ/thôn/bản cũ..." /></Field>
+                    <Field name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ" span={24}>
+                      <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
+                    </Field>
                   </Row>
                   <Row gutter={16}>
                     <Field name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" span={8}>
@@ -1197,6 +1216,11 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                     <Field name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ" span={8}>
                        <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
                     </Field>
+                  </Row>
+
+                  <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
+                  <Row gutter={16}>
+                    <Field name="dia_chi_tam_tru" label="Địa chỉ tạm trú" span={24}><Input size="large" placeholder="Nhập địa chỉ tạm trú hiện tại..." /></Field>
                   </Row>
                 </Card>
 
