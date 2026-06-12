@@ -295,7 +295,7 @@ const WeeklyPlan = () => {
     const keys = [];
     if (userTeamKey) keys.push(userTeamKey);
     if (leaderTeamKey && !keys.includes(leaderTeamKey)) keys.push(leaderTeamKey);
-    return keys.length > 0 ? keys : Object.keys(TEAMS); // Fallback to all if not categorized
+    return keys; // Return only matched keys (empty if user does not belong to any active group)
   };
 
   // ----------------------------------------------------
@@ -602,10 +602,22 @@ const WeeklyPlan = () => {
           TAB 1: TEAM TASKS (TABS LAYOUT - 5 BUSINESS TABS)
           ==================================================== */}
       {activeTab === 'team-tasks' && (
-        <Tabs 
-          type="card"
-          defaultActiveKey={getVisibleTeamKeys()[0]}
-          items={getVisibleTeamKeys().map(teamKey => {
+        getVisibleTeamKeys().length === 0 ? (
+          <div style={{ padding: '60px 20px', background: '#fff', borderRadius: '8px', border: '1px solid #f0f0f0', textAlign: 'center' }}>
+            <Empty 
+              description={
+                <span>
+                  Đồng chí chưa được phân vào nhóm chuyên trách nào để xem kế hoạch công việc.<br />
+                  <span style={{ fontSize: '12px', color: '#8c8c8c' }}>(Vui lòng liên hệ Chi ủy để được phân nhóm sinh hoạt)</span>
+                </span>
+              } 
+            />
+          </div>
+        ) : (
+          <Tabs 
+            type="card"
+            defaultActiveKey={getVisibleTeamKeys()[0]}
+            items={getVisibleTeamKeys().map(teamKey => {
             const team = TEAMS[teamKey];
             const teamTasks = tasks.filter(t => t.team === teamKey);
             const sortedTeamTasks = [...teamTasks].sort((a, b) => {
@@ -813,6 +825,7 @@ const WeeklyPlan = () => {
             };
           })}
         />
+        )
       )}
 
       {/* ====================================================

@@ -24,7 +24,7 @@ import {
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { permissionService, ROLES } from '../services/permissionService';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -42,6 +42,41 @@ const MainLayout = () => {
   const location = useLocation();
 
   const { currentUser, getRoleBadgeName, logout } = useAuth();
+
+  const [userNhom, setUserNhom] = useState(null);
+  const [loadingNhom, setLoadingNhom] = useState(true);
+
+  useEffect(() => {
+    const fetchUserNhom = async () => {
+      if (!currentUser) {
+        setLoadingNhom(false);
+        return;
+      }
+      try {
+        const mssvStr = String(currentUser.mssv || currentUser.username || '').trim();
+        if (mssvStr) {
+          const q = query(collection(db, "dang_vien"), where("mssv", "==", mssvStr));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            setUserNhom(snapshot.docs[0].data()?.nhom || null);
+            setLoadingNhom(false);
+            return;
+          }
+          const q2 = query(collection(db, "dang_vien"), where("MSSV", "==", mssvStr));
+          const snapshot2 = await getDocs(q2);
+          if (!snapshot2.empty) {
+            setUserNhom(snapshot2.docs[0].data()?.nhom || null);
+            setLoadingNhom(false);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Lỗi fetch user nhom:", e);
+      }
+      setLoadingNhom(false);
+    };
+    fetchUserNhom();
+  }, [currentUser]);
 
   // Notification popup states
   const [notifOpen, setNotifOpen] = useState(false);
@@ -248,6 +283,7 @@ const MainLayout = () => {
 
   // Helper to recursively filter out menu items not allowed for the role
   const filterMenuItems = (items, role) => {
+    const isUserAdmin = ['ADMIN', 'BITHU', 'PHOBIHU', 'CAPUY'].includes(role);
     return items.map(item => {
       if (item.children) {
         const filteredChildren = item.children.filter(child => {
@@ -263,7 +299,13 @@ const MainLayout = () => {
         return null;
       }
       
-
+      // Hide Weekly Plan menu item based on group membership
+      if (item.key === '/weekly-plan') {
+        if (!isUserAdmin) {
+          if (loadingNhom) return null;
+          if (!userNhom || userNhom === 'Khác') return null;
+        }
+      }
 
       // Hide transfer registration menu item for admin/managers
       if (item.key === '/dang-ky-chuyen') {

@@ -1230,7 +1230,7 @@ const HoSoDaKetNap = () => {
             gioi_tinh: record.gioitinh || 'Nam',
             que_quan: record.quequan || '',
             ngay_vao_dang: record.ngayvaodang || null,
-            noi_chuyen_di: record.noi_chuyen_di || 'Chi bộ Sinh viên DUE',
+            noi_chuyen_di: 'Kết nạp mới',
             ngay_chuyen_vao: record.ngayvaodang || null,
             dvhd: record.dangvienhuongdan || '',
             soqd: record.soqd || '',
@@ -1284,6 +1284,8 @@ const HoSoDaKetNap = () => {
             so_qd: record.soqd || '',
             ngay_ki_qd: record.ngaykiqd || null,
             dang_vien_huong_dan: record.dangvienhuongdan || '',
+            ngay_chuyen_vao: record.ngayvaodang || null,
+            noi_chuyen_di: 'Kết nạp mới',
             created_at: new Date().toISOString()
           };
           await addDoc(collection(dbMain, "dang_vien_dang_sinh_hoat"), newDsh);
@@ -1400,7 +1402,7 @@ const HoSoDaKetNap = () => {
               gioi_tinh: record.gioitinh || 'Nam',
               que_quan: record.quequan || '',
               ngay_vao_dang: record.ngayvaodang || null,
-              noi_chuyen_di: record.noi_chuyen_di || 'Chi bộ Sinh viên DUE',
+              noi_chuyen_di: 'Kết nạp mới',
               ngay_chuyen_vao: record.ngayvaodang || null,
               dvhd: record.dangvienhuongdan || '',
               soqd: record.soqd || '',
@@ -1453,6 +1455,8 @@ const HoSoDaKetNap = () => {
               so_qd: record.soqd || '',
               ngay_ki_qd: record.ngaykiqd || null,
               dang_vien_huong_dan: record.dangvienhuongdan || '',
+              ngay_chuyen_vao: record.ngayvaodang || null,
+              noi_chuyen_di: 'Kết nạp mới',
               created_at: new Date().toISOString()
             };
             await addDoc(collection(dbMain, "dang_vien_dang_sinh_hoat"), newDsh);
@@ -1565,13 +1569,22 @@ const HoSoDaKetNap = () => {
             // 1. Find and update in 'dang_vien'
             const dvDoc = dvList.find(d => String(d.mssv || '').trim() === mssvStr);
             if (dvDoc) {
-              const needsUpdate = dvDoc.soqd !== record.soqd || dvDoc.ngaykiqd !== record.ngaykiqd;
-              if (needsUpdate) {
-                promises.push(updateDoc(doc(dbMain, "dang_vien", dvDoc.id), {
+              const needsUpdateDecisions = dvDoc.soqd !== record.soqd || dvDoc.ngaykiqd !== record.ngaykiqd;
+              const needsUpdateTransferInfo = !dvDoc.ngay_chuyen_vao || !dvDoc.noi_chuyen_di || dvDoc.noi_chuyen_di === 'Chi bộ Sinh viên DUE';
+              
+              if (needsUpdateDecisions || needsUpdateTransferInfo) {
+                const updatePayload = {
                   soqd: record.soqd || '',
                   ngaykiqd: record.ngaykiqd || null,
                   updated_at: new Date().toISOString()
-                }));
+                };
+                if (!dvDoc.ngay_chuyen_vao) {
+                  updatePayload.ngay_chuyen_vao = record.ngayvaodang || null;
+                }
+                if (!dvDoc.noi_chuyen_di || dvDoc.noi_chuyen_di === 'Chi bộ Sinh viên DUE') {
+                  updatePayload.noi_chuyen_di = 'Kết nạp mới';
+                }
+                promises.push(updateDoc(doc(dbMain, "dang_vien", dvDoc.id), updatePayload));
                 count++;
               }
             }
@@ -1580,12 +1593,21 @@ const HoSoDaKetNap = () => {
             const dshDoc = dshList.find(d => String(d.mssv || '').trim() === mssvStr);
             if (dshDoc) {
               const needsUpdateDsh = dshDoc.so_qd !== record.soqd || dshDoc.ngay_ki_qd !== record.ngaykiqd;
-              if (needsUpdateDsh) {
-                promises.push(updateDoc(doc(dbMain, "dang_vien_dang_sinh_hoat", dshDoc.id), {
+              const needsUpdateTransferDsh = !dshDoc.ngay_chuyen_vao || !dshDoc.noi_chuyen_di || dshDoc.noi_chuyen_di === 'Chi bộ Sinh viên DUE';
+              
+              if (needsUpdateDsh || needsUpdateTransferDsh) {
+                const updatePayloadDsh = {
                   so_qd: record.soqd || '',
                   ngay_ki_qd: record.ngaykiqd || null,
                   updated_at: new Date().toISOString()
-                }));
+                };
+                if (!dshDoc.ngay_chuyen_vao) {
+                  updatePayloadDsh.ngay_chuyen_vao = record.ngayvaodang || null;
+                }
+                if (!dshDoc.noi_chuyen_di || dshDoc.noi_chuyen_di === 'Chi bộ Sinh viên DUE') {
+                  updatePayloadDsh.noi_chuyen_di = 'Kết nạp mới';
+                }
+                promises.push(updateDoc(doc(dbMain, "dang_vien_dang_sinh_hoat", dshDoc.id), updatePayloadDsh));
               }
             }
           });
