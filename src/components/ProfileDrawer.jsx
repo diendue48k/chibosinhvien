@@ -320,6 +320,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
   const watchTinhTpQq = Form.useWatch('tinh_tp_qq', form);
   const watchTinhTpQqCu = Form.useWatch('tinh_tp_qq_cu', form);
   const watchTinhTpTtCu = Form.useWatch('tinh_tp_tt_cu', form);
+  const watchTinhTpTamTru = Form.useWatch('tinh_tp_tam_tru', form);
   const watchQuanHuyenQqCu = Form.useWatch('quan_huyen_qq_cu', form);
   const watchQuanHuyenTtCu = Form.useWatch('quan_huyen_tt_cu', form);
   const isDuBiWatch = Form.useWatch('dang_vien_du_bi', form);
@@ -343,6 +344,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
 
       form.setFieldsValue({
         ...data,
+        tinh_tp_tam_tru: data.tinh_tp_tam_tru || 'Đà Nẵng',
         ngay_sinh: safeDayjs(data.ngay_sinh),
         ngay_vao_dang: ngayVaoDang,
         ngay_chuyen_vao: safeDayjs(data.ngay_chuyen_vao),
@@ -379,6 +381,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
   const handleCancelEdit = () => {
     form.setFieldsValue({
       ...data,
+      tinh_tp_tam_tru: data.tinh_tp_tam_tru || 'Đà Nẵng',
       ngay_sinh: data.ngay_sinh ? dayjs(data.ngay_sinh) : null,
       ngay_vao_dang: data.ngay_vao_dang ? dayjs(data.ngay_vao_dang) : null,
       ngay_chuyen_vao: data.ngay_chuyen_vao ? dayjs(data.ngay_chuyen_vao) : null,
@@ -453,6 +456,9 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
       const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
       const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
 
+      const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, null, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
+      const diaChiTamTru = tamTruMoi;
+
       let chiTiet = values.chi_tiet_dc;
       if (!chiTiet) {
         const parts = [];
@@ -467,6 +473,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         chi_tiet_dc: chiTiet,
         que_quan: queQuan,
         dia_chi_thuong_tru: diaChiThuongTru,
+        dia_chi_tam_tru: diaChiTamTru,
         ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : null,
         ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
         ngay_chuyen_vao: values.ngay_chuyen_vao ? values.ngay_chuyen_vao.format('YYYY-MM-DD') : null,
@@ -1220,7 +1227,17 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
 
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
                   <Row gutter={16}>
-                    <Field name="dia_chi_tam_tru" label="Địa chỉ tạm trú" span={24}><Input size="large" placeholder="Nhập địa chỉ tạm trú hiện tại..." /></Field>
+                    <Field name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24}>
+                      <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
+                    </Field>
+                  </Row>
+                  <Row gutter={16}>
+                    <Field name="tinh_tp_tam_tru" label="Tỉnh/TP tạm trú" span={12}>
+                       <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} />
+                    </Field>
+                    <Field name="xa_phuong_tam_tru" label="Xã/Phường tạm trú" span={12}>
+                       <AddressWardSelect province={watchTinhTpTamTru} />
+                    </Field>
                   </Row>
                 </Card>
 

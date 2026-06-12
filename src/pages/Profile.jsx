@@ -437,6 +437,7 @@ const Profile = () => {
   const watchTinhTpQq = Form.useWatch('tinh_tp_qq', form);
   const watchTinhTpQqCu = Form.useWatch('tinh_tp_qq_cu', form);
   const watchTinhTpTtCu = Form.useWatch('tinh_tp_tt_cu', form);
+  const watchTinhTpTamTru = Form.useWatch('tinh_tp_tam_tru', form);
   const watchQuanHuyenQqCu = Form.useWatch('quan_huyen_qq_cu', form);
   const watchQuanHuyenTtCu = Form.useWatch('quan_huyen_tt_cu', form);
 
@@ -485,6 +486,7 @@ const Profile = () => {
         // Prefill form
         form.setFieldsValue({
           ...data,
+          tinh_tp_tam_tru: data.tinh_tp_tam_tru || 'Đà Nẵng',
           ngay_sinh: data.ngay_sinh ? dayjs(data.ngay_sinh) : null,
           ngay_vao_dang: data.ngay_vao_dang ? dayjs(data.ngay_vao_dang) : null,
           ngay_chinh_thuc: data.ngay_chinh_thuc ? dayjs(data.ngay_chinh_thuc) : null,
@@ -529,6 +531,9 @@ const Profile = () => {
       const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
       const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
 
+      const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, null, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
+      const diaChiTamTru = tamTruMoi;
+
       // Only allow editing all fields except mssv, ho_ten, nhom
       const formatted = {
         cccd: values.cccd || '',
@@ -550,7 +555,10 @@ const Profile = () => {
         facebook: values.facebook || '',
         email: values.email || '',
         email_sv: values.email_sv || '',
-        dia_chi_tam_tru: values.dia_chi_tam_tru || '',
+        dia_chi_tam_tru: diaChiTamTru || '',
+        tinh_tp_tam_tru: values.tinh_tp_tam_tru || '',
+        xa_phuong_tam_tru: values.xa_phuong_tam_tru || '',
+        chi_tiet_tam_tru: values.chi_tiet_tam_tru || '',
         chi_tiet_dc: values.chi_tiet_dc || '',
         xa_phuong_tt: values.xa_phuong_tt || '',
         tinh_tp_tt: values.tinh_tp_tt || '',
@@ -1095,7 +1103,17 @@ const Profile = () => {
 
               <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
               <Row gutter={16}>
-                <Field name="dia_chi_tam_tru" label="Địa chỉ tạm trú" span={24} editable><Input size="large" /></Field>
+                <Field name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24} editable>
+                  <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
+                </Field>
+              </Row>
+              <Row gutter={16}>
+                <Field name="tinh_tp_tam_tru" label="Tỉnh/TP tạm trú" span={12} editable>
+                  <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} />
+                </Field>
+                <Field name="xa_phuong_tam_tru" label="Xã/Phường tạm trú" span={12} editable>
+                  <AddressWardSelect province={watchTinhTpTamTru} />
+                </Field>
               </Row>
             </Card>
 

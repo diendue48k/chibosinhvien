@@ -372,8 +372,8 @@ const HoSoDaKetNap = () => {
             ngaynhanhoso: null,
             trangthai: 8,
             ngayvaodang: parseExcelDate(row["NGÀY KẾT NẠP"] || row["Ngày kết nạp"] || row["Ngày vào Đảng"]),
-            soqd: row["SỐ QĐ"] || row["Số quyết định"] || row["Số QĐ"] || "",
-            ngaykiqd: parseExcelDate(row["NGÀY KÍ "] || row["NGÀY KÍ"] || row["Ngày ký quyết định"] || row["Ngày kí"] || row["NGÀY KÝ"]),
+            soqd: row["SỐ QĐ"] || row["Số quyết định"] || row["Số QĐ"] || row["Số quyết định kết nạp"] || row["SỐ QUYẾT ĐỊNH KẾT NẠP"] || row["Số QĐ kết nạp"] || row["Số QĐ KN"] || "",
+            ngaykiqd: parseExcelDate(row["NGÀY KÍ "] || row["NGÀY KÍ"] || row["Ngày ký quyết định"] || row["Ngày kí"] || row["NGÀY KÝ"] || row["Ngày ký quyết định kết nạp"] || row["Ngày kí quyết định kết nạp"] || row["NGÀY KÝ QUYẾT ĐỊNH KẾT NẠP"] || row["Ngày ký QĐ kết nạp"] || row["Ngày kí QĐ kết nạp"]),
             nguon_du_lieu: 'auto'
           };
         });
@@ -1097,6 +1097,23 @@ const HoSoDaKetNap = () => {
 
       if (editingId) {
         await updateDoc(doc(dbMain, "ho_so_ket_nap", editingId), formatted);
+        
+        // Propagate changes to dang_vien collection if the dossier has already been transferred
+        const originalRecord = data.find(d => d.id === editingId);
+        if (originalRecord && (originalRecord.da_chuyen_sinh_hoat || originalRecord.trangthai === 8)) {
+          const mssvStr = String(values.mssv || '').trim();
+          if (mssvStr) {
+            const existingDvDoc = await findDocByMssv("dang_vien", mssvStr);
+            if (existingDvDoc) {
+              await updateDoc(doc(dbMain, "dang_vien", existingDvDoc.id), {
+                soqd: values.soqd || '',
+                ngaykiqd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : null,
+                updated_at: new Date().toISOString()
+              });
+            }
+          }
+        }
+        
         message.success("Cập nhật hồ sơ kết nạp thành công");
       } else {
         formatted.created_at = new Date().toISOString();

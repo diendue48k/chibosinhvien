@@ -21,6 +21,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
   const watchTinhTpQq = Form.useWatch('tinh_tp_qq', form);
   const watchTinhTpQqCu = Form.useWatch('tinh_tp_qq_cu', form);
   const watchTinhTpTtCu = Form.useWatch('tinh_tp_tt_cu', form);
+  const watchTinhTpTamTru = Form.useWatch('tinh_tp_tam_tru', form);
   const watchQuanHuyenQqCu = Form.useWatch('quan_huyen_qq_cu', form);
   const watchQuanHuyenTtCu = Form.useWatch('quan_huyen_tt_cu', form);
   const isDuBi = Form.useWatch('dang_vien_du_bi', form);
@@ -68,6 +69,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
       if (initialValues) {
         form.setFieldsValue({
           ...initialValues,
+          tinh_tp_tam_tru: initialValues.tinh_tp_tam_tru || 'Đà Nẵng',
           ngay_sinh: initialValues.ngay_sinh ? dayjs(initialValues.ngay_sinh) : null,
           ngay_vao_dang: initialValues.ngay_vao_dang ? dayjs(initialValues.ngay_vao_dang) : null,
           ngay_chuyen_vao: initialValues.ngay_chuyen_vao ? dayjs(initialValues.ngay_chuyen_vao) : null,
@@ -75,6 +77,9 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
         });
       } else {
         form.resetFields();
+        form.setFieldsValue({
+          tinh_tp_tam_tru: 'Đà Nẵng'
+        });
       }
     }
   }, [open, initialValues, form]);
@@ -99,6 +104,9 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
     const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
     const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
 
+    const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, null, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
+    const diaChiTamTru = tamTruMoi;
+
     let chiTiet = values.chi_tiet_dc;
     if (!chiTiet) {
       const parts = [];
@@ -112,6 +120,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
       chi_tiet_dc: chiTiet,
       que_quan: queQuan,
       dia_chi_thuong_tru: diaChiThuongTru,
+      dia_chi_tam_tru: diaChiTamTru,
       ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : null,
       ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
       ngay_chuyen_vao: values.ngay_chuyen_vao ? values.ngay_chuyen_vao.format('YYYY-MM-DD') : null,
@@ -255,31 +264,6 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
           </TabPane>
 
           <TabPane tab="Địa chỉ & Gia đình" key="2">
-            <Row gutter={16}>
-              <Col span={24}><Form.Item name="dia_chi_tam_tru" label="Địa chỉ tạm trú"><Input placeholder="Nhập địa chỉ tạm trú hiện tại..." style={{ height: 40 }} /></Form.Item></Col>
-            </Row>
-            
-            <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
-            <Row gutter={16}>
-              <Col span={24}>
-                <Form.Item name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
-                  <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ height: 40 }} />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="tinh_tp_tt" label="Tỉnh/TP thường trú">
-                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} size="large" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="xa_phuong_tt" label="Xã/Phường thường trú">
-                  <AddressWardSelect province={watchTinhTpTt} />
-                </Form.Item>
-              </Col>
-            </Row>
-            
             <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Quê quán</Divider>
             <Row gutter={16}>
               <Col span={12}>
@@ -313,6 +297,27 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
               </Col>
             </Row>
 
+            <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
+            <Row gutter={16}>
+              <Col span={24}>
+                <Form.Item name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
+                  <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ height: 40 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="tinh_tp_tt" label="Tỉnh/TP thường trú">
+                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} size="large" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="xa_phuong_tt" label="Xã/Phường thường trú">
+                  <AddressWardSelect province={watchTinhTpTt} />
+                </Form.Item>
+              </Col>
+            </Row>
+
             <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
             <Row gutter={16}>
               <Col span={24}>
@@ -335,6 +340,27 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
               <Col span={8}>
                 <Form.Item name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ">
                   <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
+            <Row gutter={16}>
+              <Col span={24}>
+                <Form.Item name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
+                  <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ height: 40 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="tinh_tp_tam_tru" label="Tỉnh/TP tạm trú">
+                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} size="large" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="xa_phuong_tam_tru" label="Xã/Phường tạm trú">
+                  <AddressWardSelect province={watchTinhTpTamTru} />
                 </Form.Item>
               </Col>
             </Row>
