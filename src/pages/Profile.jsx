@@ -17,6 +17,7 @@ import { ROLES } from '../services/permissionService';
 import dayjs from 'dayjs';
 import AddressWardSelect from '../components/AddressWardSelect';
 import AddressProvinceSelect from '../components/AddressProvinceSelect';
+import AddressDistrictSelect from '../components/AddressDistrictSelect';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -34,7 +35,7 @@ const Field = ({ name, label, rules, children, span = 12, editable = false }) =>
 
   // For date formatting
   let displayVal = val;
-  if (name.includes('ngay_') && val) {
+  if ((name.includes('ngay_') || name === 'ngaykiqd') && val) {
     displayVal = dayjs(val).format('DD/MM/YYYY');
   }
   if (name === 'dang_vien_du_bi') {
@@ -434,6 +435,10 @@ const Profile = () => {
 
   const watchTinhTpTt = Form.useWatch('tinh_tp_tt', form);
   const watchTinhTpQq = Form.useWatch('tinh_tp_qq', form);
+  const watchTinhTpQqCu = Form.useWatch('tinh_tp_qq_cu', form);
+  const watchTinhTpTtCu = Form.useWatch('tinh_tp_tt_cu', form);
+  const watchQuanHuyenQqCu = Form.useWatch('quan_huyen_qq_cu', form);
+  const watchQuanHuyenTtCu = Form.useWatch('quan_huyen_tt_cu', form);
 
   const fetchEditingPeriodStatus = async () => {
     try {
@@ -483,6 +488,8 @@ const Profile = () => {
           ngay_sinh: data.ngay_sinh ? dayjs(data.ngay_sinh) : null,
           ngay_vao_dang: data.ngay_vao_dang ? dayjs(data.ngay_vao_dang) : null,
           ngay_chinh_thuc: data.ngay_chinh_thuc ? dayjs(data.ngay_chinh_thuc) : null,
+          ngay_chuyen_vao: data.ngay_chuyen_vao ? dayjs(data.ngay_chuyen_vao) : null,
+          ngaykiqd: data.ngaykiqd ? dayjs(data.ngaykiqd) : null,
         });
       } else {
         setMemberData(null);
@@ -505,8 +512,9 @@ const Profile = () => {
       const values = await form.validateFields();
       setSaving(true);
 
-      // Only allow editing all fields except mssv, ho_ten, cccd, nhom
+      // Only allow editing all fields except mssv, ho_ten, nhom
       const formatted = {
+        cccd: values.cccd || '',
         ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : (memberData.ngay_sinh || null),
         gioi_tinh: values.gioi_tinh || '',
         dan_toc: values.dan_toc || '',
@@ -516,6 +524,10 @@ const Profile = () => {
         ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : (memberData.ngay_vao_dang || null),
         ngay_chinh_thuc: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : (memberData.ngay_chinh_thuc || null),
         so_the_dang: values.so_the_dang || '',
+        ngay_chuyen_vao: values.ngay_chuyen_vao ? values.ngay_chuyen_vao.format('YYYY-MM-DD') : (memberData.ngay_chuyen_vao || null),
+        noi_chuyen_di: values.noi_chuyen_di || '',
+        ngaykiqd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : (memberData.ngaykiqd || null),
+        soqd: values.soqd || '',
         dvhd: values.dvhd || '',
         so_dien_thoai: values.so_dien_thoai || '',
         facebook: values.facebook || '',
@@ -527,6 +539,13 @@ const Profile = () => {
         tinh_tp_tt: values.tinh_tp_tt || '',
         xa_phuong_qq: values.xa_phuong_qq || '',
         tinh_tp_qq: values.tinh_tp_qq || '',
+        tinh_tp_qq_cu: values.tinh_tp_qq_cu || '',
+        quan_huyen_qq_cu: values.quan_huyen_qq_cu || '',
+        xa_phuong_qq_cu: values.xa_phuong_qq_cu || '',
+        chi_tiet_tt_cu: values.chi_tiet_tt_cu || '',
+        tinh_tp_tt_cu: values.tinh_tp_tt_cu || '',
+        quan_huyen_tt_cu: values.quan_huyen_tt_cu || '',
+        xa_phuong_tt_cu: values.xa_phuong_tt_cu || '',
         ho_ten_nguoi_than: values.ho_ten_nguoi_than || '',
         sdt_nguoi_than: values.sdt_nguoi_than || '',
         updatedAt: new Date().toISOString()
@@ -900,7 +919,9 @@ const Profile = () => {
             <Card title={<><IdcardOutlined style={{ marginRight: 8 }} /> Thông tin cá nhân</>} bordered={false} style={cardStyle} headStyle={headStyle}>
               <Row gutter={16}>
                 <Field name="mssv" label="MSSV" span={12} />
-                <Field name="cccd" label="CCCD" span={12} />
+                <Field name="cccd" label="CCCD" span={12} editable>
+                  <Input size="large" />
+                </Field>
               </Row>
               <Row gutter={16}>
                 <Field name="ho_ten" label="Họ và tên" span={24} />
@@ -948,6 +969,38 @@ const Profile = () => {
                   <DatePicker style={{ width: '100%' }} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" />
                 </Field>
                 <Field name="dang_vien_du_bi" label="Phân loại" span={12} />
+              </Row>
+              <Row gutter={16}>
+                <Field name="ngay_chuyen_vao" label="Ngày chuyển vào Chi bộ" span={12} editable>
+                  <DatePicker style={{ width: '100%' }} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" />
+                </Field>
+                <Field name="noi_chuyen_di" label="Nơi chuyển đi (Nơi sinh hoạt cũ)" span={12} editable>
+                  <Input size="large" />
+                </Field>
+              </Row>
+              <Row gutter={16}>
+                <Field 
+                  name="ngaykiqd" 
+                  label="Ngày ký quyết định kết nạp" 
+                  span={12} 
+                  editable
+                  rules={[
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        const vaoDang = getFieldValue('ngay_vao_dang');
+                        if (!value || !vaoDang || value.isBefore(vaoDang) || value.isSame(vaoDang)) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error('Ngày ký quyết định phải trước hoặc bằng ngày vào Đảng'));
+                      },
+                    }),
+                  ]}
+                >
+                  <DatePicker style={{ width: '100%' }} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" />
+                </Field>
+                <Field name="soqd" label="Số quyết định kết nạp" span={12} editable>
+                  <Input size="large" />
+                </Field>
               </Row>
               {!memberData.dang_vien_du_bi && (
                 <Row gutter={16}>
@@ -1015,6 +1068,37 @@ const Profile = () => {
                 </Field>
                 <Field name="tinh_tp_qq" label="Tỉnh/TP (Quê quán)" span={12} editable>
                   <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} />
+                </Field>
+              </Row>
+
+              <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Quê quán cũ (nếu có)</Divider>
+              <Row gutter={16}>
+                <Field name="tinh_tp_qq_cu" label="Tỉnh/TP quê quán cũ" span={8} editable>
+                   <AddressProvinceSelect isOld={true} size="large" onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} />
+                </Field>
+                <Field name="quan_huyen_qq_cu" label="Quận/Huyện quê quán cũ" span={8} editable>
+                   <AddressDistrictSelect province={watchTinhTpQqCu} onChange={() => form.setFieldsValue({ xa_phuong_qq_cu: undefined })} size="large" />
+                </Field>
+                <Field name="xa_phuong_qq_cu" label="Xã/Phường quê quán cũ" span={8} editable>
+                   <AddressWardSelect isOld={true} province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
+                </Field>
+              </Row>
+
+              <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
+              <Row gutter={16}>
+                <Field name="chi_tiet_tt_cu" label="Chi tiết thường trú cũ" span={24} editable>
+                  <Input size="large" placeholder="Số nhà, tên đường, tổ/thôn/bản cũ..." />
+                </Field>
+              </Row>
+              <Row gutter={16}>
+                <Field name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" span={8} editable>
+                   <AddressProvinceSelect isOld={true} size="large" onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} size="large" />
+                </Field>
+                <Field name="quan_huyen_tt_cu" label="Quận/Huyện thường trú cũ" span={8} editable>
+                   <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} size="large" />
+                </Field>
+                <Field name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ" span={8} editable>
+                   <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
                 </Field>
               </Row>
             </Card>

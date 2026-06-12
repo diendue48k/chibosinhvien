@@ -342,7 +342,7 @@ const DocumentPreview = ({ data, docType }) => {
       padding: '20mm 15mm',
       boxShadow: '0 0 10px rgba(0,0,0,0.1)',
       fontFamily: '"Times New Roman", Times, serif',
-      fontSize: '13pt',
+      fontSize: '14pt',
       color: 'black',
       margin: '0 auto',
       boxSizing: 'border-box'
