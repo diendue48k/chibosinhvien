@@ -965,48 +965,20 @@ const Profile = () => {
             {/* SECTION 3 */}
             <Card title={<><StarOutlined style={{ marginRight: 8 }} /> Thông tin Đảng</>} bordered={false} style={cardStyle} headStyle={headStyle}>
               <Row gutter={16}>
-                <Field name="ngay_vao_dang" label="Ngày vào Đảng" span={12} editable>
-                  <DatePicker style={{ width: '100%' }} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" />
-                </Field>
+                <Field name="ngay_vao_dang" label="Ngày vào Đảng" span={12} />
                 <Field name="dang_vien_du_bi" label="Phân loại" span={12} />
               </Row>
               <Row gutter={16}>
-                <Field name="ngay_chuyen_vao" label="Ngày chuyển vào Chi bộ" span={12} editable>
-                  <DatePicker style={{ width: '100%' }} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" />
-                </Field>
-                <Field name="noi_chuyen_di" label="Nơi chuyển đi (Nơi sinh hoạt cũ)" span={12} editable>
-                  <Input size="large" />
-                </Field>
+                <Field name="ngay_chuyen_vao" label="Ngày chuyển vào Chi bộ" span={12} />
+                <Field name="noi_chuyen_di" label="Nơi chuyển đi (Nơi sinh hoạt cũ)" span={12} />
               </Row>
               <Row gutter={16}>
-                <Field 
-                  name="ngaykiqd" 
-                  label="Ngày ký quyết định kết nạp" 
-                  span={12} 
-                  editable
-                  rules={[
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        const vaoDang = getFieldValue('ngay_vao_dang');
-                        if (!value || !vaoDang || value.isBefore(vaoDang) || value.isSame(vaoDang)) {
-                          return Promise.resolve();
-                        }
-                        return Promise.reject(new Error('Ngày ký quyết định phải trước hoặc bằng ngày vào Đảng'));
-                      },
-                    }),
-                  ]}
-                >
-                  <DatePicker style={{ width: '100%' }} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" />
-                </Field>
-                <Field name="soqd" label="Số quyết định kết nạp" span={12} editable>
-                  <Input size="large" />
-                </Field>
+                <Field name="ngaykiqd" label="Ngày ký quyết định kết nạp" span={12} />
+                <Field name="soqd" label="Số quyết định kết nạp" span={12} />
               </Row>
               {!memberData.dang_vien_du_bi && (
                 <Row gutter={16}>
-                  <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} editable>
-                    <DatePicker style={{ width: '100%' }} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" />
-                  </Field>
+                  <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} />
                   <Col span={12}>
                     <div style={{ marginBottom: 16 }}>
                       <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Số thẻ Đảng</div>
@@ -1020,9 +992,7 @@ const Profile = () => {
                 </Row>
               )}
               <Row gutter={16}>
-                <Field name="dvhd" label="Đảng viên hướng dẫn" span={24} editable>
-                  <Input size="large" />
-                </Field>
+                <Field name="dvhd" label="Đảng viên hướng dẫn" span={24} />
               </Row>
             </Card>
 
