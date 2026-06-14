@@ -868,7 +868,7 @@ const DangVienDuBi = () => {
           'Lớp': item.lop || '',
           'Khoa': item.khoa || '',
           'Trạng thái ảnh': hasPhoto ? 'Đã có ảnh' : 'Chưa có ảnh',
-          'Link ảnh': hasPhoto ? item.anh_ca_nhan : ''
+          'Link ảnh': hasPhoto ? (item.anh_ca_nhan.startsWith('data:') ? '[Ảnh Base64 - Đã lưu trực tiếp]' : item.anh_ca_nhan) : ''
         };
       });
 
@@ -3365,6 +3365,136 @@ const DangVienDuBi = () => {
               </Col>
             </Row>
           </Radio.Group>
+
+          {exportRange === 'filtered' && (
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '16px',
+              marginBottom: '20px',
+              marginTop: '-12px'
+            }}>
+              <div style={{ fontWeight: 700, fontSize: '13px', color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FilterOutlined style={{ color: '#c62828' }} />
+                  <span>Cấu hình Bộ Lọc Dữ Liệu Xuất (Thay đổi sẽ cập nhật trực tiếp):</span>
+                </div>
+                {(searchText || filterKhoa || filterLop || filterIntake || filterHocLop !== null || filterHanXet || filterThangXet) && (
+                  <Button 
+                    type="text" 
+                    danger 
+                    onClick={resetFilters} 
+                    icon={<CloseOutlined />}
+                    style={{ display: 'flex', alignItems: 'center', fontWeight: 500, padding: 0, height: 'auto' }}
+                    size="small"
+                  >
+                    Xóa lọc
+                  </Button>
+                )}
+              </div>
+              <Row gutter={[12, 12]}>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Tìm kiếm từ khóa:</div>
+                  <Input 
+                    placeholder="MSSV, Họ tên..." 
+                    value={searchText} 
+                    onChange={e => setSearchText(e.target.value)} 
+                    style={{ borderRadius: '6px' }}
+                    allowClear
+                  />
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khoa:</div>
+                  <Select 
+                    showSearch
+                    placeholder="Chọn Khoa" 
+                    value={filterKhoa} 
+                    onChange={setFilterKhoa} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    optionFilterProp="children"
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {KHOA_LIST.map(k => <Option key={k} value={k}>{k}</Option>)}
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Lớp:</div>
+                  <Select 
+                    showSearch
+                    placeholder="Chọn Lớp" 
+                    value={filterLop} 
+                    onChange={setFilterLop} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    optionFilterProp="children"
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {[...new Set(data.map(d => d.lop).filter(Boolean))].map(lop => (
+                      <Option key={lop} value={lop}>{lop}</Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khóa:</div>
+                  <Select 
+                    placeholder="Chọn Khóa" 
+                    value={filterIntake} 
+                    onChange={setFilterIntake} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {uniqueIntakes.map(k => (
+                      <Option key={k} value={k}>{k}</Option>
+                    ))}
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Lớp ĐVM:</div>
+                  <Select 
+                    placeholder="Đã học / Chưa học" 
+                    value={filterHocLop} 
+                    onChange={setFilterHocLop} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    <Option value={true}>Đã học</Option>
+                    <Option value={false}>Chưa học</Option>
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Trạng thái hồ sơ:</div>
+                  <Select 
+                    placeholder="Chọn Trạng thái" 
+                    value={filterHanXet} 
+                    onChange={setFilterHanXet} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    <Option value="quahan">Quá hạn (&lt; -30 ngày)</Option>
+                    <Option value="danglam">Đang làm hồ sơ (± 30 ngày)</Option>
+                    <Option value="chuadenhan">Chưa đến hạn (&gt; 30 ngày)</Option>
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Tháng xét duyệt:</div>
+                  <DatePicker 
+                    picker="month"
+                    placeholder="Tháng xét duyệt" 
+                    style={{ width: '100%', borderRadius: '6px' }} 
+                    allowClear 
+                    value={filterThangXet} 
+                    onChange={setFilterThangXet}
+                    format="MM/YYYY"
+                  />
+                </Col>
+              </Row>
+            </div>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626' }}>

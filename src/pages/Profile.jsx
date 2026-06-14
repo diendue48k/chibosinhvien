@@ -102,7 +102,24 @@ const Field = ({ name, label, rules, children, span = 12, editable = false }) =>
 
   // For date formatting
   let displayVal = val;
-  if ((name.includes('ngay_') || name === 'ngaykiqd') && val) {
+  if (name === 'email_sv' && (!val || val.trim() === '')) {
+    const computedEmail = memberData.mssv ? `${memberData.mssv.toLowerCase().trim()}@due.udn.vn` : '--';
+    displayVal = computedEmail !== '--' ? (
+      <a href={`mailto:${computedEmail}`} style={{ color: '#1890ff', wordBreak: 'break-all' }}>{computedEmail}</a>
+    ) : '--';
+  } else if (name === 'email_sv' && val && val.trim() !== '') {
+    displayVal = <a href={`mailto:${val}`} style={{ color: '#1890ff', wordBreak: 'break-all' }}>{val}</a>;
+  } else if (name === 'email' && val) {
+    displayVal = <a href={`mailto:${val}`} style={{ color: '#1890ff', wordBreak: 'break-all' }}>{val}</a>;
+  } else if (name === 'facebook' && val) {
+    const isUrl = val.startsWith('http') || val.startsWith('www.');
+    const href = val.startsWith('www.') ? `https://${val}` : val;
+    displayVal = isUrl ? (
+      <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: '#1890ff', wordBreak: 'break-all' }}>
+        {val}
+      </a>
+    ) : val;
+  } else if ((name.includes('ngay_') || name === 'ngaykiqd') && val) {
     displayVal = dayjs(val).format('DD/MM/YYYY');
   }
   if (name === 'dang_vien_du_bi') {
@@ -727,6 +744,7 @@ const Profile = () => {
           ngaykiqd: normalizedData.ngaykiqd ? dayjs(normalizedData.ngaykiqd) : null,
           ngay_ky_quyet_dinh_dvct: normalizedData.ngay_ky_quyet_dinh_dvct ? dayjs(normalizedData.ngay_ky_quyet_dinh_dvct) : null,
           so_quyet_dinh_dvct: normalizedData.so_quyet_dinh_dvct || '',
+          email_sv: normalizedData.email_sv || (normalizedData.mssv ? `${normalizedData.mssv.toLowerCase().trim()}@due.udn.vn` : ''),
         });
       } else {
         setMemberData(null);
@@ -982,6 +1000,7 @@ const Profile = () => {
                       ngaykiqd: normalizedData.ngaykiqd ? dayjs(normalizedData.ngaykiqd) : null,
                       ngay_ky_quyet_dinh_dvct: normalizedData.ngay_ky_quyet_dinh_dvct ? dayjs(normalizedData.ngay_ky_quyet_dinh_dvct) : null,
                       so_quyet_dinh_dvct: normalizedData.so_quyet_dinh_dvct || '',
+                      email_sv: normalizedData.email_sv || (normalizedData.mssv ? `${normalizedData.mssv.toLowerCase().trim()}@due.udn.vn` : ''),
                     });
                   }}
                   style={{ height: 38, borderRadius: 6 }}

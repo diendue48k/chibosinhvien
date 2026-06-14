@@ -734,7 +734,7 @@ const DangVien = () => {
           'Lớp': item.lop || '',
           'Khoa': item.khoa || '',
           'Trạng thái ảnh': hasPhoto ? 'Đã có ảnh' : 'Chưa có ảnh',
-          'Link ảnh': hasPhoto ? item.anh_ca_nhan : ''
+          'Link ảnh': hasPhoto ? (item.anh_ca_nhan.startsWith('data:') ? '[Ảnh Base64 - Đã lưu trực tiếp]' : item.anh_ca_nhan) : ''
         };
       });
 
@@ -2055,7 +2055,7 @@ const DangVien = () => {
             </div>
             
             <Space size={10} style={{ flexWrap: 'wrap' }}>
-              {selectedRowKeys.length > 0 ? (
+              {selectedRowKeys.length > 0 && (
                 <>
                   <PermissionWrapper module="members" action="delete">
                     <Popconfirm title="Bạn có chắc chắn muốn xóa các Đảng viên đã chọn?" onConfirm={handleBulkDelete} okText="Xóa" cancelText="Hủy">
@@ -2143,33 +2143,31 @@ const DangVien = () => {
                     </Dropdown>
                   </PermissionWrapper>
                 </>
-              ) : (
-                <>
-                  <PermissionWrapper module="members" action="create">
-                    <Button 
-                      icon={<UploadOutlined />} 
-                      onClick={() => setIsImportVisible(true)} 
-                      style={{ borderRadius: '6px', color: '#555555', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      Nhập từ Excel
-                    </Button>
-                  </PermissionWrapper>
-                  <Button 
-                    icon={<DownloadOutlined />} 
-                    onClick={handleOpenExportModal} 
-                    style={{ borderRadius: '6px', color: '#555555', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    Xuất Excel
-                  </Button>
-                  <Button 
-                    icon={<EyeOutlined />} 
-                    onClick={() => setIsAllInfoVisible(true)} 
-                    style={{ borderRadius: '6px', color: '#1890ff', borderColor: '#1890ff', backgroundColor: '#e6f7ff', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    Xem toàn bộ thông tin
-                  </Button>
-                </>
               )}
+
+              <PermissionWrapper module="members" action="create">
+                <Button 
+                  icon={<UploadOutlined />} 
+                  onClick={() => setIsImportVisible(true)} 
+                  style={{ borderRadius: '6px', color: '#555555', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  Nhập từ Excel
+                </Button>
+              </PermissionWrapper>
+              <Button 
+                icon={<DownloadOutlined />} 
+                onClick={handleOpenExportModal} 
+                style={{ borderRadius: '6px', color: '#555555', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                Xuất Excel
+              </Button>
+              <Button 
+                icon={<EyeOutlined />} 
+                onClick={() => setIsAllInfoVisible(true)} 
+                style={{ borderRadius: '6px', color: '#1890ff', borderColor: '#1890ff', backgroundColor: '#e6f7ff', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                Xem toàn bộ thông tin
+              </Button>
               
               <PermissionWrapper module="members" action="create">
                 <Button 
@@ -2722,9 +2720,23 @@ const DangVien = () => {
               marginBottom: '20px',
               marginTop: '-12px'
             }}>
-              <div style={{ fontWeight: 700, fontSize: '13px', color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <FilterOutlined style={{ color: '#c62828' }} />
-                <span>Cấu hình Bộ Lọc Dữ Liệu Xuất (Thay đổi sẽ cập nhật trực tiếp):</span>
+              <div style={{ fontWeight: 700, fontSize: '13px', color: '#1e293b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <FilterOutlined style={{ color: '#c62828' }} />
+                  <span>Cấu hình Bộ Lọc Dữ Liệu Xuất (Thay đổi sẽ cập nhật trực tiếp):</span>
+                </div>
+                {((filterKhoa && filterKhoa.length > 0) || (filterLop && filterLop.length > 0) || (filterNhom && filterNhom.length > 0) || filterNgayVaoDangRange || filterNoiChuyenDi || filterLoaiDangVien || filterCoTheDang || (filterIntake && filterIntake.length > 0) || filterDanToc || filterTonGiao || filterTinhTp || searchText) && (
+                  <Button 
+                    type="text" 
+                    danger 
+                    onClick={resetFilters} 
+                    icon={<CloseOutlined />}
+                    style={{ display: 'flex', alignItems: 'center', fontWeight: 500, padding: 0, height: 'auto' }}
+                    size="small"
+                  >
+                    Xóa lọc
+                  </Button>
+                )}
               </div>
               <Row gutter={[12, 12]}>
                 <Col span={8}>
@@ -2738,46 +2750,72 @@ const DangVien = () => {
                   />
                 </Col>
                 <Col span={8}>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khoa:</div>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khóa:</div>
                   <Select 
-                    placeholder="Chọn Khoa" 
-                    value={filterKhoa} 
-                    onChange={setFilterKhoa} 
+                    mode="multiple"
+                    maxTagCount="responsive"
+                    placeholder="Chọn Khóa" 
+                    value={filterIntake} 
+                    onChange={val => setFilterIntake(val || [])} 
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
                   >
-                    {KHOA_LIST.map(k => <Option key={k} value={k}>{k}</Option>)}
+                    {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khoa:</div>
+                  <Select 
+                    mode="multiple"
+                    maxTagCount="responsive"
+                    showSearch
+                    placeholder="Chọn Khoa" 
+                    value={filterKhoa} 
+                    onChange={val => setFilterKhoa(val || [])} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    optionFilterProp="children"
+                    filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {uniqueKhoa.map(k => <Option key={k} value={k}>{k}</Option>)}
                   </Select>
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Lớp:</div>
                   <Select 
+                    mode="multiple"
+                    maxTagCount="responsive"
+                    showSearch
                     placeholder="Chọn Lớp" 
                     value={filterLop} 
-                    onChange={setFilterLop} 
+                    onChange={val => setFilterLop(val || [])} 
                     style={{ width: '100%' }}
                     allowClear
+                    optionFilterProp="children"
+                    filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
                     dropdownStyle={{ borderRadius: '6px' }}
                   >
-                    {[...new Set(data.map(d => d.lop).filter(Boolean))].sort().map(lop => (
-                      <Option key={lop} value={lop}>{lop}</Option>
-                    ))}
+                    {uniqueLop.map(l => <Option key={l} value={l}>{l}</Option>)}
                   </Select>
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Nhóm sinh hoạt:</div>
                   <Select 
+                    mode="multiple"
+                    maxTagCount="responsive"
+                    showSearch
                     placeholder="Chọn Nhóm" 
                     value={filterNhom} 
-                    onChange={setFilterNhom} 
+                    onChange={val => setFilterNhom(val || [])} 
                     style={{ width: '100%' }}
                     allowClear
+                    optionFilterProp="children"
+                    filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
                     dropdownStyle={{ borderRadius: '6px' }}
                   >
-                    {[...new Set(data.map(d => d.nhom).filter(Boolean))].sort().map(nhom => (
-                      <Option key={nhom} value={nhom}>{nhom}</Option>
-                    ))}
+                    {uniqueNhom.map(n => <Option key={n} value={n}>{n}</Option>)}
                   </Select>
                 </Col>
                 <Col span={8}>
@@ -2785,13 +2823,18 @@ const DangVien = () => {
                   <Select 
                     placeholder="Chọn Loại" 
                     value={filterLoaiDangVien} 
-                    onChange={setFilterLoaiDangVien} 
+                    onChange={val => {
+                      setFilterLoaiDangVien(val);
+                      if (val === 'Dự bị' && filterCoTheDang === 'Đã có thẻ') {
+                        setFilterCoTheDang(null);
+                      }
+                    }} 
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
                   >
-                    <Option value="dubi">Dự bị</Option>
-                    <Option value="chinhthuc">Chính thức</Option>
+                    <Option value="Chính thức">Chính thức</Option>
+                    <Option value="Dự bị">Dự bị</Option>
                   </Select>
                 </Col>
                 <Col span={8}>
@@ -2803,9 +2846,85 @@ const DangVien = () => {
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
+                    disabled={filterLoaiDangVien === 'Dự bị'}
                   >
-                    <Option value="co">Đã cấp</Option>
-                    <Option value="chua">Chưa cấp</Option>
+                    <Option value="Đã có thẻ">Đã có thẻ</Option>
+                    <Option value="Chưa có thẻ">Chưa có thẻ</Option>
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Nơi chuyển vào:</div>
+                  <Select 
+                    showSearch
+                    placeholder="Nơi chuyển vào" 
+                    value={filterNoiChuyenDi} 
+                    onChange={setFilterNoiChuyenDi} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    optionFilterProp="children"
+                    filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {uniqueNoiChuyenDi.map(n => <Option key={n} value={n}>{n}</Option>)}
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Từ ngày (Vào Đảng) - Đến ngày:</div>
+                  <DatePicker.RangePicker 
+                    style={{ width: '100%', borderRadius: '6px' }} 
+                    placeholder={['Từ ngày', 'Đến ngày']} 
+                    format="DD/MM/YYYY" 
+                    value={filterNgayVaoDangRange} 
+                    onChange={setFilterNgayVaoDangRange} 
+                    allowClear 
+                  />
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Dân tộc:</div>
+                  <Select 
+                    showSearch
+                    placeholder="Chọn Dân tộc" 
+                    value={filterDanToc} 
+                    onChange={setFilterDanToc} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    optionFilterProp="children"
+                    filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {uniqueDanToc.map(d => <Option key={d} value={d}>{d}</Option>)}
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Tôn giáo:</div>
+                  <Select 
+                    showSearch
+                    placeholder="Chọn Tôn giáo" 
+                    value={filterTonGiao} 
+                    onChange={setFilterTonGiao} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    optionFilterProp="children"
+                    filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {uniqueTonGiao.map(t => <Option key={t} value={t}>{t}</Option>)}
+                  </Select>
+                </Col>
+                <Col span={8}>
+                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Tỉnh/TP thường trú (Địa chỉ):</div>
+                  <Select 
+                    showSearch
+                    placeholder="Chọn Tỉnh/TP" 
+                    value={filterTinhTp} 
+                    onChange={setFilterTinhTp} 
+                    style={{ width: '100%' }}
+                    allowClear
+                    optionFilterProp="children"
+                    filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                    dropdownStyle={{ borderRadius: '6px' }}
+                  >
+                    {uniqueTinhTp.map(t => <Option key={t} value={t}>{t}</Option>)}
                   </Select>
                 </Col>
               </Row>

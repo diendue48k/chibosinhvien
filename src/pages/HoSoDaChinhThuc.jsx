@@ -1166,7 +1166,7 @@ const HoSoDaChinhThuc = () => {
           'Lớp': item.lop || '',
           'Khoa': item.khoa || '',
           'Trạng thái ảnh': hasPhoto ? 'Đã có ảnh' : 'Chưa có ảnh',
-          'Link ảnh': hasPhoto ? item.anh_ca_nhan : ''
+          'Link ảnh': hasPhoto ? (item.anh_ca_nhan.startsWith('data:') ? '[Ảnh Base64 - Đã lưu trực tiếp]' : item.anh_ca_nhan) : ''
         };
       });
 
