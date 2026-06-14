@@ -332,6 +332,9 @@ const DangVien = () => {
   const [filterNoiChuyenDi, setFilterNoiChuyenDi] = useState(null);
   const [filterLoaiDangVien, setFilterLoaiDangVien] = useState(null);
   const [filterCoTheDang, setFilterCoTheDang] = useState(null);
+  const [filterDanToc, setFilterDanToc] = useState(null);
+  const [filterTonGiao, setFilterTonGiao] = useState(null);
+  const [filterTinhTp, setFilterTinhTp] = useState(null);
   
   const fetchDangVien = async () => {
     setLoading(true);
@@ -398,6 +401,10 @@ const DangVien = () => {
 
       const matchNoiChuyenDi = filterNoiChuyenDi ? item.noi_chuyen_di === filterNoiChuyenDi : true;
       
+      const matchDanToc = filterDanToc ? item.dan_toc === filterDanToc : true;
+      const matchTonGiao = filterTonGiao ? item.ton_giao === filterTonGiao : true;
+      const matchTinhTp = filterTinhTp ? (item.tinh_tp_tt === filterTinhTp || item.tinh_tp_tt_cu === filterTinhTp) : true;
+
       if (filterIntake && filterIntake.length > 0) {
         const lop = item.lop || "";
         const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
@@ -415,7 +422,7 @@ const DangVien = () => {
          }
       }
 
-      return matchSearch && matchKhoa && matchLop && matchNhom && matchLoai && matchCoThe && matchNoiChuyenDi && matchNgayVao;
+      return matchSearch && matchKhoa && matchLop && matchNhom && matchLoai && matchCoThe && matchNoiChuyenDi && matchNgayVao && matchDanToc && matchTonGiao && matchTinhTp;
     });
 
     result.sort((a, b) => {
@@ -429,7 +436,7 @@ const DangVien = () => {
     });
 
     return result;
-  }, [data, searchText, filterKhoa, filterLop, filterNhom, filterNgayVaoDangRange, filterNoiChuyenDi, filterLoaiDangVien, filterCoTheDang, filterIntake]);
+  }, [data, searchText, filterKhoa, filterLop, filterNhom, filterNgayVaoDangRange, filterNoiChuyenDi, filterLoaiDangVien, filterCoTheDang, filterIntake, filterDanToc, filterTonGiao, filterTinhTp]);
 
   const uniqueKhoa = useMemo(() => {
     return [...new Set(data.map(d => d.khoa).filter(Boolean))].sort();
@@ -459,6 +466,18 @@ const DangVien = () => {
     return [...new Set(data.map(d => d.noi_chuyen_di).filter(Boolean))].sort();
   }, [data]);
 
+  const uniqueDanToc = useMemo(() => {
+    return [...new Set(data.map(d => d.dan_toc).filter(Boolean))].sort();
+  }, [data]);
+
+  const uniqueTonGiao = useMemo(() => {
+    return [...new Set(data.map(d => d.ton_giao).filter(Boolean))].sort();
+  }, [data]);
+
+  const uniqueTinhTp = useMemo(() => {
+    return [...new Set(data.map(d => d.tinh_tp_tt || d.tinh_tp_tt_cu).filter(Boolean))].sort();
+  }, [data]);
+
   useEffect(() => {
     if (filterKhoa && filterKhoa.length > 0 && filterLop && filterLop.length > 0) {
       const validLops = filterLop.filter(lop => 
@@ -484,6 +503,9 @@ const DangVien = () => {
     setFilterLoaiDangVien(null);
     setFilterCoTheDang(null);
     setFilterIntake([]);
+    setFilterDanToc(null);
+    setFilterTonGiao(null);
+    setFilterTinhTp(null);
   };
 
   const formatDate = (dateString) => {
@@ -2129,7 +2151,7 @@ const DangVien = () => {
                 <FilterOutlined style={{ color: '#c62828' }} /> <span>Bộ lọc dữ liệu</span>
               </div>
               
-              {((filterKhoa && filterKhoa.length > 0) || (filterLop && filterLop.length > 0) || (filterNhom && filterNhom.length > 0) || filterNgayVaoDangRange || filterNoiChuyenDi || filterLoaiDangVien || filterCoTheDang || (filterIntake && filterIntake.length > 0)) && (
+              {((filterKhoa && filterKhoa.length > 0) || (filterLop && filterLop.length > 0) || (filterNhom && filterNhom.length > 0) || filterNgayVaoDangRange || filterNoiChuyenDi || filterLoaiDangVien || filterCoTheDang || (filterIntake && filterIntake.length > 0) || filterDanToc || filterTonGiao || filterTinhTp) && (
                 <Button 
                   type="text" 
                   danger 
@@ -2272,6 +2294,54 @@ const DangVien = () => {
                   onChange={setFilterNgayVaoDangRange} 
                   allowClear 
                 />
+              </Col>
+
+              <Col xs={24} sm={12} md={8} lg={8}>
+                <Select 
+                  showSearch
+                  placeholder="Dân tộc"
+                  style={{ width: '100%' }}
+                  allowClear
+                  value={filterDanToc}
+                  onChange={setFilterDanToc}
+                  optionFilterProp="children"
+                  filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                  dropdownStyle={{ borderRadius: '6px' }}
+                >
+                  {uniqueDanToc.map(d => <Option key={d} value={d}>{d}</Option>)}
+                </Select>
+              </Col>
+
+              <Col xs={24} sm={12} md={8} lg={8}>
+                <Select 
+                  showSearch
+                  placeholder="Tôn giáo"
+                  style={{ width: '100%' }}
+                  allowClear
+                  value={filterTonGiao}
+                  onChange={setFilterTonGiao}
+                  optionFilterProp="children"
+                  filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                  dropdownStyle={{ borderRadius: '6px' }}
+                >
+                  {uniqueTonGiao.map(t => <Option key={t} value={t}>{t}</Option>)}
+                </Select>
+              </Col>
+
+              <Col xs={24} sm={12} md={8} lg={8}>
+                <Select 
+                  showSearch
+                  placeholder="Tỉnh/TP thường trú (Địa chỉ)"
+                  style={{ width: '100%' }}
+                  allowClear
+                  value={filterTinhTp}
+                  onChange={setFilterTinhTp}
+                  optionFilterProp="children"
+                  filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
+                  dropdownStyle={{ borderRadius: '6px' }}
+                >
+                  {uniqueTinhTp.map(t => <Option key={t} value={t}>{t}</Option>)}
+                </Select>
               </Col>
             </Row>
           </div>
