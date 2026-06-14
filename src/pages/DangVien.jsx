@@ -697,6 +697,48 @@ const DangVien = () => {
     }
   };
 
+  const exportPhotoStatusExcel = () => {
+    try {
+      let dataToExport = [];
+      if (exportRange === 'selected') {
+        dataToExport = (data || []).filter(item => item && selectedRowKeys.includes(item.id));
+      } else if (exportRange === 'all') {
+        dataToExport = data || [];
+      } else {
+        dataToExport = filteredData || [];
+      }
+
+      if (!dataToExport || dataToExport.length === 0) {
+        message.warning("Không có dữ liệu Đảng viên để xuất!");
+        return;
+      }
+
+      const mappedData = dataToExport.map((item, index) => {
+        const hasPhoto = item.anh_ca_nhan && typeof item.anh_ca_nhan === 'string' && item.anh_ca_nhan.trim() !== "";
+        return {
+          'STT': index + 1,
+          'MSSV': item.mssv || '',
+          'Họ và tên': item.ho_ten || '',
+          'Lớp': item.lop || '',
+          'Khoa': item.khoa || '',
+          'Trạng thái ảnh': hasPhoto ? 'Đã có ảnh' : 'Chưa có ảnh',
+          'Link ảnh': hasPhoto ? item.anh_ca_nhan : ''
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(mappedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "BaoCaoAnh");
+      XLSX.writeFile(wb, `BaoCaoAnh_DangVien_${dayjs().format('YYYYMMDD')}.xlsx`);
+      
+      setIsExportModalVisible(false);
+      message.success(`Xuất báo cáo trạng thái ảnh thành công cho ${mappedData.length} Đảng viên!`);
+    } catch (error) {
+      console.error("Lỗi khi xuất báo cáo ảnh:", error);
+      message.error("Đã xảy ra lỗi: " + error.message);
+    }
+  };
+
   const handleRowClick = (record) => {
     setSelectedRecord(record);
     setIsDrawerVisible(true);
@@ -2607,14 +2649,13 @@ const DangVien = () => {
             HỦY BỎ
           </Button>,
           <Button
-            key="zip-photos"
+            key="photo-excel"
             type="dashed"
-            icon={<FileZipOutlined style={{ color: '#fa8c16' }} />}
-            onClick={exportPhotosZip}
-            loading={isExportingPhotos}
+            icon={<DownloadOutlined style={{ color: '#fa8c16' }} />}
+            onClick={exportPhotoStatusExcel}
             style={{ borderColor: '#fa8c16', color: '#fa8c16', height: 40, fontWeight: 600, borderRadius: '6px' }}
           >
-            TẢI ẢNH ĐẢNG VIÊN (.ZIP)
+            BÁO CÁO ẢNH (EXCEL)
           </Button>,
           <Button
             key="ok"
