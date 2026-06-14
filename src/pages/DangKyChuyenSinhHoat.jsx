@@ -14,6 +14,38 @@ import { useAuth } from '../contexts/AuthContext';
 import { docGeneratorService } from '../services/docGeneratorService';
 import dayjs from 'dayjs';
 
+const getFullAddress = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_thuong_tru) return record.dia_chi_thuong_tru;
+  const parts = [];
+  if (record.chi_tiet_dc) parts.push(record.chi_tiet_dc);
+  if (record.xa_phuong_tt) parts.push(record.xa_phuong_tt);
+  if (record.quan_huyen_tt) parts.push(record.quan_huyen_tt);
+  if (record.tinh_tp_tt) parts.push(record.tinh_tp_tt);
+  return parts.join(', ');
+};
+
+const getFullHometown = (record) => {
+  if (!record) return '';
+  if (record.que_quan) return record.que_quan;
+  const parts = [];
+  if (record.xa_phuong_qq) parts.push(record.xa_phuong_qq);
+  if (record.quan_huyen_qq) parts.push(record.quan_huyen_qq);
+  if (record.tinh_tp_qq) parts.push(record.tinh_tp_qq);
+  return parts.join(', ');
+};
+
+const getFullTamTru = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_tam_tru) return record.dia_chi_tam_tru;
+  const parts = [];
+  if (record.chi_tiet_tam_tru) parts.push(record.chi_tiet_tam_tru);
+  if (record.xa_phuong_tam_tru) parts.push(record.xa_phuong_tam_tru);
+  if (record.quan_huyen_tam_tru) parts.push(record.quan_huyen_tam_tru);
+  if (record.tinh_tp_tam_tru) parts.push(record.tinh_tp_tam_tru);
+  return parts.join(', ');
+};
+
 const { Title, Text } = Typography;
 
 const TRANG_THAI_CONFIG = {
@@ -189,8 +221,8 @@ export default function DangKyChuyenSinhHoat() {
         ngay_chinh_thuc: safeFmt(memberData.ngay_chinh_thuc),
         lop: memberData.lop || '',
         khoa: memberData.khoa || '',
-        que_quan: memberData.que_quan || memberData.tinh_tp_qq || '',
-        dia_chi: memberData.chi_tiet_dc || memberData.tinh_tp_tt || memberData.dia_chi_thuong_tru || '',
+        que_quan: memberData.que_quan || getFullHometown(memberData) || memberData.tinh_tp_qq || '',
+        dia_chi: memberData.dia_chi_thuong_tru || getFullAddress(memberData) || memberData.chi_tiet_dc || '',
         so_the_dang: memberData.so_the_dang || memberData.so_quyet_dinh_dvct || memberData.so_qd || '',
         so_dien_thoai: memberData.so_dien_thoai || memberData.sdt || '',
         nhiem_vu_dang: memberData.nhiem_vu_dang || 'Đảng viên',

@@ -450,8 +450,7 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         { find: 'Quản trị kinh doanh', replace: data.khoa || '....................' },
         { find: '51K25.2', replace: data.lop || '....................' },
         { find: '43-44-45 An Thượng', replace: data.chi_uy_noi_cu_tru || '....................' },
-        { find: '100', replace: String(data.tong_so_to_chuc_ctxh || '') },
-        { find: '3', replace: String(data.tong_so_chi_uy_noi_cu_tru || '') }
+        { find: '{chi_uy_noi_cu_tru}}', replace: data.chi_uy_noi_cu_tru || '....................' }
       );
     } else if (docType === 'nhan_xet_dang_vien_giup_do_mau11') {
       const ngayVaoDangY = data.ngay_vao_dang_y;

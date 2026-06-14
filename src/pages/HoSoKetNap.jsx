@@ -1361,7 +1361,7 @@ const HoSoKetNap = () => {
 
   const exportExcel = () => {
     const dataToExport = selectedRowKeys.length > 0 
-      ? filteredData.filter(item => selectedRowKeys.includes(item.id))
+      ? (data || []).filter(item => selectedRowKeys.includes(item.id))
       : filteredData;
 
     const ws = XLSX.utils.json_to_sheet(dataToExport.map(item => ({
@@ -1635,9 +1635,9 @@ const HoSoKetNap = () => {
           style: { cursor: 'pointer' }
         })}
         pagination={{
-          defaultPageSize: 10,
+          defaultPageSize: 50,
           showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50', '1000'],
+          pageSizeOptions: ['10', '20', '50', '100', '1000'],
           showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ kết nạp`
         }}
       />

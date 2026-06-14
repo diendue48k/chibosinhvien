@@ -10,7 +10,7 @@ import {
   MailOutlined, FacebookOutlined, SwapOutlined, ScanOutlined, CameraOutlined,
   CheckCircleOutlined, LoadingOutlined, SafetyCertificateOutlined, DeleteOutlined, UploadOutlined
 } from '@ant-design/icons';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
@@ -18,14 +18,81 @@ import dayjs from 'dayjs';
 import AddressWardSelect from '../components/AddressWardSelect';
 import AddressProvinceSelect from '../components/AddressProvinceSelect';
 import AddressDistrictSelect from '../components/AddressDistrictSelect';
+import addressDataCu from '../data/addressDataCu.json';
+import addressDataMoi from '../data/addressDataMoi.json';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const getDisplayAddress = (tinh, huyen, xa, chiTiet) => {
+  const parts = [];
+  if (chiTiet) parts.push(chiTiet);
+  if (xa) parts.push(xa);
+  if (huyen) parts.push(huyen);
+  if (tinh) parts.push(tinh);
+  return parts.join(', ');
+};
 
 const DAN_TOC = ["Kinh", "Tày", "Thái", "Hoa", "Khmer", "Mường", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ngái", "Ê Đê", "Ba Na", "Xơ Đăng", "Sán Chay", "Cơ Ho", "Chăm", "Sán Dìu", "Hrê", "Mnông", "Ra Glai", "Xtiêng", "Bru-Vân Kiều", "Thổ", "Giáy", "Cơ Tu", "Giẻ Triêng", "Mạ", "Khơ Mú", "Co", "Tà Ôi", "Chơ Ro", "Kháng", "Xinh Mun", "Hà Nhì", "Chu Ru", "Lào", "La Chí", "La Ha", "Phù Lá", "La Hủ", "Lự", "Lô Lô", "Chứt", "Mảng", "Pà Thẻn", "Co Lao", "Cống", "Bố Y", "Si La", "Pu Péo", "Brâu", "Ơ Đu", "Rơ Măm", "Khác"];
 const TON_GIAO = ["Không", "Phật giáo", "Công giáo", "Tin Lành", "Cao Đài", "Hòa Hảo", "Hồi giáo", "Bà La Môn", "Khác"];
 const NHOM = ["Phát triển Đảng", "Hồ sơ sinh hoạt Đảng", "Kiểm tra - Giám sát", "Truyền thông", "Tổ chức"];
 const KHOA = ["P.CTSV", "Quản trị Kinh doanh", "Du lịch", "Marketing", "Tài chính", "Ngân hàng", "Kinh tế", "Kế toán", "Luật", "Thống kê - Tin học", "Thương mại điện tử", "Kinh doanh quốc tế", "Lý luận chính trị", "Khác", "Trung tâm Đào tạo Quốc tế"];
+
+const FIELD_LABELS = {
+  ho_ten: "Họ và tên",
+  mssv: "MSSV",
+  ngay_sinh: "Ngày sinh",
+  gioi_tinh: "Giới tính",
+  cccd: "CCCD",
+  dan_toc: "Dân tộc",
+  ton_giao: "Tôn giáo",
+  lop: "Lớp",
+  khoa: "Khoa",
+  nhom: "Nhóm sinh hoạt",
+  so_dien_thoai: "Số điện thoại",
+  sdt: "Số điện thoại",
+  email: "Email cá nhân",
+  email_sv: "Email sinh viên",
+  facebook: "Facebook",
+  dia_chi_tam_tru: "Địa chỉ tạm trú",
+  chi_tiet_dc: "Địa chỉ thường trú",
+  xa_phuong_tt: "Xã/Phường thường trú",
+  quan_huyen_tt: "Quận/Huyện thường trú",
+  tinh_tp_tt: "Tỉnh/TP thường trú",
+  que_quan: "Quê quán (chi tiết)",
+  xa_phuong_qq: "Xã/Phường quê quán",
+  quan_huyen_qq: "Quận/Huyện quê quán",
+  tinh_tp_qq: "Tỉnh/TP quê quán",
+  ngay_vao_dang: "Ngày vào Đảng",
+  ngay_chinh_thuc: "Ngày chính thức",
+  so_the_dang: "Số thẻ Đảng",
+  noi_chuyen_di: "Nơi chuyển đi",
+  ngay_chuyen_vao: "Ngày chuyển vào Chi bộ",
+  dvhd: "Đảng viên hướng dẫn",
+  dvhd_theo_doi: "ĐVHD theo dõi",
+  dvhd_ho_so: "ĐVHD làm hồ sơ",
+  yeu_cau_lam_ho_so: "Yêu cầu làm hồ sơ chính thức",
+  ho_ten_nguoi_than: "Họ tên người thân",
+  sdt_nguoi_than: "SĐT người thân",
+  anh_ca_nhan: "Ảnh cá nhân",
+  dang_vien_du_bi: "Loại Đảng viên",
+  trang_thai: "Trạng thái sinh hoạt",
+  soqd: "Số quyết định kết nạp",
+  ngaykiqd: "Ngày ký quyết định kết nạp",
+  uu_diem: "Ưu điểm",
+  khuyet_diem: "Khuyết điểm",
+  ghi_chu_ho_so: "Ghi chú hồ sơ",
+  ghi_chu: "Ghi chú hồ sơ",
+  hoc_lop_dv_moi: "Học lớp Đảng viên mới",
+  so_gcn: "Số GCN Đảng viên mới",
+  ngay_cap_gcn: "Ngày cấp GCN",
+  noi_cap_gcn: "Nơi cấp GCN",
+  so_quyet_dinh_dvct: "Số quyết định công nhận ĐVCT",
+  ngay_ky_quyet_dinh_dvct: "Ngày ký quyết định công nhận ĐVCT",
+  ngay_cong_nhan_dvct: "Ngày công nhận ĐVCT",
+  ho_so_status: "Bước hồ sơ",
+  allow_self_edit: "Cho phép tự chỉnh sửa"
+};
 
 const ProfileFieldContext = React.createContext(null);
 
@@ -78,6 +145,122 @@ const Field = ({ name, label, rules, children, span = 12, editable = false }) =>
   );
 };
 
+const normalizeAddressForForm = (data) => {
+  if (!data) return {};
+  const res = { ...data };
+  
+  const findProvinceKey = (val) => {
+    if (!val) return val;
+    if (addressDataCu[val]) return val;
+    if (addressDataCu[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
+    if (addressDataCu[`Thành phố ${val}`]) return `Thành phố ${val}`;
+    return val;
+  };
+
+  const findDistrictKey = (provKey, distVal) => {
+    if (!provKey || !distVal) return distVal;
+    const provData = addressDataCu[provKey];
+    if (!provData) return distVal;
+    
+    if (provData[distVal]) return distVal;
+    
+    const prefixes = ["Quận", "Huyện", "Thị xã", "Thành phố"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${distVal}`;
+      if (provData[candidate]) return candidate;
+    }
+    
+    const distLower = distVal.toLowerCase();
+    const match = Object.keys(provData).find(k => k.toLowerCase().includes(distLower) || distLower.includes(k.toLowerCase()));
+    if (match) return match;
+    
+    return distVal;
+  };
+
+  const findWardKey = (provKey, distKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const provData = addressDataCu[provKey] || {};
+    let wardsList = [];
+    if (distKey && provData[distKey]) {
+      wardsList = provData[distKey];
+    } else {
+      Object.values(provData).forEach(list => {
+        if (Array.isArray(list)) wardsList.push(...list);
+      });
+    }
+    
+    if (wardsList.includes(wardVal)) return wardVal;
+    
+    const prefixes = ["Phường", "Xã", "Thị trấn"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${wardVal}`;
+      if (wardsList.includes(candidate)) return candidate;
+    }
+    
+    const wardLower = wardVal.toLowerCase();
+    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
+    if (match) return match;
+    
+    return wardVal;
+  };
+
+  const findProvinceKeyMoi = (val) => {
+    if (!val) return val;
+    if (addressDataMoi[val]) return val;
+    if (addressDataMoi[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
+    if (addressDataMoi[`Thành phố ${val}`]) return `Thành phố ${val}`;
+    return val;
+  };
+
+  const findWardKeyMoi = (provKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const wardsList = addressDataMoi[provKey] || [];
+    
+    if (wardsList.includes(wardVal)) return wardVal;
+    
+    const prefixes = ["Phường", "Xã", "Thị trấn"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${wardVal}`;
+      if (wardsList.includes(candidate)) return candidate;
+    }
+    
+    const wardLower = wardVal.toLowerCase();
+    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
+    if (match) return match;
+    
+    return wardVal;
+  };
+
+  if (res.tinh_tp_qq) {
+    res.tinh_tp_qq = findProvinceKeyMoi(res.tinh_tp_qq);
+    res.xa_phuong_qq = findWardKeyMoi(res.tinh_tp_qq, res.xa_phuong_qq);
+  }
+  
+  if (res.tinh_tp_tt) {
+    res.tinh_tp_tt = findProvinceKeyMoi(res.tinh_tp_tt);
+    res.xa_phuong_tt = findWardKeyMoi(res.tinh_tp_tt, res.xa_phuong_tt);
+  }
+
+  if (res.tinh_tp_tam_tru) {
+    res.tinh_tp_tam_tru = findProvinceKeyMoi(res.tinh_tp_tam_tru);
+    res.xa_phuong_tam_tru = findWardKeyMoi(res.tinh_tp_tam_tru, res.xa_phuong_tam_tru);
+  }
+
+  if (res.tinh_tp_qq_cu) {
+    res.tinh_tp_qq_cu = findProvinceKey(res.tinh_tp_qq_cu);
+    res.quan_huyen_qq_cu = findDistrictKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu);
+    res.xa_phuong_qq_cu = findWardKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu, res.xa_phuong_qq_cu);
+  }
+
+  if (res.tinh_tp_tt_cu) {
+    res.tinh_tp_tt_cu = findProvinceKey(res.tinh_tp_tt_cu);
+    res.quan_huyen_tt_cu = findDistrictKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu);
+    res.xa_phuong_tt_cu = findWardKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu, res.xa_phuong_tt_cu);
+  }
+
+  return res;
+};
+
 const Profile = () => {
   const { currentUser } = useAuth();
   const [memberData, setMemberData] = useState(null);
@@ -86,6 +269,7 @@ const Profile = () => {
   const [editMode, setEditMode] = useState(false);
   const [isEditingPeriodOpen, setIsEditingPeriodOpen] = useState(false);
   const [editingPeriodInfo, setEditingPeriodInfo] = useState(null);
+  const isAddressEditable = editMode && (isEditingPeriodOpen || memberData?.allow_self_edit);
 
   const [form] = Form.useForm();
 
@@ -148,6 +332,17 @@ const Profile = () => {
         await updateDoc(doc(db, "dang_vien", memberData.id), {
           anh_ca_nhan: base64String,
           updatedAt: new Date().toISOString()
+        });
+
+        // Log history
+        await addDoc(collection(db, "lich_su_cap_nhat"), {
+          dang_vien_id: memberData.id,
+          mssv: memberData.mssv || '',
+          ho_ten: memberData.ho_ten || '',
+          updated_by: memberData.ho_ten || currentUser?.email || "Đảng viên",
+          updated_at: new Date().toISOString(),
+          action: "update",
+          changes: [{ field: "anh_ca_nhan", label: "Ảnh cá nhân", oldVal: "Ảnh cũ", newVal: "Ảnh đại diện mới tải lên" }]
         });
         form.setFieldsValue({ anh_ca_nhan: base64String });
         message.success("Đã tải lên và cập nhật ảnh đại diện mới thành công!");
@@ -387,6 +582,18 @@ const Profile = () => {
       };
 
       await updateDoc(doc(db, "dang_vien", memberData.id), formatted);
+
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: memberData.id,
+        mssv: memberData.mssv || '',
+        ho_ten: memberData.ho_ten || '',
+        updated_by: memberData.ho_ten || currentUser?.email || "Đảng viên",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [{ field: "khuon_mat_registered", label: "Đăng ký khuôn mặt", oldVal: "Chưa đăng ký", newVal: "Đã đăng ký sinh trắc học" }]
+      });
+
       message.success("Đăng ký sinh trắc học khuôn mặt thành công!");
       setIsFaceModalVisible(false);
       setScanStep(0);
@@ -410,6 +617,18 @@ const Profile = () => {
       };
 
       await updateDoc(doc(db, "dang_vien", memberData.id), formatted);
+
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: memberData.id,
+        mssv: memberData.mssv || '',
+        ho_ten: memberData.ho_ten || '',
+        updated_by: memberData.ho_ten || currentUser?.email || "Đảng viên",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [{ field: "khuon_mat_registered", label: "Đăng ký khuôn mặt", oldVal: "Đã đăng ký sinh trắc học", newVal: "Đã xóa dữ liệu khuôn mặt" }]
+      });
+
       message.success("Đã xóa thông tin khuôn mặt thành công.");
       fetchMemberRecord();
     } catch (e) {
@@ -425,6 +644,18 @@ const Profile = () => {
         anh_ca_nhan: memberData.khuon_mat_snapshot,
         updatedAt: new Date().toISOString()
       });
+
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: memberData.id,
+        mssv: memberData.mssv || '',
+        ho_ten: memberData.ho_ten || '',
+        updated_by: memberData.ho_ten || currentUser?.email || "Đảng viên",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [{ field: "anh_ca_nhan", label: "Ảnh cá nhân", oldVal: "Ảnh cũ", newVal: "Đặt ảnh sinh trắc học làm ảnh đại diện" }]
+      });
+
       message.success("Đã đặt ảnh sinh trắc học làm ảnh đại diện!");
       fetchMemberRecord();
     } catch (e) {
@@ -440,6 +671,7 @@ const Profile = () => {
   const watchTinhTpTamTru = Form.useWatch('tinh_tp_tam_tru', form);
   const watchQuanHuyenQqCu = Form.useWatch('quan_huyen_qq_cu', form);
   const watchQuanHuyenTtCu = Form.useWatch('quan_huyen_tt_cu', form);
+
 
   const fetchEditingPeriodStatus = async () => {
     try {
@@ -484,14 +716,17 @@ const Profile = () => {
         setMemberData(data);
 
         // Prefill form
+        const normalizedData = normalizeAddressForForm(data);
         form.setFieldsValue({
-          ...data,
-          tinh_tp_tam_tru: data.tinh_tp_tam_tru || 'Đà Nẵng',
-          ngay_sinh: data.ngay_sinh ? dayjs(data.ngay_sinh) : null,
-          ngay_vao_dang: data.ngay_vao_dang ? dayjs(data.ngay_vao_dang) : null,
-          ngay_chinh_thuc: data.ngay_chinh_thuc ? dayjs(data.ngay_chinh_thuc) : null,
-          ngay_chuyen_vao: data.ngay_chuyen_vao ? dayjs(data.ngay_chuyen_vao) : null,
-          ngaykiqd: data.ngaykiqd ? dayjs(data.ngaykiqd) : null,
+          ...normalizedData,
+          tinh_tp_tam_tru: normalizedData.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
+          ngay_sinh: normalizedData.ngay_sinh ? dayjs(normalizedData.ngay_sinh) : null,
+          ngay_vao_dang: normalizedData.ngay_vao_dang ? dayjs(normalizedData.ngay_vao_dang) : null,
+          ngay_chinh_thuc: normalizedData.ngay_chinh_thuc ? dayjs(normalizedData.ngay_chinh_thuc) : null,
+          ngay_chuyen_vao: normalizedData.ngay_chuyen_vao ? dayjs(normalizedData.ngay_chuyen_vao) : null,
+          ngaykiqd: normalizedData.ngaykiqd ? dayjs(normalizedData.ngaykiqd) : null,
+          ngay_ky_quyet_dinh_dvct: normalizedData.ngay_ky_quyet_dinh_dvct ? dayjs(normalizedData.ngay_ky_quyet_dinh_dvct) : null,
+          so_quyet_dinh_dvct: normalizedData.so_quyet_dinh_dvct || '',
         });
       } else {
         setMemberData(null);
@@ -514,24 +749,15 @@ const Profile = () => {
       const values = await form.validateFields();
       setSaving(true);
 
-      const buildAddress = (tinh, huyen, xa, chiTiet) => {
-        const parts = [];
-        if (chiTiet) parts.push(chiTiet);
-        if (xa) parts.push(xa);
-        if (huyen) parts.push(huyen);
-        if (tinh) parts.push(tinh);
-        return parts.join(', ');
-      };
-
-      const queQuanMoi = buildAddress(values.tinh_tp_qq, null, values.xa_phuong_qq, null);
+      const queQuanMoi = buildAddress(values.tinh_tp_qq, undefined, values.xa_phuong_qq, null);
       const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
       const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
 
-      const thuongTruMoi = buildAddress(values.tinh_tp_tt, null, values.xa_phuong_tt, values.chi_tiet_dc);
+      const thuongTruMoi = buildAddress(values.tinh_tp_tt, undefined, values.xa_phuong_tt, values.chi_tiet_dc);
       const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
       const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
 
-      const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, null, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
+      const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, undefined, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
       const diaChiTamTru = tamTruMoi;
 
       // Only allow editing all fields except mssv, ho_ten, nhom
@@ -557,12 +783,15 @@ const Profile = () => {
         email_sv: values.email_sv || '',
         dia_chi_tam_tru: diaChiTamTru || '',
         tinh_tp_tam_tru: values.tinh_tp_tam_tru || '',
+        quan_huyen_tam_tru: "", // Clear current districts in database
         xa_phuong_tam_tru: values.xa_phuong_tam_tru || '',
         chi_tiet_tam_tru: values.chi_tiet_tam_tru || '',
         chi_tiet_dc: values.chi_tiet_dc || '',
         xa_phuong_tt: values.xa_phuong_tt || '',
+        quan_huyen_tt: "", // Clear current districts in database
         tinh_tp_tt: values.tinh_tp_tt || '',
         xa_phuong_qq: values.xa_phuong_qq || '',
+        quan_huyen_qq: "", // Clear current districts in database
         tinh_tp_qq: values.tinh_tp_qq || '',
         tinh_tp_qq_cu: values.tinh_tp_qq_cu || '',
         quan_huyen_qq_cu: values.quan_huyen_qq_cu || '',
@@ -578,7 +807,49 @@ const Profile = () => {
         updatedAt: new Date().toISOString()
       };
 
+      // Compare values to write to audit log
+      const changes = [];
+      Object.keys(formatted).forEach(key => {
+        if (key === 'updatedAt' || key === 'id') return;
+        const newVal = formatted[key];
+        const oldVal = memberData[key];
+        
+        let strOld = oldVal !== undefined && oldVal !== null ? String(oldVal).trim() : "";
+        let strNew = newVal !== undefined && newVal !== null ? String(newVal).trim() : "";
+        
+        if (key === 'hoc_lop_dv_moi' || key === 'dang_vien_du_bi') {
+          if (!!oldVal !== !!newVal) {
+            changes.push({
+              field: key,
+              label: FIELD_LABELS[key] || key,
+              oldVal: key === 'hoc_lop_dv_moi' ? (!!oldVal ? "Đã học" : "Chưa học") : (!!oldVal ? "Dự bị" : "Chính thức"),
+              newVal: key === 'hoc_lop_dv_moi' ? (!!newVal ? "Đã học" : "Chưa học") : (!!newVal ? "Dự bị" : "Chính thức")
+            });
+          }
+        } else if (strOld !== strNew) {
+          changes.push({
+            field: key,
+            label: FIELD_LABELS[key] || key,
+            oldVal: oldVal !== undefined && oldVal !== null ? oldVal : "",
+            newVal: newVal !== undefined && newVal !== null ? newVal : ""
+          });
+        }
+      });
+
       await updateDoc(doc(db, "dang_vien", memberData.id), formatted);
+
+      if (changes.length > 0) {
+        await addDoc(collection(db, "lich_su_cap_nhat"), {
+          dang_vien_id: memberData.id,
+          mssv: memberData.mssv || '',
+          ho_ten: memberData.ho_ten || '',
+          updated_by: memberData.ho_ten || currentUser?.email || "Đảng viên",
+          updated_at: new Date().toISOString(),
+          action: "update",
+          changes: changes
+        });
+      }
+
       message.success("Cập nhật hồ sơ thành công!");
       setEditMode(false);
       fetchMemberRecord();
@@ -602,6 +873,18 @@ const Profile = () => {
         so_the_dang: memberData.cccd,
         updatedAt: new Date().toISOString()
       });
+
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: memberData.id,
+        mssv: memberData.mssv || '',
+        ho_ten: memberData.ho_ten || '',
+        updated_by: memberData.ho_ten || currentUser?.email || "Đảng viên",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [{ field: "so_the_dang", label: "Số thẻ Đảng", oldVal: memberData.so_the_dang || '', newVal: memberData.cccd }]
+      });
+
       message.success(`Đã cấp số thẻ Đảng (${memberData.cccd}) cho đồng chí ${memberData.ho_ten} thành công!`);
       fetchMemberRecord();
     } catch (e) {
@@ -686,7 +969,21 @@ const Profile = () => {
               <>
                 <Button
                   icon={<CloseOutlined />}
-                  onClick={() => setEditMode(false)}
+                  onClick={() => {
+                    setEditMode(false);
+                    const normalizedData = normalizeAddressForForm(memberData);
+                    form.setFieldsValue({
+                      ...normalizedData,
+                      tinh_tp_tam_tru: normalizedData.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
+                      ngay_sinh: normalizedData.ngay_sinh ? dayjs(normalizedData.ngay_sinh) : null,
+                      ngay_vao_dang: normalizedData.ngay_vao_dang ? dayjs(normalizedData.ngay_vao_dang) : null,
+                      ngay_chinh_thuc: normalizedData.ngay_chinh_thuc ? dayjs(normalizedData.ngay_chinh_thuc) : null,
+                      ngay_chuyen_vao: normalizedData.ngay_chuyen_vao ? dayjs(normalizedData.ngay_chuyen_vao) : null,
+                      ngaykiqd: normalizedData.ngaykiqd ? dayjs(normalizedData.ngaykiqd) : null,
+                      ngay_ky_quyet_dinh_dvct: normalizedData.ngay_ky_quyet_dinh_dvct ? dayjs(normalizedData.ngay_ky_quyet_dinh_dvct) : null,
+                      so_quyet_dinh_dvct: normalizedData.so_quyet_dinh_dvct || '',
+                    });
+                  }}
                   style={{ height: 38, borderRadius: 6 }}
                 >
                   Hủy
@@ -1004,19 +1301,25 @@ const Profile = () => {
                 <Field name="soqd" label="Số quyết định kết nạp" span={12} />
               </Row>
               {!memberData.dang_vien_du_bi && (
-                <Row gutter={16}>
-                  <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} />
-                  <Col span={12}>
-                    <div style={{ marginBottom: 16 }}>
-                      <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Số thẻ Đảng</div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ fontWeight: 500, fontSize: 15, color: '#262626', flex: 1 }}>
-                          {memberData.so_the_dang || <span style={{ color: '#bfbfbf' }}>Chưa cấp</span>}
+                <>
+                  <Row gutter={16}>
+                    <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} />
+                    <Col span={12}>
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Số thẻ Đảng</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontWeight: 500, fontSize: 15, color: '#262626', flex: 1 }}>
+                            {memberData.so_the_dang || <span style={{ color: '#bfbfbf' }}>Chưa cấp</span>}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Col>
-                </Row>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Field name="ngay_ky_quyet_dinh_dvct" label="Ngày ký quyết định chính thức" span={12} />
+                    <Field name="so_quyet_dinh_dvct" label="Số quyết định chính thức" span={12} />
+                  </Row>
+                </>
               )}
               <Row gutter={16}>
                 <Field name="dvhd" label="Đảng viên hướng dẫn" span={24} />
@@ -1070,9 +1373,20 @@ const Profile = () => {
 
               <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
               <Row gutter={16}>
-                <Field name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24} editable>
-                  <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
-                </Field>
+                {isAddressEditable ? (
+                  <Field name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24} editable>
+                    <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
+                  </Field>
+                ) : (
+                  <Col span={24}>
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Địa chỉ chi tiết</div>
+                      <div style={{ fontWeight: 500, fontSize: 15, color: '#262626' }}>
+                        {getDisplayAddress(memberData?.tinh_tp_tt, undefined, memberData?.xa_phuong_tt, memberData?.chi_tiet_dc) || '--'}
+                      </div>
+                    </div>
+                  </Col>
+                )}
               </Row>
               <Row gutter={16}>
                 <Field name="tinh_tp_tt" label="Tỉnh/TP Thường Trú" span={12} editable>
@@ -1085,9 +1399,20 @@ const Profile = () => {
 
               <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
               <Row gutter={16}>
-                <Field name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ" span={24} editable>
-                  <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
-                </Field>
+                {isAddressEditable ? (
+                  <Field name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ" span={24} editable>
+                    <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
+                  </Field>
+                ) : (
+                  <Col span={24}>
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Địa chỉ chi tiết cũ</div>
+                      <div style={{ fontWeight: 500, fontSize: 15, color: '#262626' }}>
+                        {getDisplayAddress(memberData?.tinh_tp_tt_cu, memberData?.quan_huyen_tt_cu, memberData?.xa_phuong_tt_cu, memberData?.chi_tiet_tt_cu) || '--'}
+                      </div>
+                    </div>
+                  </Col>
+                )}
               </Row>
               <Row gutter={16}>
                 <Field name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" span={8} editable>
@@ -1103,9 +1428,20 @@ const Profile = () => {
 
               <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
               <Row gutter={16}>
-                <Field name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24} editable>
-                  <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
-                </Field>
+                {isAddressEditable ? (
+                  <Field name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24} editable>
+                    <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
+                  </Field>
+                ) : (
+                  <Col span={24}>
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Địa chỉ chi tiết</div>
+                      <div style={{ fontWeight: 500, fontSize: 15, color: '#262626' }}>
+                        {getDisplayAddress(memberData?.tinh_tp_tam_tru, undefined, memberData?.xa_phuong_tam_tru, memberData?.chi_tiet_tam_tru) || '--'}
+                      </div>
+                    </div>
+                  </Col>
+                )}
               </Row>
               <Row gutter={16}>
                 <Field name="tinh_tp_tam_tru" label="Tỉnh/TP tạm trú" span={12} editable>

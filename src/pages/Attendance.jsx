@@ -20,6 +20,13 @@ import * as XLSX from 'xlsx';
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
 const Attendance = () => {
   const { currentUser } = useAuth();
   
@@ -302,7 +309,7 @@ const Attendance = () => {
       
       for (const mc of importCols) {
         const headerName = mc.header;
-        let matched = meetings.find(m => m.title === headerName || dayjs(m.date).format('DD/MM/YYYY') === headerName || m.date.includes(headerName));
+        let matched = meetings.find(m => m.title === headerName || safeDayjs(m.date).format('DD/MM/YYYY') === headerName || (m.date && typeof m.date === 'string' && m.date.includes(headerName)));
         
         if (!matched) {
           addLog(`Chưa có lịch họp "${headerName}". Tự động tạo mới...`);
@@ -462,7 +469,7 @@ const Attendance = () => {
           let formattedTimeOnly = '';
           
           if (parsedDate) {
-            const tempDayjs = dayjs(parsedDate);
+            const tempDayjs = safeDayjs(parsedDate);
             if (tempDayjs.isValid()) {
               formattedDateOnly = tempDayjs.format('YYYY-MM-DD');
               formattedTimeOnly = tempDayjs.format('HH:mm');
@@ -1191,7 +1198,7 @@ const Attendance = () => {
       
       if (checkIn) {
         statusKey = checkIn.status;
-        checkInTimeStr = checkIn.checkInTime ? dayjs(checkIn.checkInTime).format('HH:mm:ss') : '';
+        checkInTimeStr = checkIn.checkInTime ? safeDayjs(checkIn.checkInTime).format('HH:mm:ss') : '';
         methodStr = checkIn.method === 'BARCODE' ? 'Mã vạch' : (checkIn.method === 'FACE' ? 'Khuôn mặt' : 'Thủ công');
       } else if (isPast) {
         statusKey = approvedAbsence ? 'EXCUSED' : 'UNEXCUSED';
@@ -1374,7 +1381,7 @@ const Attendance = () => {
   // 9. MONTHLY ATTENDANCE MATRIX & DYNAMIC COLUMNS FOR ADMINISTRATIVE VIEWS
   const filteredMatrixMeetings = useMemo(() => {
     if (matrixMonth === 'ALL') return meetings;
-    return meetings.filter(m => dayjs(m.date).format('MM') === matrixMonth);
+    return meetings.filter(m => safeDayjs(m.date).format('MM') === matrixMonth);
   }, [meetings, matrixMonth]);
 
   const matrixData = useMemo(() => {
@@ -1388,7 +1395,7 @@ const Attendance = () => {
       filteredMatrixMeetings.forEach(m => {
         const checkIn = matrixAttendances.find(a => a.meetingId === m.id && a.mssv === dv.mssv);
         const approvedAbsence = matrixAbsences.find(r => r.cuoc_hop_id === m.id && r.mssv === dv.mssv && r.trang_thai === 'approved');
-        const isPast = dayjs(`${m.date} ${m.time}`).isBefore(dayjs());
+        const isPast = safeDayjs(`${m.date} ${m.time}`).isBefore(safeDayjs());
 
         if (checkIn) {
           records[m.id] = checkIn.status;
@@ -1464,7 +1471,7 @@ const Attendance = () => {
         title: (
           <Tooltip title={m.title}>
             <div style={{ fontSize: 11, textAlign: 'center', lineHeight: '1.2' }}>
-              <div>{dayjs(m.date).format('DD/MM')}</div>
+              <div>{safeDayjs(m.date).format('DD/MM')}</div>
               <div style={{ color: '#888', fontWeight: 'normal' }}>{m.time}</div>
             </div>
           </Tooltip>
@@ -1546,7 +1553,7 @@ const Attendance = () => {
     try {
       const headers = ["STT", "MSSV", "Họ và tên", "Lớp"];
       filteredMatrixMeetings.forEach(m => {
-        headers.push(`${m.title} (${dayjs(m.date).format('DD/MM/YYYY')})`);
+        headers.push(`${m.title} (${safeDayjs(m.date).format('DD/MM/YYYY')})`);
       });
       headers.push("Tổng số buổi", "Có mặt", "Đi muộn", "Vắng có phép", "Vắng không phép", "Tổng vắng");
 
@@ -1644,7 +1651,7 @@ const Attendance = () => {
       const presentRows = [presentHeaders];
       
       attendances.forEach((a, idx) => {
-        const time = a.checkInTime ? dayjs(a.checkInTime).format('DD/MM/YYYY HH:mm:ss') : 'N/A';
+        const time = a.checkInTime ? safeDayjs(a.checkInTime).format('DD/MM/YYYY HH:mm:ss') : 'N/A';
         const methodTxt = a.method === 'BARCODE' ? "Mã vạch" : (a.method === 'FACE' ? "Khuôn mặt" : "Thủ công");
         const statusTxt = a.status === 'PRESENT' ? "Có mặt" : (a.status === 'LATE' ? "Đi muộn" : "Vắng");
         presentRows.push([idx + 1, a.mssv, a.ho_ten, a.lop, time, methodTxt, statusTxt, a.deviceInfo, a.ip]);
@@ -1706,7 +1713,7 @@ const Attendance = () => {
       title: 'Thời gian',
       dataIndex: 'checkInTime',
       key: 'checkInTime',
-      render: (t) => t ? dayjs(t).format('HH:mm:ss') : ''
+      render: (t) => t ? safeDayjs(t).format('HH:mm:ss') : ''
     },
     {
       title: 'Phương thức',
@@ -1797,7 +1804,7 @@ const Attendance = () => {
           >
             {meetings.map(m => (
               <Option key={m.id} value={m.id}>
-                {m.title} ({dayjs(m.date).format('DD/MM/YYYY')})
+                {m.title} ({safeDayjs(m.date).format('DD/MM/YYYY')})
               </Option>
             ))}
           </Select>
@@ -1846,7 +1853,7 @@ const Attendance = () => {
                   </Title>
                   <Space size="large" style={{ fontSize: 13, color: '#666' }}>
                     <span>📍 Địa điểm: <strong>{selectedMeeting.location}</strong></span>
-                    <span>📅 Ngày: <strong>{dayjs(selectedMeeting.date).format('DD/MM/YYYY')}</strong></span>
+                    <span>📅 Ngày: <strong>{safeDayjs(selectedMeeting.date).format('DD/MM/YYYY')}</strong></span>
                     <span>⏰ Bắt đầu: <strong>{selectedMeeting.time}</strong></span>
                   </Space>
                 </Space>
@@ -2179,7 +2186,7 @@ const Attendance = () => {
                   loading={loading}
                   scroll={{ x: 'max-content' }}
                   pagination={{
-                    defaultPageSize: 10,
+                    defaultPageSize: 50,
                     showSizeChanger: true,
                     pageSizeOptions: ['10', '20', '50', '100', '1000'],
                     showTotal: (total) => `Tổng cộng: ${total}/${dangVienList.length} Đảng viên`
@@ -2195,7 +2202,7 @@ const Attendance = () => {
                   loading={loading}
                   scroll={{ x: 'max-content' }}
                   pagination={{
-                    defaultPageSize: 10,
+                    defaultPageSize: 50,
                     showSizeChanger: true,
                     pageSizeOptions: ['10', '20', '50', '100', '1000'],
                     showTotal: (total) => `Tổng cộng: ${total} Đảng viên vắng mặt`
@@ -2251,7 +2258,7 @@ const Attendance = () => {
                   loading={loadingMatrix}
                   scroll={{ x: 'max-content' }}
                   pagination={{
-                    defaultPageSize: 10,
+                    defaultPageSize: 50,
                     showSizeChanger: true,
                     pageSizeOptions: ['10', '20', '50', '100', '1000'],
                     showTotal: (total) => `Tổng cộng: ${total} Đảng viên`

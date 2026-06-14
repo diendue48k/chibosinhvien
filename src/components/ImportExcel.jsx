@@ -257,6 +257,18 @@ const ImportExcel = ({ open, onCancel, onSuccess }) => {
             xa_phuong_tt: row["Xã/phường thường trú"] || "",
             quan_huyen_tt: row["Quận/huyện thường trú"] || "",
             tinh_tp_tt: row["Tỉnh/TP thường trú"] || "",
+            dia_chi_thuong_tru: (() => {
+              const chiTiet = row["Chi tiết địa chỉ thường trú"] || row["Chi tiết địa chỉ"] || "";
+              const xa = row["Xã/phường thường trú"] || "";
+              const huyen = row["Quận/huyện thường trú"] || "";
+              const tinh = row["Tỉnh/TP thường trú"] || "";
+              const parts = [];
+              if (chiTiet) parts.push(chiTiet);
+              if (xa) parts.push(xa);
+              if (huyen) parts.push(huyen);
+              if (tinh) parts.push(tinh);
+              return parts.join(', ');
+            })(),
             
             // Old Address
             chi_tiet_tt_cu: row["Chi tiết thường trú cũ"] || "",
@@ -265,7 +277,18 @@ const ImportExcel = ({ open, onCancel, onSuccess }) => {
             tinh_tp_tt_cu: row["Tỉnh/TP thường trú cũ"] || "",
             
             // Quê quán
-            que_quan: row["Quê quán (chi tiết)"] || row["Quê quán chi tiết"] || row["Quê quán"] || "",
+            que_quan: (() => {
+              const baseQueQuan = row["Quê quán (chi tiết)"] || row["Quê quán chi tiết"] || row["Quê quán"] || "";
+              if (baseQueQuan) return baseQueQuan;
+              const xa = row["Xã/phường quê quán"] || "";
+              const huyen = row["Quận/huyện quê quán"] || "";
+              const tinh = row["Tỉnh/TP quê quán"] || "";
+              const parts = [];
+              if (xa) parts.push(xa);
+              if (huyen) parts.push(huyen);
+              if (tinh) parts.push(tinh);
+              return parts.join(', ');
+            })(),
             xa_phuong_qq: row["Xã/phường quê quán"] || "",
             quan_huyen_qq: row["Quận/huyện quê quán"] || "",
             tinh_tp_qq: row["Tỉnh/TP quê quán"] || "",

@@ -8,7 +8,8 @@ import {
   SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined,
   EyeOutlined, DownloadOutlined, CloseOutlined, FilterOutlined,
   UploadOutlined, TableOutlined, MailOutlined, CalendarOutlined, ExportOutlined,
-  FullscreenOutlined, FullscreenExitOutlined
+  FullscreenOutlined, FullscreenExitOutlined, ExclamationCircleOutlined,
+  FileZipOutlined
 } from '@ant-design/icons';
 import { collection, getDocs, doc, deleteDoc, updateDoc, query, where, addDoc } from 'firebase/firestore';
 import { dbMain as db } from '../firebase';
@@ -16,9 +17,46 @@ import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
 import ImportExcel from '../components/ImportExcel';
 import ProfileDrawer from '../components/ProfileDrawer';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const disabledFutureDate = (current) => {
+  return current && current > dayjs().endOf('day');
+};
+
+const getFullAddress = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_thuong_tru) return record.dia_chi_thuong_tru;
+  const parts = [];
+  if (record.chi_tiet_dc) parts.push(record.chi_tiet_dc);
+  if (record.xa_phuong_tt) parts.push(record.xa_phuong_tt);
+  if (record.quan_huyen_tt) parts.push(record.quan_huyen_tt);
+  if (record.tinh_tp_tt) parts.push(record.tinh_tp_tt);
+  return parts.join(', ');
+};
+
+const getFullHometown = (record) => {
+  if (!record) return '';
+  if (record.que_quan) return record.que_quan;
+  const parts = [];
+  if (record.xa_phuong_qq) parts.push(record.xa_phuong_qq);
+  if (record.quan_huyen_qq) parts.push(record.quan_huyen_qq);
+  if (record.tinh_tp_qq) parts.push(record.tinh_tp_qq);
+  return parts.join(', ');
+};
+
+const getFullTamTru = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_tam_tru) return record.dia_chi_tam_tru;
+  const parts = [];
+  if (record.chi_tiet_tam_tru) parts.push(record.chi_tiet_tam_tru);
+  if (record.xa_phuong_tam_tru) parts.push(record.xa_phuong_tam_tru);
+  if (record.quan_huyen_tam_tru) parts.push(record.quan_huyen_tam_tru);
+  if (record.tinh_tp_tam_tru) parts.push(record.tinh_tp_tam_tru);
+  return parts.join(', ');
+};
 
 const EXPORT_FIELDS = [
   { key: 'ho_ten', label: 'Họ tên', group: 'basic' },
@@ -40,9 +78,11 @@ const EXPORT_FIELDS = [
   { key: 'facebook', label: 'Facebook', group: 'contact' },
   { key: 'dia_chi_tam_tru', label: 'Địa chỉ tạm trú', group: 'contact' },
   
+  { key: 'dia_chi_thuong_tru', label: 'Địa chỉ thường trú', group: 'address' },
   { key: 'chi_tiet_dc', label: 'Chi tiết ĐC thường trú', group: 'address' },
   { key: 'xa_phuong_tt', label: 'Xã/phường thường trú', group: 'address' },
   { key: 'tinh_tp_tt', label: 'Tỉnh/TP thường trú', group: 'address' },
+  { key: 'que_quan', label: 'Quê quán', group: 'address' },
   { key: 'xa_phuong_qq', label: 'Xã/phường quê quán', group: 'address' },
   { key: 'tinh_tp_qq', label: 'Tỉnh/TP quê quán', group: 'address' },
   
@@ -76,30 +116,63 @@ const KHOA_LIST = [
   "Thương mại điện tử", "Kinh doanh quốc tế", "Lý luận chính trị", "Khác"
 ];
 
-const getOfficialYear = (item) => {
-  const date = item.ngay_cong_nhan_dvct || item.ngay_chinh_thuc;
-  if (date) return dayjs(date).format('YYYY');
-  if (item.ngay_vao_dang) return dayjs(item.ngay_vao_dang).add(1, 'year').format('YYYY');
-  if (item.created_at) return dayjs(item.created_at).format('YYYY');
-  return null;
-};
-
-const safeDayjs = (dateVal) => {
-  if (!dateVal) return null;
-  const d = dayjs(dateVal);
+const safeDayjs = (val) => {
+  if (!val) return null;
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  const d = dayjs(val);
   return d.isValid() ? d : null;
 };
 
+const checkIsDuBi = (member) => {
+  if (!member) return true;
+  const getOfficialDate = () => {
+    const date = member.ngay_cong_nhan_dvct || member.ngay_chinh_thuc;
+    if (!date) return null;
+    if (date.toDate && typeof date.toDate === 'function') return dayjs(date.toDate());
+    if (date.seconds) return dayjs(date.seconds * 1000);
+    return dayjs(date);
+  };
+  const officialDate = getOfficialDate();
+  if (officialDate && officialDate.isValid()) {
+    return officialDate.isAfter(dayjs(), 'day');
+  }
+  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+};
+
+const getOfficialYear = (item) => {
+  const date = item.ngay_cong_nhan_dvct || item.ngay_chinh_thuc;
+  if (date) {
+    const d = safeDayjs(date);
+    if (d) return d.format('YYYY');
+  }
+  if (item.ngay_vao_dang) {
+    const d = safeDayjs(item.ngay_vao_dang);
+    if (d) return d.add(1, 'year').format('YYYY');
+  }
+  if (item.created_at) {
+    const d = safeDayjs(item.created_at);
+    if (d) return d.format('YYYY');
+  }
+  return null;
+};
+
 const HoSoDaChinhThuc = () => {
+  const { currentUser } = useAuth();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Deletion/Revert States
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Filters
   const [searchText, setSearchText] = useState("");
-  const [filterKhoa, setFilterKhoa] = useState(null);
-  const [filterLop, setFilterLop] = useState(null);
-  const [filterIntake, setFilterIntake] = useState(null);
-  const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
+  const [filterKhoa, setFilterKhoa] = useState([]);
+  const [filterLop, setFilterLop] = useState([]);
+  const [filterIntake, setFilterIntake] = useState([]);
+  const [filterYear, setFilterYear] = useState([]);
 
   // Drawer / View details
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -115,6 +188,7 @@ const HoSoDaChinhThuc = () => {
   const [exportRange, setExportRange] = useState('filtered'); // 'filtered', 'all', 'selected'
   const [selectedExportFields, setSelectedExportFields] = useState(EXPORT_FIELDS.map(f => f.key));
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [isExportingPhotos, setIsExportingPhotos] = useState(false);
 
   // Show all info / Import Excel states
   const [isAllInfoVisible, setIsAllInfoVisible] = useState(false);
@@ -178,19 +252,24 @@ const HoSoDaChinhThuc = () => {
       const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
       // Filter those who are official members (loai_dang_vien === "Chính thức" or dang_vien_du_bi === false)
-      const officialMembers = members.filter(member =>
-        (member.loai_dang_vien === "Chính thức" || member.dang_vien_du_bi === false) &&
-        member.ho_ten
-      );
+      // and their official date is not in the future
+      const officialMembers = members.filter(member => {
+        if (!member.ho_ten) return false;
+        return !checkIsDuBi(member) && (member.ho_so_status !== undefined && member.ho_so_status !== null && member.ho_so_status !== "");
+      });
 
       setData(officialMembers);
 
       // Filter preparatory members who have completed Step 6 of their preparatory process
-      const prepList = members.filter(member =>
-        (member.loai_dang_vien === "Dự bị" || member.dang_vien_du_bi === true) &&
-        (member.ho_so_status === 6 || member.ho_so_status === "6") &&
-        member.ho_ten
-      );
+      const prepList = members.filter(member => {
+        if (!member.ho_ten) return false;
+        const isDuBi = checkIsDuBi(member);
+        // Exclude if already processed (i.e. they already have ngay_chinh_thuc / so_quyet_dinh_dvct set)
+        if (member.ngay_chinh_thuc || member.so_quyet_dinh_dvct) {
+          return false;
+        }
+        return isDuBi && (member.ho_so_status === 6 || member.ho_so_status === "6");
+      });
       setPrepMembers(prepList);
     } catch (error) {
       console.error("Lỗi khi tải danh sách:", error);
@@ -215,10 +294,10 @@ const HoSoDaChinhThuc = () => {
 
   const resetFilters = () => {
     setSearchText("");
-    setFilterKhoa(null);
-    setFilterLop(null);
-    setFilterIntake(null);
-    setFilterYear(new Date().getFullYear().toString());
+    setFilterKhoa([]);
+    setFilterLop([]);
+    setFilterIntake([]);
+    setFilterYear([]);
   };
 
   // Filtered and Sorted Data
@@ -227,23 +306,21 @@ const HoSoDaChinhThuc = () => {
       const matchSearch = searchText === "" ||
         item.mssv?.toLowerCase().includes(searchText.toLowerCase()) ||
         item.ho_ten?.toLowerCase().includes(searchText.toLowerCase());
-      const matchKhoa = filterKhoa ? item.khoa === filterKhoa : true;
-      const matchLop = filterLop ? item.lop === filterLop : true;
+      const matchKhoa = filterKhoa && filterKhoa.length > 0 ? filterKhoa.includes(item.khoa) : true;
+      const matchLop = filterLop && filterLop.length > 0 ? filterLop.includes(item.lop) : true;
 
-      if (filterIntake) {
+      if (filterIntake && filterIntake.length > 0) {
         const lop = item.lop || "";
         const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
-        const intake = match ? match[1] : null;
-        if (intake !== filterIntake) return false;
+        const intake = match ? match[0] : null;
+        if (!filterIntake.includes(intake)) return false;
       }
 
       const year = getOfficialYear(item);
-      const yearNum = year ? parseInt(year, 10) : 0;
       
-
       let matchYear = true;
-      if (filterYear) {
-        matchYear = year === filterYear;
+      if (filterYear && filterYear.length > 0) {
+        matchYear = filterYear.includes(year);
       }
 
       return matchSearch && matchKhoa && matchLop && matchYear;
@@ -260,7 +337,7 @@ const HoSoDaChinhThuc = () => {
   }, [data]);
 
   const uniqueLop = useMemo(() => {
-    const source = filterKhoa ? data.filter(d => d.khoa === filterKhoa) : data;
+    const source = filterKhoa && filterKhoa.length > 0 ? data.filter(d => filterKhoa.includes(d.khoa)) : data;
     return [...new Set(source.map(d => d.lop).filter(Boolean))].sort();
   }, [data, filterKhoa]);
 
@@ -416,6 +493,7 @@ const HoSoDaChinhThuc = () => {
               size="small"
               format="DD/MM/YYYY"
               style={{ width: '100%', minWidth: '110px' }}
+              disabledDate={disabledFutureDate}
             />
           );
         } else {
@@ -578,12 +656,7 @@ const HoSoDaChinhThuc = () => {
         title: 'Quê quán',
         key: 'que_quan',
         width: 200,
-        render: (_, r) => {
-          const parts = [];
-          if (r.xa_phuong_qq) parts.push(r.xa_phuong_qq);
-          if (r.tinh_tp_qq) parts.push(r.tinh_tp_qq);
-          return parts.join(', ') || '--';
-        }
+        render: (_, r) => r.que_quan || getFullHometown(r) || '--'
       },
       {
         title: 'Xã/Phường quê quán',
@@ -603,10 +676,15 @@ const HoSoDaChinhThuc = () => {
       },
       {
         title: 'Địa chỉ thường trú',
-        dataIndex: 'chi_tiet_dc',
-        key: 'chi_tiet_dc',
+        dataIndex: 'dia_chi_thuong_tru',
+        key: 'dia_chi_thuong_tru',
         width: 250,
-        ...getColumnSearchProps('chi_tiet_dc', 'Địa chỉ thường trú')
+        ...getColumnSearchProps('dia_chi_thuong_tru', 'Địa chỉ thường trú'),
+        onFilter: (value, record) => {
+          const fullAddress = record.dia_chi_thuong_tru || getFullAddress(record);
+          return fullAddress ? fullAddress.toLowerCase().includes(value.toLowerCase()) : false;
+        },
+        render: (text, record) => record.dia_chi_thuong_tru || getFullAddress(record) || '--'
       },
       {
         title: 'Xã/Phường thường trú',
@@ -629,7 +707,8 @@ const HoSoDaChinhThuc = () => {
         dataIndex: 'dia_chi_tam_tru',
         key: 'dia_chi_tam_tru',
         width: 250,
-        ...getColumnSearchProps('dia_chi_tam_tru', 'Địa chỉ tạm trú')
+        ...getColumnSearchProps('dia_chi_tam_tru', 'Địa chỉ tạm trú'),
+        render: (text, record) => record.dia_chi_tam_tru || getFullTamTru(record) || '--'
       },
       {
         title: 'Ngày vào Đảng',
@@ -860,6 +939,19 @@ const HoSoDaChinhThuc = () => {
 
         await updateDoc(doc(db, "dang_vien", row.memberId), updateData);
 
+        // Sync to dang_vien_dang_sinh_hoat if exists
+        if (row.mssv) {
+          const qDsh = query(collection(db, "dang_vien_dang_sinh_hoat"), where("mssv", "==", row.mssv));
+          const dshSnap = await getDocs(qDsh);
+          if (!dshSnap.empty) {
+            await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", dshSnap.docs[0].id), {
+              so_qd: row.soQd || '',
+              ngay_chinh_thuc: row.ngayKy || null,
+              ngay_cong_nhan_dvct: row.ngayKy || null
+            });
+          }
+        }
+
         await addDoc(collection(db, "lich_su_cap_nhat"), {
           dang_vien_id: row.memberId,
           mssv: row.mssv,
@@ -896,7 +988,7 @@ const HoSoDaChinhThuc = () => {
   const exportExcel = () => {
     let dataToExport = [];
     if (exportRange === 'selected') {
-      dataToExport = filteredData.filter(item => selectedRowKeys.includes(item.id));
+      dataToExport = data.filter(item => selectedRowKeys.includes(item.id));
     } else if (exportRange === 'all') {
       dataToExport = data;
     } else {
@@ -916,7 +1008,9 @@ const HoSoDaChinhThuc = () => {
         email: item.email || item.email_sv || '',
         email_sv: item.email_sv || item.email || '',
         ngay_sinh: item.ngay_sinh || null,
-        que_quan: item.que_quan || '',
+        que_quan: item.que_quan || getFullHometown(item),
+        dia_chi_thuong_tru: item.dia_chi_thuong_tru || getFullAddress(item),
+        dia_chi_tam_tru: item.dia_chi_tam_tru || getFullTamTru(item),
         tinh_tp_qq: item.tinh_tp_qq || item.tinh_tp_qq_cu || '',
         xa_phuong_qq: item.xa_phuong_qq || item.xa_phuong_qq_cu || '',
         tinh_tp_tt: item.tinh_tp_tt || item.tinh_tp_tt_cu || '',
@@ -958,6 +1052,81 @@ const HoSoDaChinhThuc = () => {
     message.success(`Xuất Excel thành công ${dataToExport.length} dòng!`);
   };
 
+  const exportPhotosZip = async () => {
+    let dataToExport = [];
+    if (exportRange === 'selected') {
+      dataToExport = data.filter(item => selectedRowKeys.includes(item.id));
+    } else if (exportRange === 'all') {
+      dataToExport = data;
+    } else {
+      dataToExport = filteredData;
+    }
+
+    const membersWithPhoto = dataToExport.filter(item => item && item.anh_ca_nhan);
+
+    if (membersWithPhoto.length === 0) {
+      message.warning("Không có ảnh Đảng viên nào trong phạm vi được chọn!");
+      return;
+    }
+
+    setIsExportingPhotos(true);
+    const hideLoading = message.loading(`Đang chuẩn bị tải ảnh của ${membersWithPhoto.length} Đảng viên...`, 0);
+
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      const downloadImage = async (member) => {
+        try {
+          const response = await fetch(member.anh_ca_nhan);
+          if (!response.ok) throw new Error("Fetch error");
+          const blob = await response.blob();
+          
+          let ext = 'jpg';
+          const contentType = response.headers.get('Content-Type');
+          if (contentType) {
+            const parts = contentType.split('/');
+            if (parts.length > 1) {
+              ext = parts[1].split(';')[0];
+            }
+          }
+          if (ext === 'octet-stream') ext = 'jpg';
+          
+          const cleanName = member.ho_ten.replace(/[^a-zA-Z0-9\s_àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '').trim().replace(/\s+/g, '_');
+          const filename = `${member.mssv || 'CHUA_CO_MSSV'}_${cleanName}.${ext}`;
+          zip.file(filename, blob);
+        } catch (err) {
+          console.error(`Failed to download photo for ${member.ho_ten}:`, err);
+        }
+      };
+
+      const batchSize = 5;
+      for (let i = 0; i < membersWithPhoto.length; i += batchSize) {
+        const batch = membersWithPhoto.slice(i, i + batchSize);
+        await Promise.all(batch.map(member => downloadImage(member)));
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Anh_Dang_Vien_Chinh_Thuc_${dayjs().format('YYYYMMDD')}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      message.success(`Tải ảnh Đảng viên thành công!`);
+    } catch (e) {
+      console.error(e);
+      message.error("Lỗi xảy ra khi đóng gói và xuất ảnh ZIP: " + e.message);
+    } finally {
+      hideLoading();
+      setIsExportingPhotos(false);
+      setIsExportModalVisible(false);
+    }
+  };
+
   const handleSelectPrepMember = (memberId) => {
     setSelectedPrepId(memberId);
     const selected = prepMembers.find(m => m.id === memberId);
@@ -981,6 +1150,84 @@ const HoSoDaChinhThuc = () => {
     setIsProfileDrawerVisible(true);
   };
 
+  const handleEditRecord = (record) => {
+    setSelectedRecord(record);
+    setSelectedPrepId(null);
+    
+    const ngayVaoDang = safeDayjs(record.ngay_vao_dang);
+    const ngayChinhThuc = safeDayjs(record.ngay_chinh_thuc || record.ngay_cong_nhan_dvct);
+    
+    form.setFieldsValue({
+      ...record,
+      ngay_sinh: safeDayjs(record.ngay_sinh),
+      ngay_vao_dang: ngayVaoDang,
+      ngay_chinh_thuc: ngayChinhThuc,
+      so_quyet_dinh_dvct: record.so_quyet_dinh_dvct || record.so_qd || '',
+    });
+    
+    setIsDrawerVisible(true);
+  };
+
+  const handleOpenDeleteModal = (record) => {
+    setRecordToDelete(record);
+    setDeleteModalVisible(true);
+  };
+
+  const handleExecuteDelete = async (type) => {
+    if (!recordToDelete) return;
+    setIsDeleting(true);
+    try {
+      const actor = currentUser?.displayName || currentUser?.email || "Hệ thống";
+      if (type === 'revert') {
+        const updateData = {
+          loai_dang_vien: "Dự bị",
+          dang_vien_du_bi: true,
+          ho_so_status: 6,
+          ngay_chinh_thuc: null,
+          ngay_cong_nhan_dvct: null,
+          so_quyet_dinh_dvct: null,
+          so_qd: null,
+          updated_at: new Date().toISOString()
+        };
+        await updateDoc(doc(db, "dang_vien", recordToDelete.id), updateData);
+        
+        await addDoc(collection(db, "lich_su_cap_nhat"), {
+          dang_vien_id: recordToDelete.id,
+          mssv: recordToDelete.mssv || '',
+          ho_ten: recordToDelete.ho_ten || '',
+          updated_by: actor,
+          updated_at: new Date().toISOString(),
+          action: "revert_to_preparatory",
+          changes: [{ field: "loai_dang_vien", from: "Chính thức", to: "Dự bị" }]
+        });
+        
+        message.success(`Đã chuyển đồng chí ${recordToDelete.ho_ten} quay lại danh sách Đảng viên dự bị (Bước 6).`);
+      } else if (type === 'delete') {
+        await deleteDoc(doc(db, "dang_vien", recordToDelete.id));
+        
+        await addDoc(collection(db, "lich_su_cap_nhat"), {
+          dang_vien_id: recordToDelete.id,
+          mssv: recordToDelete.mssv || '',
+          ho_ten: recordToDelete.ho_ten || '',
+          updated_by: actor,
+          updated_at: new Date().toISOString(),
+          action: "delete_official_record",
+          changes: [{ field: "ho_so", from: "Chính thức", to: "Xóa vĩnh viễn" }]
+        });
+        
+        message.success(`Đã xóa vĩnh viễn hồ sơ của đồng chí ${recordToDelete.ho_ten} khỏi hệ thống.`);
+      }
+      setDeleteModalVisible(false);
+      setRecordToDelete(null);
+      fetchData();
+    } catch (e) {
+      console.error(e);
+      message.error("Có lỗi xảy ra khi thực hiện thao tác xóa!");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleUpdateRecord = async () => {
     try {
       setIsSaving(true);
@@ -1001,6 +1248,27 @@ const HoSoDaChinhThuc = () => {
 
       if (selectedRecord) {
         await updateDoc(doc(db, "dang_vien", selectedRecord.id), formatted);
+
+        // Sync to dang_vien_dang_sinh_hoat if exists
+        if (selectedRecord.mssv) {
+          const qDsh = query(collection(db, "dang_vien_dang_sinh_hoat"), where("mssv", "==", selectedRecord.mssv));
+          const dshSnap = await getDocs(qDsh);
+          if (!dshSnap.empty) {
+            await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", dshSnap.docs[0].id), {
+              ho_ten: values.ho_ten || selectedRecord.ho_ten,
+              lop: values.lop || selectedRecord.lop || '',
+              khoa: values.khoa || selectedRecord.khoa || '',
+              cccd: values.cccd || selectedRecord.cccd || '',
+              so_dien_thoai: values.so_dien_thoai || selectedRecord.so_dien_thoai || '',
+              email: values.email || selectedRecord.email || '',
+              facebook: values.facebook || selectedRecord.facebook || '',
+              ngay_sinh: formatted.ngay_sinh,
+              ngay_vao_dang: formatted.ngay_vao_dang,
+              so_qd: formatted.so_qd || '',
+              ngay_ki_qd: formatted.ngaykiqd || null
+            });
+          }
+        }
         
         await addDoc(collection(db, "lich_su_cap_nhat"), {
           dang_vien_id: selectedRecord.id,
@@ -1022,6 +1290,27 @@ const HoSoDaChinhThuc = () => {
 
         const selectedPrep = prepMembers.find(m => m.id === selectedPrepId);
         await updateDoc(doc(db, "dang_vien", selectedPrepId), formatted);
+
+        // Sync to dang_vien_dang_sinh_hoat if exists
+        if (selectedPrep?.mssv) {
+          const qDsh = query(collection(db, "dang_vien_dang_sinh_hoat"), where("mssv", "==", selectedPrep.mssv));
+          const dshSnap = await getDocs(qDsh);
+          if (!dshSnap.empty) {
+            await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", dshSnap.docs[0].id), {
+              ho_ten: formatted.ho_ten || selectedPrep.ho_ten,
+              lop: formatted.lop || selectedPrep.lop || '',
+              khoa: formatted.khoa || selectedPrep.khoa || '',
+              cccd: formatted.cccd || selectedPrep.cccd || '',
+              so_dien_thoai: formatted.sdt || selectedPrep.so_dien_thoai || '',
+              email: formatted.email || selectedPrep.email || '',
+              facebook: formatted.facebook || selectedPrep.facebook || '',
+              ngay_sinh: formatted.ngay_sinh,
+              ngay_vao_dang: formatted.ngay_vao_dang,
+              so_qd: formatted.so_qd || '',
+              ngay_ki_qd: formatted.ngaykiqd || null
+            });
+          }
+        }
 
         await addDoc(collection(db, "lich_su_cap_nhat"), {
           dang_vien_id: selectedPrepId,
@@ -1108,6 +1397,40 @@ const HoSoDaChinhThuc = () => {
       title: 'Số QĐ chính thức',
       key: 'so_qd_chinh_thuc',
       render: (_, record) => record.so_quyet_dinh_dvct || record.so_qd || '--'
+    },
+    {
+      title: 'Thao tác',
+      key: 'actions',
+      width: 120,
+      align: 'center',
+      fixed: 'right',
+      render: (_, record) => (
+        <Space size="small">
+          <Tooltip title="Chỉnh sửa hồ sơ chính thức">
+            <Button
+              type="text"
+              icon={<EditOutlined style={{ color: '#1890ff' }} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditRecord(record);
+              }}
+              style={{ padding: '4px 8px', borderRadius: '4px' }}
+            />
+          </Tooltip>
+          <Tooltip title="Xóa / Thu hồi hồ sơ">
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenDeleteModal(record);
+              }}
+              style={{ padding: '4px 8px', borderRadius: '4px' }}
+            />
+          </Tooltip>
+        </Space>
+      )
     }
   ];
 
@@ -1170,11 +1493,13 @@ const HoSoDaChinhThuc = () => {
 
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select
+            mode="multiple"
+            maxTagCount="responsive"
             style={{ width: '100%' }}
             placeholder="Lọc theo Khoa"
             allowClear
             value={filterKhoa}
-            onChange={(val) => { setFilterKhoa(val); setFilterLop(null); }}
+            onChange={(val) => { setFilterKhoa(val || []); setFilterLop([]); }}
             dropdownStyle={{ borderRadius: '6px' }}
           >
             {KHOA_LIST.map(k => <Option key={k} value={k}>{k}</Option>)}
@@ -1183,11 +1508,13 @@ const HoSoDaChinhThuc = () => {
 
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select
+            mode="multiple"
+            maxTagCount="responsive"
             style={{ width: '100%' }}
             placeholder="Lọc theo Lớp"
             allowClear
             value={filterLop}
-            onChange={setFilterLop}
+            onChange={(val) => setFilterLop(val || [])}
             dropdownStyle={{ borderRadius: '6px' }}
           >
             {uniqueLop.map(l => <Option key={l} value={l}>{l}</Option>)}
@@ -1196,11 +1523,13 @@ const HoSoDaChinhThuc = () => {
 
         <div style={{ flex: 1, minWidth: '120px' }}>
           <Select
+            mode="multiple"
+            maxTagCount="responsive"
             style={{ width: '100%' }}
             placeholder="Lọc theo Khóa"
             allowClear
             value={filterIntake}
-            onChange={setFilterIntake}
+            onChange={(val) => setFilterIntake(val || [])}
             dropdownStyle={{ borderRadius: '6px' }}
           >
             {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
@@ -1209,18 +1538,20 @@ const HoSoDaChinhThuc = () => {
 
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select
+            mode="multiple"
+            maxTagCount="responsive"
             style={{ width: '100%' }}
             placeholder="Năm chính thức"
             allowClear
             value={filterYear}
-            onChange={setFilterYear}
+            onChange={(val) => setFilterYear(val || [])}
             dropdownStyle={{ borderRadius: '6px' }}
           >
             {uniqueYears.map(y => <Option key={y} value={y}>{y}</Option>)}
           </Select>
         </div>
 
-        {(searchText || filterKhoa || filterLop || filterIntake || filterYear) && (
+        {(searchText || (filterKhoa && filterKhoa.length > 0) || (filterLop && filterLop.length > 0) || (filterIntake && filterIntake.length > 0) || (filterYear && filterYear.length > 0)) && (
           <div style={{ flexShrink: 0 }}>
             <Button
               type="text"
@@ -1247,9 +1578,9 @@ const HoSoDaChinhThuc = () => {
           rowKey="id"
           scroll={{ x: 'max-content' }}
           pagination={{
-            defaultPageSize: 10,
+            defaultPageSize: 50,
             showSizeChanger: true,
-            pageSizeOptions: ['5', '10', '20', '50', '1000'],
+            pageSizeOptions: ['10', '20', '50', '100', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ`
           }}
           onRow={(record) => ({
@@ -1331,7 +1662,7 @@ const HoSoDaChinhThuc = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="ngay_sinh" label="Ngày sinh">
-                <DatePicker disabled={!selectedRecord && !selectedPrepId} format="DD/MM/YYYY" style={{ width: '100%' }} />
+                <DatePicker disabled={!selectedRecord && !selectedPrepId} format="DD/MM/YYYY" style={{ width: '100%' }} disabledDate={disabledFutureDate} />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -1363,6 +1694,7 @@ const HoSoDaChinhThuc = () => {
                   disabled={!selectedRecord && !selectedPrepId} 
                   format="DD/MM/YYYY" 
                   style={{ width: '100%' }} 
+                  disabledDate={disabledFutureDate}
                   onChange={(date) => {
                     if (date) {
                       form.setFieldsValue({ ngay_chinh_thuc: date.add(1, 'year') });
@@ -1373,7 +1705,7 @@ const HoSoDaChinhThuc = () => {
             </Col>
             <Col span={12}>
               <Form.Item name="ngay_chinh_thuc" label="Ngày chính thức" rules={[{ required: true, message: 'Vui lòng chọn ngày chính thức!' }]}>
-                <DatePicker disabled={!selectedRecord && !selectedPrepId} format="DD/MM/YYYY" style={{ width: '100%' }} />
+                <DatePicker disabled={!selectedRecord && !selectedPrepId} format="DD/MM/YYYY" style={{ width: '100%' }} disabledDate={disabledFutureDate} />
               </Form.Item>
             </Col>
           </Row>
@@ -1433,7 +1765,7 @@ const HoSoDaChinhThuc = () => {
           scroll={{ x: 3800, y: isTableFullscreen ? 'calc(100vh - 155px)' : 'calc(80vh - 135px)' }}
           bordered
           pagination={{
-            defaultPageSize: 20,
+            defaultPageSize: 50,
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50', '100', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ`
@@ -1606,14 +1938,33 @@ const HoSoDaChinhThuc = () => {
           </div>
         }
         open={isExportModalVisible}
-        onOk={exportExcel}
         onCancel={() => setIsExportModalVisible(false)}
-        okText="XUẤT FILE EXCEL"
-        cancelText="HỦY BỎ"
         width={850}
         style={{ top: 40 }}
-        okButtonProps={{ style: { backgroundColor: '#c62828', borderColor: '#c62828', height: 40, fontWeight: 700, borderRadius: '6px' } }}
-        cancelButtonProps={{ style: { height: 40, borderRadius: '6px' } }}
+        footer={[
+          <Button key="cancel" onClick={() => setIsExportModalVisible(false)} style={{ height: 40, borderRadius: '6px' }}>
+            HỦY BỎ
+          </Button>,
+          <Button
+            key="zip-photos"
+            type="dashed"
+            icon={<FileZipOutlined style={{ color: '#fa8c16' }} />}
+            onClick={exportPhotosZip}
+            loading={isExportingPhotos}
+            style={{ borderColor: '#fa8c16', color: '#fa8c16', height: 40, fontWeight: 600, borderRadius: '6px' }}
+          >
+            TẢI ẢNH ĐẢNG VIÊN (.ZIP)
+          </Button>,
+          <Button
+            key="ok"
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={exportExcel}
+            style={{ backgroundColor: '#c62828', borderColor: '#c62828', height: 40, fontWeight: 700, borderRadius: '6px' }}
+          >
+            XUẤT FILE EXCEL
+          </Button>
+        ]}
       >
         <div style={{ padding: '0 8px' }}>
           <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626', marginBottom: 12 }}>
@@ -1675,9 +2026,11 @@ const HoSoDaChinhThuc = () => {
                 <Col span={4}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khoa:</div>
                   <Select 
+                    mode="multiple"
+                    maxTagCount="responsive"
                     placeholder="Chọn Khoa" 
                     value={filterKhoa} 
-                    onChange={val => { setFilterKhoa(val); setFilterLop(null); }} 
+                    onChange={val => { setFilterKhoa(val || []); setFilterLop([]); }} 
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
@@ -1688,9 +2041,11 @@ const HoSoDaChinhThuc = () => {
                 <Col span={4}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Lớp:</div>
                   <Select 
+                    mode="multiple"
+                    maxTagCount="responsive"
                     placeholder="Chọn Lớp" 
                     value={filterLop} 
-                    onChange={setFilterLop} 
+                    onChange={val => setFilterLop(val || [])} 
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
@@ -1703,9 +2058,11 @@ const HoSoDaChinhThuc = () => {
                 <Col span={4}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khóa:</div>
                   <Select 
+                    mode="multiple"
+                    maxTagCount="responsive"
                     placeholder="Chọn Khóa" 
                     value={filterIntake} 
-                    onChange={setFilterIntake} 
+                    onChange={val => setFilterIntake(val || [])} 
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
@@ -1718,9 +2075,11 @@ const HoSoDaChinhThuc = () => {
                 <Col span={4}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Năm chính thức:</div>
                   <Select 
+                    mode="multiple"
+                    maxTagCount="responsive"
                     placeholder="Chọn Năm" 
                     value={filterYear} 
-                    onChange={setFilterYear} 
+                    onChange={val => setFilterYear(val || [])} 
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
@@ -1852,6 +2211,75 @@ const HoSoDaChinhThuc = () => {
               })}
             </Row>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ExclamationCircleOutlined style={{ color: '#ff4d4f', fontSize: '22px' }} />
+            <span style={{ fontWeight: 800, fontSize: '18px', color: '#1a1a1a' }}>
+              Xác nhận Xóa / Thu hồi Hồ sơ chính thức
+            </span>
+          </div>
+        }
+        open={deleteModalVisible}
+        onCancel={() => {
+          if (!isDeleting) {
+            setDeleteModalVisible(false);
+            setRecordToDelete(null);
+          }
+        }}
+        footer={[
+          <Button key="cancel" onClick={() => { setDeleteModalVisible(false); setRecordToDelete(null); }} disabled={isDeleting}>
+            Hủy bỏ
+          </Button>,
+          <Button
+            key="revert"
+            type="dashed"
+            onClick={() => handleExecuteDelete('revert')}
+            loading={isDeleting}
+            style={{ fontWeight: 600, borderColor: '#fa8c16', color: '#fa8c16' }}
+          >
+            Chuyển lại về Dự bị (Bước 6)
+          </Button>,
+          <Button
+            key="delete"
+            type="primary"
+            danger
+            onClick={() => handleExecuteDelete('delete')}
+            loading={isDeleting}
+            style={{ fontWeight: 700 }}
+          >
+            Xóa vĩnh viễn khỏi CSDL
+          </Button>
+        ]}
+      >
+        <div style={{ padding: '12px 0' }}>
+          {recordToDelete && (
+            <>
+              <Alert
+                message={<b>⚠️ Hành động này có tính chất quan trọng!</b>}
+                description={
+                  <div style={{ fontSize: '13px', lineHeight: '1.6' }}>
+                    Đồng chí đang thực hiện xóa/thu hồi hồ sơ Đảng viên chính thức của:
+                    <div style={{ margin: '8px 0', padding: '10px', background: '#f5f5f5', borderRadius: '6px' }}>
+                      <p style={{ margin: 0 }}><strong>Họ và tên:</strong> {recordToDelete.ho_ten}</p>
+                      <p style={{ margin: 0 }}><strong>MSSV:</strong> {recordToDelete.mssv}</p>
+                      <p style={{ margin: 0 }}><strong>Lớp / Khoa:</strong> {recordToDelete.lop} — {recordToDelete.khoa}</p>
+                    </div>
+                    Vui lòng chọn phương án giải quyết:
+                    <ul style={{ paddingLeft: '20px', marginTop: '8px', marginBottom: 0 }}>
+                      <li><strong>Chuyển lại về Dự bị:</strong> Trả đồng chí này về danh sách Đảng viên dự bị ở Bước 6. Tất cả lịch sử hồ sơ dự bị trước đó được giữ nguyên. Khuyên dùng nếu chỉ lỡ bấm duyệt chính thức nhầm.</li>
+                      <li><strong>Xóa vĩnh viễn khỏi CSDL:</strong> Xóa hoàn toàn bản ghi Đảng viên này khỏi cơ sở dữ liệu. Chỉ nên dùng khi bản ghi này được tạo sai hoặc bị trùng lặp hoàn toàn.</li>
+                    </ul>
+                  </div>
+                }
+                type="warning"
+                showIcon
+              />
+            </>
+          )}
         </div>
       </Modal>
     </div>

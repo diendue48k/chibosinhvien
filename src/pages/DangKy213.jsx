@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Card, Row, Col, Typography, Tag, Form,
   Input, Button, message, Spin, Space, Radio, Select, Table, Modal, Badge,
-  Divider, Empty, Tooltip, Alert, Tabs, Descriptions
+  Divider, Empty, Tooltip, Alert, Tabs, Descriptions, Popconfirm
 } from 'antd';
 import {
   FormOutlined, SearchOutlined, IdcardOutlined,
@@ -12,9 +12,9 @@ import {
   EnvironmentOutlined, DownloadOutlined, EyeOutlined,
   InboxOutlined, FileDoneOutlined, BellOutlined,
   MailOutlined, AppstoreOutlined, UnorderedListOutlined,
-  FileExcelOutlined, PlusOutlined, CloseCircleOutlined, EditOutlined, CloseOutlined
+  FileExcelOutlined, PlusOutlined, CloseCircleOutlined, EditOutlined, CloseOutlined, DeleteOutlined
 } from '@ant-design/icons';
-import { collection, getDocs, addDoc, updateDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
@@ -622,6 +622,20 @@ const DangKy213 = () => {
       }
     } catch (e) {
       console.error("Lỗi tải đăng ký 213:", e);
+    }
+  };
+
+  const handleDeleteRegistration = async (record) => {
+    try {
+      setLoading(true);
+      await deleteDoc(doc(db, "dangky_213", record.id));
+      message.success(`Đã xóa đăng ký 213 của Đ/c ${record.ho_ten} thành công.`);
+      await fetchRegistrations();
+    } catch (e) {
+      console.error("Lỗi khi xóa đăng ký 213:", e);
+      message.error("Lỗi khi xóa đăng ký: " + e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -2031,6 +2045,20 @@ const DangKy213 = () => {
               <CheckCircleOutlined /> Đã thông báo
             </Tag>
           )}
+
+          {/* Xóa đăng ký */}
+          <Popconfirm
+            title={`Xóa đăng ký 213 của Đ/c ${record.ho_ten}?`}
+            description="Hành động này sẽ xóa vĩnh viễn đăng ký này khỏi hệ thống."
+            onConfirm={() => handleDeleteRegistration(record)}
+            okText="Xóa vĩnh viễn"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Button size="small" icon={<DeleteOutlined />} danger style={{ borderRadius: 5, fontWeight: 600, fontSize: 11 }}>
+              Xóa
+            </Button>
+          </Popconfirm>
         </Space>
       )
     }
@@ -2154,7 +2182,7 @@ const DangKy213 = () => {
               selections: [Table.SELECTION_ALL, Table.SELECTION_NONE],
             }}
             pagination={{
-              pageSize: 20,
+              pageSize: 50,
               showSizeChanger: true,
               pageSizeOptions: ['10', '20', '50', '100', '1000'],
               showTotal: (total) => <span style={{ fontWeight: 600 }}>Tổng: {total} đăng ký</span>

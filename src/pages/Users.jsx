@@ -13,7 +13,8 @@ import {
   DeleteOutlined, ExclamationCircleOutlined,
   DatabaseOutlined, WarningOutlined, CalendarOutlined,
   DownloadOutlined, UploadOutlined, PlusOutlined,
-  HomeOutlined, CloseCircleOutlined, AuditOutlined, LockOutlined
+  HomeOutlined, CloseCircleOutlined, AuditOutlined, LockOutlined,
+  UnorderedListOutlined, CloudUploadOutlined, UserSwitchOutlined
 } from '@ant-design/icons';
 import { collection, getDocs, updateDoc, doc, deleteDoc, getDoc, setDoc, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -40,13 +41,17 @@ const Users = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeMainTab = useMemo(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'role_permissions') return 'rbac';
-    return tab || (isAdmin ? 'rbac' : 'editing_period');
+    if (tab === 'rbac' || tab === 'role_permissions') return 'user_roles';
+    if (tab === 'history') return 'history_logs';
+    if (tab === 'login') return 'login_logs';
+    if (tab === 'reset') return 'backup_restore';
+    return tab || (isAdmin ? 'user_roles' : 'editing_period');
   }, [searchParams, isAdmin]);
   
   const setActiveMainTab = (key) => {
     setSearchParams({ tab: key });
   };
+  const [matrixSearchText, setMatrixSearchText] = useState('');
   const [isEditingPeriodOpen, setIsEditingPeriodOpen] = useState(false);
   const [togglingPeriod, setTogglingPeriod] = useState(false);
   const [historyLogs, setHistoryLogs] = useState([]);
@@ -1219,18 +1224,18 @@ const Users = () => {
   }, []);
 
   useEffect(() => {
-    if (activeMainTab === 'rbac' || activeMainTab === 'role_permissions') {
+    if (activeMainTab === 'user_roles' || activeMainTab === 'permission_matrix') {
       fetchPermissions();
-    } else if (activeMainTab === 'history') {
+    } else if (activeMainTab === 'history_logs') {
       fetchHistoryLogs();
-    } else if (activeMainTab === 'login') {
+    } else if (activeMainTab === 'login_logs') {
       fetchLoginLogs();
     } else if (activeMainTab === 'editing_period') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchEditingPeriodStatus();
     } else if (activeMainTab === 'bch_contacts') {
       fetchBchContacts();
-    } else if (activeMainTab === 'reset') {
+    } else if (activeMainTab === 'backup_restore' || activeMainTab === 'categories' || activeMainTab === 'danger_zone') {
       fetchCategories();
     }
   }, [activeMainTab]);
@@ -1592,6 +1597,18 @@ const Users = () => {
     return rows;
   }, []);
 
+  const filteredDataSource = useMemo(() => {
+    if (!matrixSearchText) return dataSource;
+    const query = matrixSearchText.toLowerCase();
+    return dataSource.filter(row => 
+      (row.moduleLabel || '').toLowerCase().includes(query) ||
+      (row.moduleKey || '').toLowerCase().includes(query) ||
+      (row.actionLabel || '').toLowerCase().includes(query) ||
+      (row.actionKey || '').toLowerCase().includes(query) ||
+      (row.moduleDesc || '').toLowerCase().includes(query)
+    );
+  }, [dataSource, matrixSearchText]);
+
   const columns = [
     {
       title: 'Chức năng / Mô đun',
@@ -1654,23 +1671,164 @@ const Users = () => {
     }))
   ];
 
+  const menuGroups = useMemo(() => {
+    const groups = [];
+
+    // Group 1: Cấu hình hệ thống (System Configurations)
+    const systemConfigItems = [];
+    if (isAdmin) {
+      systemConfigItems.push({ key: 'user_roles', label: 'Cấp quyền tài khoản', icon: <UserSwitchOutlined /> });
+      systemConfigItems.push({ key: 'permission_matrix', label: 'Ma trận phân quyền', icon: <SafetyCertificateOutlined /> });
+    }
+    systemConfigItems.push({ key: 'editing_period', label: 'Đợt cập nhật lý lịch', icon: <CalendarOutlined /> });
+    if (isAdmin) {
+      systemConfigItems.push({ key: 'bch_contacts', label: 'Cấu hình Chi ủy', icon: <TeamOutlined /> });
+    }
+    systemConfigItems.push({ key: 'categories', label: 'Quản lý danh mục', icon: <DatabaseOutlined /> });
+
+    groups.push({
+      title: 'Cấu hình Hệ thống',
+      items: systemConfigItems
+    });
+
+    // Group 2: Giám sát hoạt động (Activity Monitoring)
+    if (isAdmin) {
+      groups.push({
+        title: 'Giám sát Hoạt động',
+        items: [
+          { key: 'history_logs', label: 'Nhật ký chỉnh sửa', icon: <HistoryOutlined /> },
+          { key: 'login_logs', label: 'Nhật ký đăng nhập', icon: <LoginOutlined /> }
+        ]
+      });
+    }
+
+    // Group 3: Quản lý dữ liệu (Data Management)
+    const dataManagementItems = [];
+    if (isAdmin) {
+      dataManagementItems.push({ key: 'backup_restore', label: 'Sao lưu & khôi phục', icon: <CloudUploadOutlined /> });
+      dataManagementItems.push({ key: 'danger_zone', label: 'Khu vực dọn dẹp', icon: <WarningOutlined style={{ color: '#ff4d4f' }} /> });
+    }
+
+    if (dataManagementItems.length > 0) {
+      groups.push({
+        title: 'Quản lý Dữ liệu',
+        items: dataManagementItems
+      });
+    }
+
+    return groups;
+  }, [isAdmin]);
+
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 8px' }}>
+    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 16px' }}>
+      <style>{`
+        @keyframes pulse-green {
+          0% { box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.5); }
+          70% { box-shadow: 0 0 0 8px rgba(82, 196, 26, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(82, 196, 26, 0); }
+        }
+        @keyframes pulse-red {
+          0% { box-shadow: 0 0 0 0 rgba(245, 34, 45, 0.5); }
+          70% { box-shadow: 0 0 0 8px rgba(245, 34, 45, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(245, 34, 45, 0); }
+        }
+        .pulse-dot-green {
+          width: 8px;
+          height: 8px;
+          background-color: #52c41a;
+          border-radius: 50%;
+          display: inline-block;
+          animation: pulse-green 1.8s infinite;
+        }
+        .pulse-dot-red {
+          width: 8px;
+          height: 8px;
+          background-color: #f5222d;
+          border-radius: 50%;
+          display: inline-block;
+          animation: pulse-red 1.8s infinite;
+        }
+        .sidebar-menu-item:hover {
+          background-color: #f8fafc !important;
+          color: #1e293b !important;
+        }
+      `}</style>
+
       <Title level={3} style={{ marginBottom: 24, fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ display: 'inline-block', width: '4px', height: '22px', backgroundColor: '#c62828', borderRadius: '2px' }}></span>
         Cài đặt Hệ thống & Giám sát hoạt động
       </Title>
 
-      <Tabs 
-        activeKey={activeMainTab} 
-        onChange={setActiveMainTab}
-        tabPosition="top"
-        type="line"
-        size="large"
-        style={{ marginBottom: 24, minHeight: '600px', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
-      >
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', marginTop: '24px' }}>
+        {/* Sticky Left Sidebar */}
+        <div style={{ 
+          width: '280px', 
+          flexShrink: 0, 
+          position: 'sticky', 
+          top: '24px', 
+          background: '#fff', 
+          padding: '24px 16px', 
+          borderRadius: '16px', 
+          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+          border: '1px solid #f1f5f9'
+        }}>
+          {menuGroups.map((group, groupIdx) => (
+            <div key={groupIdx} style={{ marginBottom: groupIdx === menuGroups.length - 1 ? 0 : 20 }}>
+              <div style={{ 
+                fontSize: '11px', 
+                fontWeight: 700, 
+                color: '#94a3b8', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.05em',
+                marginBottom: '8px',
+                paddingLeft: '12px'
+              }}>
+                {group.title}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                {group.items.map(item => {
+                  const isActive = activeMainTab === item.key;
+                  return (
+                    <div
+                      key={item.key}
+                      onClick={() => setActiveMainTab(item.key)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: isActive ? 700 : 500,
+                        fontSize: '13.5px',
+                        backgroundColor: isActive ? '#fbe9e7' : 'transparent',
+                        color: isActive ? '#c62828' : '#475569',
+                        transition: 'all 0.2s ease',
+                      }}
+                      className="sidebar-menu-item"
+                    >
+                      <span style={{ fontSize: '16px', display: 'flex', alignItems: 'center', color: isActive ? '#c62828' : '#64748b' }}>
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Content Area */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Tabs 
+            activeKey={activeMainTab} 
+            onChange={setActiveMainTab}
+            renderTabBar={() => <></>}
+            style={{ marginBottom: 24, minHeight: '600px', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
+          >
         {isAdmin && (
-          <TabPane tab={<span><SafetyCertificateOutlined /> Phân quyền & Vai trò</span>} key="rbac">
+          <TabPane tab={<span><UserSwitchOutlined /> Cấp quyền tài khoản</span>} key="user_roles">
             <Row gutter={24}>
               <Col span={24}>
                 <Alert
@@ -1900,9 +2058,11 @@ const Users = () => {
               </Card>
             </Col>
           </Row>
+        </TabPane>
+      )}
 
-          <Divider style={{ margin: '32px 0' }} />
-
+      {isAdmin && (
+        <TabPane tab={<span><SafetyCertificateOutlined /> Ma trận phân quyền</span>} key="permission_matrix">
           <Card 
               bordered={false} 
               style={{ borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}
@@ -1917,6 +2077,14 @@ const Users = () => {
                     </div>
                   </div>
                   <Space>
+                    <Input
+                      placeholder="Tìm kiếm mô đun, chức năng..."
+                      prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+                      value={matrixSearchText}
+                      onChange={e => setMatrixSearchText(e.target.value)}
+                      style={{ width: 240, borderRadius: '6px' }}
+                      allowClear
+                    />
                     <Popconfirm
                       title="Khôi phục phân quyền mặc định?"
                       description="Hành động này sẽ tải lại cấu hình mặc định ban đầu của hệ thống lên ma trận."
@@ -1957,7 +2125,7 @@ const Users = () => {
 
               <Spin spinning={loadingPerms} tip="Đang tải dữ liệu cấu hình phân quyền...">
                 <Table
-                  dataSource={dataSource}
+                  dataSource={filteredDataSource}
                   columns={columns}
                   pagination={false}
                   bordered
@@ -1972,7 +2140,7 @@ const Users = () => {
         )}
 
         {isAdmin && (
-          <TabPane tab={<span><HistoryOutlined /> Nhật ký Chỉnh sửa Hồ sơ</span>} key="history">
+          <TabPane tab={<span><HistoryOutlined /> Nhật ký Chỉnh sửa Hồ sơ</span>} key="history_logs">
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#262626' }}>
@@ -2004,8 +2172,9 @@ const Users = () => {
               rowKey="id"
               loading={historyLoading}
               pagination={{
-                pageSize: 10,
+                defaultPageSize: 50,
                 showSizeChanger: true,
+                pageSizeOptions: ['10', '20', '50', '100'],
                 showTotal: (total) => `Tổng số: ${total} sự kiện`
               }}
               style={{ borderRadius: '8px', overflow: 'hidden' }}
@@ -2015,7 +2184,7 @@ const Users = () => {
         )}
 
         {isAdmin && (
-          <TabPane tab={<span><LoginOutlined /> Nhật ký Đăng nhập Hệ thống</span>} key="login">
+          <TabPane tab={<span><LoginOutlined /> Nhật ký Đăng nhập Hệ thống</span>} key="login_logs">
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ fontSize: '16px', fontWeight: 800, color: '#262626' }}>
@@ -2057,8 +2226,9 @@ const Users = () => {
               rowKey="id"
               loading={loginLoading}
               pagination={{
-                pageSize: 10,
+                defaultPageSize: 50,
                 showSizeChanger: true,
+                pageSizeOptions: ['10', '20', '50', '100'],
                 showTotal: (total) => `Tổng số: ${total} lượt đăng nhập`
               }}
               style={{ borderRadius: '8px', overflow: 'hidden' }}
@@ -2089,12 +2259,16 @@ const Users = () => {
                   <Paragraph style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
                     Với vai trò <Tag color="orange" style={{ fontWeight: 'bold' }}>{currentUser?.role === ROLES.KIEMTRA ? 'Ban điều hành nhóm Kiểm tra giám sát' : 'Chi ủy Chi bộ Sinh viên'}</Tag>, đồng chí có thẩm quyền mở hoặc khóa đợt điều chỉnh thông tin lý lịch tự động dành cho Đảng viên sinh viên.
                   </Paragraph>
-                  <div style={{ marginTop: '8px', fontSize: '13px', color: '#555' }}>
-                    Trạng thái hiện tại: {isEditingPeriodOpen ? (
-                      <span style={{ color: '#52c41a', fontWeight: 'bold' }}>🟢 Đang MỞ (Cho phép Đảng viên tự cập nhật lý lịch liên lạc)</span>
-                    ) : (
-                      <span style={{ color: '#f5222d', fontWeight: 'bold' }}>🔴 Đang ĐÓNG (Khóa mọi quyền chỉnh sửa từ Đảng viên)</span>
-                    )}
+                  <div style={{ marginTop: '8px', fontSize: '13px', color: '#555', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>Trạng thái hiện tại:</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <span className={isEditingPeriodOpen ? "pulse-dot-green" : "pulse-dot-red"} style={{ marginTop: '1px' }} />
+                      {isEditingPeriodOpen ? (
+                        <span style={{ color: '#52c41a', fontWeight: 'bold' }}>Đang MỞ (Cho phép Đảng viên tự cập nhật lý lịch liên lạc)</span>
+                      ) : (
+                        <span style={{ color: '#f5222d', fontWeight: 'bold' }}>Đang ĐÓNG (Khóa mọi quyền chỉnh sửa từ Đảng viên)</span>
+                      )}
+                    </span>
                   </div>
                 </div>
 
@@ -2302,7 +2476,8 @@ const Users = () => {
           </TabPane>
         )}
 
-        <TabPane tab={<span><DatabaseOutlined /> Quản lý Dữ liệu</span>} key="reset">
+        {isAdmin && (
+          <TabPane tab={<span><CloudUploadOutlined /> Sao lưu & Khôi phục</span>} key="backup_restore">
           <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
             <Alert
               message="Khu vực nguy hiểm — Chỉ dành cho Quản trị viên"
@@ -2454,9 +2629,18 @@ const Users = () => {
                 </Card>
               </Col>
             </Row>
+          </Card>
+        </TabPane>
+      )}
 
-            <Divider orientation="left" style={{ fontWeight: 800, color: '#1890ff' }}>Quản lý Danh mục Hệ thống (Động)</Divider>
-
+        <TabPane tab={<span><UnorderedListOutlined /> Quản lý Danh mục</span>} key="categories">
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <div style={{ fontSize: '16px', fontWeight: 800, color: '#262626', marginBottom: '8px' }}>
+              Quản lý Danh mục Hệ thống (Động)
+            </div>
+            <Paragraph style={{ fontSize: '13px', color: '#64748b', marginBottom: '24px' }}>
+              Thay đổi các Khoa đào tạo và các Nhóm sinh hoạt Đảng có sẵn trong Chi bộ.
+            </Paragraph>
             <Spin spinning={loadingCategories}>
               <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
                 {/* COLUMN 1: KHOA ĐÀO TẠO */}
@@ -2618,10 +2802,21 @@ const Users = () => {
                 </Col>
               </Row>
             </Spin>
+          </Card>
+        </TabPane>
 
-            <Divider orientation="left" style={{ fontWeight: 800, color: '#c62828' }}>Khu vực dọn dẹp & Reset dữ liệu vĩnh viễn</Divider>
-
-            <Row gutter={[16, 16]}>
+        {isAdmin && (
+          <TabPane tab={<span><WarningOutlined style={{ color: '#ff4d4f' }} /> Khu vực dọn dẹp</span>} key="danger_zone">
+            <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)', border: '1px solid #ffd591', background: '#fffbe6' }}>
+              <Alert
+                message="CẢNH BÁO NGUY HIỂM — Khu vực dọn dẹp hệ thống vĩnh viễn"
+                description="Các thao tác dưới đây sẽ xóa vĩnh viễn dữ liệu khỏi hệ thống và không thể hoàn tác. Vui lòng kiểm tra kỹ trước khi nhấn nút!"
+                type="error"
+                showIcon
+                icon={<WarningOutlined />}
+                style={{ marginBottom: 24, borderRadius: '8px' }}
+              />
+              <Row gutter={[16, 16]}>
               {RESET_COLLECTIONS.map(col => (
                 <Col xs={24} md={12} key={col.key}>
                   <Card
@@ -2695,8 +2890,11 @@ const Users = () => {
               ))}
             </Row>
           </Card>
-          </TabPane>
+        </TabPane>
+      )}
       </Tabs>
+        </div>
+      </div>
 
       {/* Modal Khôi phục dữ liệu */}
       <Modal

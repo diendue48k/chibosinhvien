@@ -16,6 +16,38 @@ import { API_BASE_URL } from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import { docGeneratorService } from '../services/docGeneratorService';
 
+const getFullAddress = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_thuong_tru) return record.dia_chi_thuong_tru;
+  const parts = [];
+  if (record.chi_tiet_dc) parts.push(record.chi_tiet_dc);
+  if (record.xa_phuong_tt) parts.push(record.xa_phuong_tt);
+  if (record.quan_huyen_tt) parts.push(record.quan_huyen_tt);
+  if (record.tinh_tp_tt) parts.push(record.tinh_tp_tt);
+  return parts.join(', ');
+};
+
+const getFullHometown = (record) => {
+  if (!record) return '';
+  if (record.que_quan) return record.que_quan;
+  const parts = [];
+  if (record.xa_phuong_qq) parts.push(record.xa_phuong_qq);
+  if (record.quan_huyen_qq) parts.push(record.quan_huyen_qq);
+  if (record.tinh_tp_qq) parts.push(record.tinh_tp_qq);
+  return parts.join(', ');
+};
+
+const getFullTamTru = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_tam_tru) return record.dia_chi_tam_tru;
+  const parts = [];
+  if (record.chi_tiet_tam_tru) parts.push(record.chi_tiet_tam_tru);
+  if (record.xa_phuong_tam_tru) parts.push(record.xa_phuong_tam_tru);
+  if (record.quan_huyen_tam_tru) parts.push(record.quan_huyen_tam_tru);
+  if (record.tinh_tp_tam_tru) parts.push(record.tinh_tp_tam_tru);
+  return parts.join(', ');
+};
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -483,8 +515,8 @@ const HoSoChuyenRa = ({ forceTab }) => {
       ngay_sinh: safeDate(record.ngay_sinh),
       ngay_vao_dang: safeDate(record.ngay_vao_dang),
       ngay_chinh_thuc: safeDate(record.ngay_chinh_thuc),
-      que_quan: record.que_quan || record.tinh_tp_qq || '',
-      dia_chi: record.chi_tiet_dc || record.dia_chi_thuong_tru || '',
+      que_quan: record.que_quan || getFullHometown(record) || record.tinh_tp_qq || '',
+      dia_chi: record.dia_chi_thuong_tru || getFullAddress(record) || record.chi_tiet_dc || '',
       so_the_dang: record.so_the_dang || record.so_quyet_dinh_dvct || record.so_qd || '',
       so_dien_thoai: record.so_dien_thoai || record.sdt || '',
       nhiem_vu_dang: record.nhiem_vu_dang || 'Đảng viên',
@@ -638,7 +670,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
         ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : (safeDate(docRecord.ngay_sinh) ? safeDate(docRecord.ngay_sinh).format('YYYY-MM-DD') : ''),
         so_dien_thoai: values.so_dien_thoai !== undefined ? values.so_dien_thoai : (docRecord.so_dien_thoai || ''),
         que_quan: values.que_quan !== undefined ? values.que_quan : (docRecord.que_quan || ''),
-        dia_chi_thuong_tru: values.dia_chi !== undefined ? values.dia_chi : (docRecord.chi_tiet_dc || docRecord.dia_chi_thuong_tru || ''),
+        dia_chi_thuong_tru: values.dia_chi !== undefined ? values.dia_chi : (docRecord.dia_chi_thuong_tru || getFullAddress(docRecord) || docRecord.chi_tiet_dc || ''),
         nhiem_vu_dang: values.nhiem_vu_dang !== undefined ? values.nhiem_vu_dang : (docRecord.nhiem_vu_dang || 'Đảng viên'),
         uu_diem: values.uu_diem !== undefined ? values.uu_diem : (docRecord.uu_diem || ''),
         khuyet_diem: values.khuyet_diem !== undefined ? values.khuyet_diem : (docRecord.khuyet_diem || ''),
@@ -681,7 +713,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
         lop: values.lop !== undefined ? values.lop : (docRecord.lop || ''),
         khoa: values.khoa !== undefined ? values.khoa : (docRecord.khoa || ''),
         so_dien_thoai: values.so_dien_thoai !== undefined ? values.so_dien_thoai : (docRecord.so_dien_thoai || ''),
-        noi_thuong_tru: values.dia_chi !== undefined ? values.dia_chi : (docRecord.chi_tiet_dc || docRecord.dia_chi_thuong_tru || ''),
+        noi_thuong_tru: values.dia_chi !== undefined ? values.dia_chi : (docRecord.dia_chi_thuong_tru || getFullAddress(docRecord) || docRecord.chi_tiet_dc || ''),
         noi_chuyen_den: combinedNoiChuyenDen,
         ly_do_chuyen: values.ly_do_chuyen !== undefined ? values.ly_do_chuyen : (docRecord.ly_do_chuyen || ''),
         loai_chuyen: values.loai_chuyen_sh !== undefined ? values.loai_chuyen_sh : (docRecord.loai_chuyen || 'chuyen_ra'),
@@ -703,7 +735,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
         lop: values.lop || docRecord.lop || '',
         khoa: values.khoa || docRecord.khoa || '',
         que_quan: values.que_quan || docRecord.que_quan || '',
-        dia_chi: values.dia_chi || docRecord.chi_tiet_dc || docRecord.dia_chi_thuong_tru || '',
+        dia_chi: values.dia_chi || docRecord.dia_chi_thuong_tru || getFullAddress(docRecord) || docRecord.chi_tiet_dc || '',
         so_the_dang: values.so_the_dang || docRecord.so_the_dang || '',
         so_dien_thoai: values.so_dien_thoai || docRecord.so_dien_thoai || '',
         nhiem_vu_dang: values.nhiem_vu_dang || docRecord.nhiem_vu_dang || 'Đảng viên',
@@ -836,8 +868,8 @@ const HoSoChuyenRa = ({ forceTab }) => {
         ngay_chinh_thuc: safeDate(m.ngay_chinh_thuc),
         so_dien_thoai: m.so_dien_thoai || m.sdt || '',
         so_the_dang: m.so_the_dang || m.so_quyet_dinh_dvct || m.so_qd || '',
-        que_quan: m.que_quan || m.tinh_tp_qq || '',
-        dia_chi: m.chi_tiet_dc || m.tinh_tp_tt || m.dia_chi_thuong_tru || '',
+        que_quan: m.que_quan || getFullHometown(m) || m.tinh_tp_qq || '',
+        dia_chi: m.dia_chi_thuong_tru || getFullAddress(m) || m.chi_tiet_dc || '',
         nhiem_vu_dang: m.nhiem_vu_dang || 'Đảng viên',
         noi_chuyen_den_chi_bo: chiBo,
         noi_chuyen_den_dang_bo_co_so: dangBoCoSo,
@@ -1894,9 +1926,9 @@ const HoSoChuyenRa = ({ forceTab }) => {
                 )
               }}
               pagination={{
-                defaultPageSize: 10,
+                defaultPageSize: 50,
                 showSizeChanger: true,
-                pageSizeOptions: ['5', '10', '20', '50', '1000'],
+                pageSizeOptions: ['10', '20', '50', '100', '1000'],
                 showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ chuyển đi đang xử lý`
               }}
               scroll={{ x: 'max-content' }}

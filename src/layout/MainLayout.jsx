@@ -287,9 +287,9 @@ const MainLayout = () => {
     return items.map(item => {
       if (item.children) {
         const filteredChildren = item.children.filter(child => {
-          // Additional check for DANGVIEN and document-generator: only show if reserve member
+          // Additional check for DANGVIEN and document-generator: only show if admin requested official profile
           if (child.key === '/document-generator' && currentUser?.role === 'DANGVIEN') {
-            return currentUser?.dang_vien_du_bi === true;
+            return currentUser?.yeu_cau_lam_ho_so === true;
           }
           return permissionService.hasRouteAccess(role, child.key);
         });

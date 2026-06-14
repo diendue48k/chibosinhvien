@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Input, Space, Typography, message, Select, Avatar, Tag, Popconfirm, Modal, Form, DatePicker, Card, Row, Col, Divider, Empty, Radio, Tabs, Checkbox, Tooltip, Dropdown } from 'antd';
 const { TabPane } = Tabs;
-import { PlusOutlined, EditOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, UserOutlined, DeleteOutlined, ExportOutlined, FilterOutlined, CloseOutlined, FacebookOutlined, PhoneOutlined, MailOutlined, TeamOutlined, ContactsOutlined, SwapOutlined, CheckCircleOutlined, HistoryOutlined, EyeOutlined, FullscreenOutlined, FullscreenExitOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, UserOutlined, DeleteOutlined, ExportOutlined, FilterOutlined, CloseOutlined, FacebookOutlined, PhoneOutlined, MailOutlined, TeamOutlined, ContactsOutlined, SwapOutlined, CheckCircleOutlined, HistoryOutlined, EyeOutlined, FullscreenOutlined, FullscreenExitOutlined, FileZipOutlined } from '@ant-design/icons';
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import DangVienForm from '../components/DangVienForm';
@@ -13,6 +13,61 @@ import dayjs from 'dayjs';
 import PermissionWrapper from '../components/PermissionWrapper';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES, permissionService } from '../services/permissionService';
+
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
+const checkIsDuBi = (member) => {
+  if (!member) return true;
+  const getOfficialDate = () => {
+    const date = member.ngay_cong_nhan_dvct || member.ngay_chinh_thuc;
+    if (!date) return null;
+    if (date.toDate && typeof date.toDate === 'function') return dayjs(date.toDate());
+    if (date.seconds) return dayjs(date.seconds * 1000);
+    return dayjs(date);
+  };
+  const officialDate = getOfficialDate();
+  if (officialDate && officialDate.isValid()) {
+    return officialDate.isAfter(dayjs(), 'day');
+  }
+  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+};
+
+const getFullAddress = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_thuong_tru) return record.dia_chi_thuong_tru;
+  const parts = [];
+  if (record.chi_tiet_dc) parts.push(record.chi_tiet_dc);
+  if (record.xa_phuong_tt) parts.push(record.xa_phuong_tt);
+  if (record.quan_huyen_tt) parts.push(record.quan_huyen_tt);
+  if (record.tinh_tp_tt) parts.push(record.tinh_tp_tt);
+  return parts.join(', ');
+};
+
+const getFullHometown = (record) => {
+  if (!record) return '';
+  if (record.que_quan) return record.que_quan;
+  const parts = [];
+  if (record.xa_phuong_qq) parts.push(record.xa_phuong_qq);
+  if (record.quan_huyen_qq) parts.push(record.quan_huyen_qq);
+  if (record.tinh_tp_qq) parts.push(record.tinh_tp_qq);
+  return parts.join(', ');
+};
+
+const getFullTamTru = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_tam_tru) return record.dia_chi_tam_tru;
+  const parts = [];
+  if (record.chi_tiet_tam_tru) parts.push(record.chi_tiet_tam_tru);
+  if (record.xa_phuong_tam_tru) parts.push(record.xa_phuong_tam_tru);
+  if (record.quan_huyen_tam_tru) parts.push(record.quan_huyen_tam_tru);
+  if (record.tinh_tp_tam_tru) parts.push(record.tinh_tp_tam_tru);
+  return parts.join(', ');
+};
 
 const EXPORT_FIELDS = [
   { key: 'ho_ten', label: 'Họ tên', group: 'basic' },
@@ -33,6 +88,7 @@ const EXPORT_FIELDS = [
   { key: 'facebook', label: 'Facebook', group: 'contact' },
   { key: 'dia_chi_tam_tru', label: 'Địa chỉ tạm trú', group: 'contact' },
   
+  { key: 'dia_chi_thuong_tru', label: 'Địa chỉ thường trú', group: 'address' },
   { key: 'chi_tiet_dc', label: 'Chi tiết địa chỉ thường trú', group: 'address' },
   { key: 'xa_phuong_tt', label: 'Xã/phường thường trú', group: 'address' },
   { key: 'quan_huyen_tt', label: 'Quận/huyện thường trú', group: 'address' },
@@ -41,6 +97,7 @@ const EXPORT_FIELDS = [
   { key: 'xa_phuong_tt_cu', label: 'Xã/phường thường trú cũ', group: 'address' },
   { key: 'quan_huyen_tt_cu', label: 'Quận/huyện thường trú cũ', group: 'address' },
   { key: 'tinh_tp_tt_cu', label: 'Tỉnh/TP thường trú cũ', group: 'address' },
+  { key: 'que_quan', label: 'Quê quán', group: 'address' },
   { key: 'xa_phuong_qq', label: 'Xã/phường quê quán', group: 'address' },
   { key: 'quan_huyen_qq', label: 'Quận/huyện quê quán', group: 'address' },
   { key: 'tinh_tp_qq', label: 'Tỉnh/TP quê quán', group: 'address' },
@@ -106,6 +163,7 @@ const DangVien = () => {
 
   // Excel custom export states
   const [isExportModalVisible, setIsExportModalVisible] = useState(false);
+  const [isExportingPhotos, setIsExportingPhotos] = useState(false);
   const [exportRange, setExportRange] = useState('filtered');
   const [selectedExportFields, setSelectedExportFields] = useState(EXPORT_FIELDS.map(f => f.key));
 
@@ -260,10 +318,10 @@ const DangVien = () => {
   
   // Filters
   const [searchText, setSearchText] = useState("");
-  const [filterKhoa, setFilterKhoa] = useState(null);
-  const [filterLop, setFilterLop] = useState(null);
-  const [filterNhom, setFilterNhom] = useState(null);
-  const [filterIntake, setFilterIntake] = useState(null);
+  const [filterKhoa, setFilterKhoa] = useState([]);
+  const [filterLop, setFilterLop] = useState([]);
+  const [filterNhom, setFilterNhom] = useState([]);
+  const [filterIntake, setFilterIntake] = useState([]);
 
   // Group directory filter states
   const [groupFilterIntake, setGroupFilterIntake] = useState(null);
@@ -324,32 +382,34 @@ const DangVien = () => {
     const result = data.filter(item => {
       const matchSearch = item.mssv?.toLowerCase().includes(searchText.toLowerCase()) || 
                           item.ho_ten?.toLowerCase().includes(searchText.toLowerCase());
-      const matchKhoa = filterKhoa ? item.khoa === filterKhoa : true;
-      const matchLop = filterLop ? item.lop === filterLop : true;
-      const matchNhom = filterNhom ? item.nhom === filterNhom : true;
-      
-      const matchLoai = filterLoaiDangVien === 'Chính thức' ? item.dang_vien_du_bi === false :
-                        filterLoaiDangVien === 'Dự bị' ? item.dang_vien_du_bi === true : true;
+      const matchKhoa = filterKhoa && filterKhoa.length > 0 ? filterKhoa.includes(item.khoa) : true;
+      const matchLop = filterLop && filterLop.length > 0 ? filterLop.includes(item.lop) : true;
+      const matchNhom = filterNhom && filterNhom.length > 0 ? filterNhom.includes(item.nhom) : true;
+      const isDuBi = checkIsDuBi(item);
+      const isOfficial = !isDuBi;
+
+      const matchLoai = filterLoaiDangVien === 'Chính thức' ? isOfficial :
+                        filterLoaiDangVien === 'Dự bị' ? isDuBi : true;
                         
       const cardStr = item.so_the_dang ? String(item.so_the_dang).trim().toLowerCase() : '';
-      const hasCard = !item.dang_vien_du_bi && !!cardStr && cardStr !== '' && !cardStr.includes('chưa') && !cardStr.includes('chua');
+      const hasCard = isOfficial && !!cardStr && cardStr !== '' && !cardStr.includes('chưa') && !cardStr.includes('chua');
       const matchCoThe = filterCoTheDang === 'Đã có thẻ' ? hasCard :
                          filterCoTheDang === 'Chưa có thẻ' ? !hasCard : true;
 
       const matchNoiChuyenDi = filterNoiChuyenDi ? item.noi_chuyen_di === filterNoiChuyenDi : true;
       
-      if (filterIntake) {
+      if (filterIntake && filterIntake.length > 0) {
         const lop = item.lop || "";
         const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
         const intake = match ? match[0] : null;
-        if (intake !== filterIntake) return false;
+        if (!filterIntake.includes(intake)) return false;
       }
       
       let matchNgayVao = true;
       if (filterNgayVaoDangRange && filterNgayVaoDangRange.length === 2) {
          const fromDate = dayjs(filterNgayVaoDangRange[0]).startOf('day');
          const toDate = dayjs(filterNgayVaoDangRange[1]).endOf('day');
-         const itemDate = item.ngay_vao_dang ? dayjs(item.ngay_vao_dang) : null;
+         const itemDate = item.ngay_vao_dang ? safeDayjs(item.ngay_vao_dang) : null;
          if (!itemDate || !itemDate.isValid() || itemDate.isBefore(fromDate) || itemDate.isAfter(toDate)) {
             matchNgayVao = false;
          }
@@ -359,8 +419,8 @@ const DangVien = () => {
     });
 
     result.sort((a, b) => {
-       const dateA = a.ngay_vao_dang ? dayjs(a.ngay_vao_dang).valueOf() : 0;
-       const dateB = b.ngay_vao_dang ? dayjs(b.ngay_vao_dang).valueOf() : 0;
+       const dateA = a.ngay_vao_dang ? safeDayjs(a.ngay_vao_dang).valueOf() : 0;
+       const dateB = b.ngay_vao_dang ? safeDayjs(b.ngay_vao_dang).valueOf() : 0;
        if (dateA !== dateB) return dateA - dateB;
        
        const nhomA = a.nhom || '';
@@ -369,7 +429,7 @@ const DangVien = () => {
     });
 
     return result;
-  }, [data, searchText, filterKhoa, filterLop, filterNhom, filterNgayVaoDangRange, filterNoiChuyenDi, filterLoaiDangVien, filterCoTheDang]);
+  }, [data, searchText, filterKhoa, filterLop, filterNhom, filterNgayVaoDangRange, filterNoiChuyenDi, filterLoaiDangVien, filterCoTheDang, filterIntake]);
 
   const uniqueKhoa = useMemo(() => {
     return [...new Set(data.map(d => d.khoa).filter(Boolean))].sort();
@@ -385,8 +445,8 @@ const DangVien = () => {
   }, [data]);
 
   const uniqueLop = useMemo(() => {
-    const sourceData = filterKhoa 
-      ? data.filter(d => d.khoa === filterKhoa) 
+    const sourceData = filterKhoa && filterKhoa.length > 0
+      ? data.filter(d => filterKhoa.includes(d.khoa))
       : data;
     return [...new Set(sourceData.map(d => d.lop).filter(Boolean))].sort();
   }, [data, filterKhoa]);
@@ -400,10 +460,12 @@ const DangVien = () => {
   }, [data]);
 
   useEffect(() => {
-    if (filterKhoa && filterLop) {
-      const hasLop = data.some(d => d.khoa === filterKhoa && d.lop === filterLop);
-      if (!hasLop) {
-        setFilterLop(null);
+    if (filterKhoa && filterKhoa.length > 0 && filterLop && filterLop.length > 0) {
+      const validLops = filterLop.filter(lop => 
+        data.some(d => filterKhoa.includes(d.khoa) && d.lop === lop)
+      );
+      if (validLops.length !== filterLop.length) {
+        setFilterLop(validLops);
       }
     }
   }, [filterKhoa, filterLop, data]);
@@ -414,14 +476,14 @@ const DangVien = () => {
 
   const resetFilters = () => {
     setSearchText("");
-    setFilterKhoa(null);
-    setFilterLop(null);
-    setFilterNhom(null);
+    setFilterKhoa([]);
+    setFilterLop([]);
+    setFilterNhom([]);
     setFilterNgayVaoDangRange(null);
     setFilterNoiChuyenDi(null);
     setFilterLoaiDangVien(null);
     setFilterCoTheDang(null);
-    setFilterIntake(null);
+    setFilterIntake([]);
   };
 
   const formatDate = (dateString) => {
@@ -447,7 +509,7 @@ const DangVien = () => {
     try {
       let dataToExport = [];
       if (exportRange === 'selected') {
-        dataToExport = filteredData.filter(item => item && selectedRowKeys.includes(item.id));
+        dataToExport = (data || []).filter(item => item && selectedRowKeys.includes(item.id));
       } else if (exportRange === 'all') {
         dataToExport = data || [];
       } else {
@@ -484,7 +546,11 @@ const DangVien = () => {
                 } else if (field.key === 'email_sv') {
                   val = item.email_sv || item.email;
                 } else if (field.key === 'que_quan') {
-                  val = item.que_quan || item.quequan || item.chi_tiet_qq_cu;
+                  val = item.que_quan || getFullHometown(item);
+                } else if (field.key === 'dia_chi_thuong_tru') {
+                  val = item.dia_chi_thuong_tru || getFullAddress(item);
+                } else if (field.key === 'dia_chi_tam_tru') {
+                  val = item.dia_chi_tam_tru || getFullTamTru(item);
                 } else if (field.key === 'tinh_tp_qq') {
                   val = item.tinh_tp_qq || item.tinh_tp_qq_cu;
                 } else if (field.key === 'xa_phuong_qq') {
@@ -531,6 +597,81 @@ const DangVien = () => {
     } catch (error) {
       console.error("Lỗi khi xuất file Excel:", error);
       message.error("Đã xảy ra lỗi: " + error.message);
+    }
+  };
+
+  const exportPhotosZip = async () => {
+    let dataToExport = [];
+    if (exportRange === 'selected') {
+      dataToExport = (data || []).filter(item => item && selectedRowKeys.includes(item.id));
+    } else if (exportRange === 'all') {
+      dataToExport = data || [];
+    } else {
+      dataToExport = filteredData || [];
+    }
+
+    const membersWithPhoto = dataToExport.filter(item => item && item.anh_ca_nhan);
+
+    if (membersWithPhoto.length === 0) {
+      message.warning("Không có ảnh Đảng viên nào trong phạm vi được chọn!");
+      return;
+    }
+
+    setIsExportingPhotos(true);
+    const hideLoading = message.loading(`Đang chuẩn bị tải ảnh của ${membersWithPhoto.length} Đảng viên...`, 0);
+
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      const downloadImage = async (member) => {
+        try {
+          const response = await fetch(member.anh_ca_nhan);
+          if (!response.ok) throw new Error("Fetch error");
+          const blob = await response.blob();
+          
+          let ext = 'jpg';
+          const contentType = response.headers.get('Content-Type');
+          if (contentType) {
+            const parts = contentType.split('/');
+            if (parts.length > 1) {
+              ext = parts[1].split(';')[0];
+            }
+          }
+          if (ext === 'octet-stream') ext = 'jpg';
+          
+          const cleanName = member.ho_ten.replace(/[^a-zA-Z0-9\s_àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '').trim().replace(/\s+/g, '_');
+          const filename = `${member.mssv || 'CHUA_CO_MSSV'}_${cleanName}.${ext}`;
+          zip.file(filename, blob);
+        } catch (err) {
+          console.error(`Failed to download photo for ${member.ho_ten}:`, err);
+        }
+      };
+
+      const batchSize = 5;
+      for (let i = 0; i < membersWithPhoto.length; i += batchSize) {
+        const batch = membersWithPhoto.slice(i, i + batchSize);
+        await Promise.all(batch.map(member => downloadImage(member)));
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Anh_Dang_Vien_${dayjs().format('YYYYMMDD')}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      message.success(`Tải ảnh Đảng viên thành công!`);
+    } catch (e) {
+      console.error(e);
+      message.error("Lỗi xảy ra khi đóng gói và xuất ảnh ZIP: " + e.message);
+    } finally {
+      hideLoading();
+      setIsExportingPhotos(false);
+      setIsExportModalVisible(false);
     }
   };
 
@@ -869,22 +1010,25 @@ const DangVien = () => {
       key: 'ngay_vao_dang',
       render: (text) => formatDate(text),
       sorter: (a, b) => {
-        const dateA = a.ngay_vao_dang ? dayjs(a.ngay_vao_dang).valueOf() : 0;
-        const dateB = b.ngay_vao_dang ? dayjs(b.ngay_vao_dang).valueOf() : 0;
+        const dateA = a.ngay_vao_dang ? safeDayjs(a.ngay_vao_dang).valueOf() : 0;
+        const dateB = b.ngay_vao_dang ? safeDayjs(b.ngay_vao_dang).valueOf() : 0;
         return dateA - dateB;
       }
     },
     { 
       title: 'Loại', 
       key: 'loai',
-      render: (_, r) => (
-        <Tag color={r.dang_vien_du_bi ? 'orange' : 'green'}>
-          {r.dang_vien_du_bi ? 'Dự bị' : 'Chính thức'}
-        </Tag>
-      ),
+      render: (_, r) => {
+        const isDuBi = checkIsDuBi(r);
+        return (
+          <Tag color={isDuBi ? 'orange' : 'green'}>
+            {isDuBi ? 'Dự bị' : 'Chính thức'}
+          </Tag>
+        );
+      },
       sorter: (a, b) => {
-        const valA = a.dang_vien_du_bi ? 1 : 0;
-        const valB = b.dang_vien_du_bi ? 1 : 0;
+        const valA = checkIsDuBi(a) ? 1 : 0;
+        const valB = checkIsDuBi(b) ? 1 : 0;
         return valA - valB;
       }
     }
@@ -914,7 +1058,7 @@ const DangVien = () => {
 
       let matchLoai = true;
       if (groupFilterLoai) {
-        matchLoai = groupFilterLoai === 'du_bi' ? item.dang_vien_du_bi === true : item.dang_vien_du_bi === false;
+        matchLoai = groupFilterLoai === 'du_bi' ? checkIsDuBi(item) : !checkIsDuBi(item);
       }
 
       return matchGroup && matchSearch && matchIntake && matchKhoa && matchLoai;
@@ -1121,8 +1265,8 @@ const DangVien = () => {
     });
 
     filteredTemp.sort((a, b) => {
-      const dateA = a.ngay_chuyen_tam_thoi ? dayjs(a.ngay_chuyen_tam_thoi).valueOf() : 0;
-      const dateB = b.ngay_chuyen_tam_thoi ? dayjs(b.ngay_chuyen_tam_thoi).valueOf() : 0;
+      const dateA = a.ngay_chuyen_tam_thoi ? safeDayjs(a.ngay_chuyen_tam_thoi).valueOf() : 0;
+      const dateB = b.ngay_chuyen_tam_thoi ? safeDayjs(b.ngay_chuyen_tam_thoi).valueOf() : 0;
       return dateB - dateA; // Show latest transfers first
     });
 
@@ -1160,7 +1304,7 @@ const DangVien = () => {
         dataIndex: 'ngay_chuyen_tam_thoi',
         key: 'ngay_chuyen_tam_thoi',
         render: (text) => formatDate(text),
-        sorter: (a, b) => dayjs(a.ngay_chuyen_tam_thoi).valueOf() - dayjs(b.ngay_chuyen_tam_thoi).valueOf()
+        sorter: (a, b) => safeDayjs(a.ngay_chuyen_tam_thoi).valueOf() - safeDayjs(b.ngay_chuyen_tam_thoi).valueOf()
       },
       {
         title: 'Thời gian về dự kiến',
@@ -1249,7 +1393,7 @@ const DangVien = () => {
           loading={tempLoading}
           rowKey="id"
           pagination={{ 
-            defaultPageSize: 10, 
+            defaultPageSize: 50, 
             showSizeChanger: true, 
             pageSizeOptions: ['10', '20', '50', '1000'] 
           }}
@@ -1653,12 +1797,7 @@ const DangVien = () => {
       title: 'Quê quán',
       key: 'que_quan',
       width: 200,
-      render: (_, r) => {
-        const parts = [];
-        if (r.xa_phuong_qq) parts.push(r.xa_phuong_qq);
-        if (r.tinh_tp_qq) parts.push(r.tinh_tp_qq);
-        return parts.join(', ') || '--';
-      }
+      render: (_, r) => r.que_quan || getFullHometown(r) || '--'
     },
     {
       title: 'Xã/Phường quê quán',
@@ -1681,12 +1820,19 @@ const DangVien = () => {
       dataIndex: 'dia_chi_tam_tru',
       key: 'dia_chi_tam_tru',
       width: 250,
+      render: (text, record) => record.dia_chi_tam_tru || getFullTamTru(record) || '--'
     },
     {
       title: 'Địa chỉ thường trú',
-      dataIndex: 'chi_tiet_dc',
-      key: 'chi_tiet_dc',
+      dataIndex: 'dia_chi_thuong_tru',
+      key: 'dia_chi_thuong_tru',
       width: 250,
+      ...getColumnSearchProps('dia_chi_thuong_tru', 'Địa chỉ thường trú'),
+      onFilter: (value, record) => {
+        const fullAddress = record.dia_chi_thuong_tru || getFullAddress(record);
+        return fullAddress ? fullAddress.toLowerCase().includes(value.toLowerCase()) : false;
+      },
+      render: (text, record) => record.dia_chi_thuong_tru || getFullAddress(record) || '--'
     },
     {
       title: 'Xã/Phường thường trú',
@@ -1982,7 +2128,7 @@ const DangVien = () => {
                 <FilterOutlined style={{ color: '#c62828' }} /> <span>Bộ lọc dữ liệu</span>
               </div>
               
-              {(filterKhoa || filterLop || filterNhom || filterNgayVaoDangRange || filterNoiChuyenDi || filterLoaiDangVien || filterCoTheDang || filterIntake) && (
+              {((filterKhoa && filterKhoa.length > 0) || (filterLop && filterLop.length > 0) || (filterNhom && filterNhom.length > 0) || filterNgayVaoDangRange || filterNoiChuyenDi || filterLoaiDangVien || filterCoTheDang || (filterIntake && filterIntake.length > 0)) && (
                 <Button 
                   type="text" 
                   danger 
@@ -1999,11 +2145,13 @@ const DangVien = () => {
             <Row gutter={[16, 16]}>
               <Col xs={24} sm={12} md={4} lg={4}>
                 <Select 
+                  mode="multiple"
+                  maxTagCount="responsive"
                   placeholder="Chọn Khóa" 
                   style={{ width: '100%' }} 
                   allowClear 
                   value={filterIntake} 
-                  onChange={setFilterIntake}
+                  onChange={val => setFilterIntake(val || [])}
                   dropdownStyle={{ borderRadius: '6px' }}
                 >
                   {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
@@ -2012,12 +2160,14 @@ const DangVien = () => {
 
               <Col xs={24} sm={12} md={5} lg={5}>
                 <Select 
+                  mode="multiple"
+                  maxTagCount="responsive"
                   showSearch
                   placeholder="Chọn Khoa" 
                   style={{ width: '100%' }} 
                   allowClear 
                   value={filterKhoa} 
-                  onChange={setFilterKhoa}
+                  onChange={val => setFilterKhoa(val || [])}
                   optionFilterProp="children"
                   filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
                   dropdownStyle={{ borderRadius: '6px' }}
@@ -2028,12 +2178,14 @@ const DangVien = () => {
               
               <Col xs={24} sm={12} md={5} lg={5}>
                 <Select 
+                  mode="multiple"
+                  maxTagCount="responsive"
                   showSearch
                   placeholder="Chọn Lớp" 
                   style={{ width: '100%' }} 
                   allowClear 
                   value={filterLop} 
-                  onChange={setFilterLop}
+                  onChange={val => setFilterLop(val || [])}
                   optionFilterProp="children"
                   filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
                   dropdownStyle={{ borderRadius: '6px' }}
@@ -2044,12 +2196,14 @@ const DangVien = () => {
               
               <Col xs={24} sm={12} md={5} lg={5}>
                 <Select 
+                  mode="multiple"
+                  maxTagCount="responsive"
                   showSearch
                   placeholder="Chọn Nhóm" 
                   style={{ width: '100%' }} 
                   allowClear 
                   value={filterNhom} 
-                  onChange={setFilterNhom}
+                  onChange={val => setFilterNhom(val || [])}
                   optionFilterProp="children"
                   filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
                   dropdownStyle={{ borderRadius: '6px' }}
@@ -2128,7 +2282,7 @@ const DangVien = () => {
             loading={loading}
             rowKey="id"
             pagination={{ 
-              defaultPageSize: 10, 
+              defaultPageSize: 50, 
               showSizeChanger: true, 
               pageSizeOptions: ['10', '20', '50', '100', '1000'] 
             }}
@@ -2356,7 +2510,7 @@ const DangVien = () => {
           scroll={{ x: 5800, y: isTableFullscreen ? 'calc(100vh - 155px)' : 'calc(80vh - 135px)' }}
           bordered
           pagination={{
-            defaultPageSize: 20,
+            defaultPageSize: 50,
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50', '100', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} Đảng viên`
@@ -2374,14 +2528,33 @@ const DangVien = () => {
           </div>
         }
         open={isExportModalVisible}
-        onOk={exportExcel}
         onCancel={() => setIsExportModalVisible(false)}
-        okText="XUẤT FILE EXCEL"
-        cancelText="HỦY BỎ"
         width={850}
         style={{ top: 40 }}
-        okButtonProps={{ style: { backgroundColor: '#c62828', borderColor: '#c62828', height: 40, fontWeight: 700, borderRadius: '6px' } }}
-        cancelButtonProps={{ style: { height: 40, borderRadius: '6px' } }}
+        footer={[
+          <Button key="cancel" onClick={() => setIsExportModalVisible(false)} style={{ height: 40, borderRadius: '6px' }}>
+            HỦY BỎ
+          </Button>,
+          <Button
+            key="zip-photos"
+            type="dashed"
+            icon={<FileZipOutlined style={{ color: '#fa8c16' }} />}
+            onClick={exportPhotosZip}
+            loading={isExportingPhotos}
+            style={{ borderColor: '#fa8c16', color: '#fa8c16', height: 40, fontWeight: 600, borderRadius: '6px' }}
+          >
+            TẢI ẢNH ĐẢNG VIÊN (.ZIP)
+          </Button>,
+          <Button
+            key="ok"
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={exportExcel}
+            style={{ backgroundColor: '#c62828', borderColor: '#c62828', height: 40, fontWeight: 700, borderRadius: '6px' }}
+          >
+            XUẤT FILE EXCEL
+          </Button>
+        ]}
       >
         <div style={{ padding: '0 8px' }}>
           <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626', marginBottom: 12 }}>

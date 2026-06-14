@@ -18,6 +18,38 @@ import AddressWardSelect from '../components/AddressWardSelect';
 import AddressProvinceSelect from '../components/AddressProvinceSelect';
 import AddressDistrictSelect from '../components/AddressDistrictSelect';
 
+const getFullAddress = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_thuong_tru) return record.dia_chi_thuong_tru;
+  const parts = [];
+  if (record.chi_tiet_dc) parts.push(record.chi_tiet_dc);
+  if (record.xa_phuong_tt) parts.push(record.xa_phuong_tt);
+  if (record.quan_huyen_tt) parts.push(record.quan_huyen_tt);
+  if (record.tinh_tp_tt) parts.push(record.tinh_tp_tt);
+  return parts.join(', ');
+};
+
+const getFullHometown = (record) => {
+  if (!record) return '';
+  if (record.que_quan) return record.que_quan;
+  const parts = [];
+  if (record.xa_phuong_qq) parts.push(record.xa_phuong_qq);
+  if (record.quan_huyen_qq) parts.push(record.quan_huyen_qq);
+  if (record.tinh_tp_qq) parts.push(record.tinh_tp_qq);
+  return parts.join(', ');
+};
+
+const getFullTamTru = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_tam_tru) return record.dia_chi_tam_tru;
+  const parts = [];
+  if (record.chi_tiet_tam_tru) parts.push(record.chi_tiet_tam_tru);
+  if (record.xa_phuong_tam_tru) parts.push(record.xa_phuong_tam_tru);
+  if (record.quan_huyen_tam_tru) parts.push(record.quan_huyen_tam_tru);
+  if (record.tinh_tp_tam_tru) parts.push(record.tinh_tp_tam_tru);
+  return parts.join(', ');
+};
+
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
@@ -341,10 +373,10 @@ const DocumentGenerator = () => {
             mssv: currentUser?.mssv || currentUser?.username || '',
             lop: currentUser?.lop || '',
             khoa: currentUser?.khoa || '',
-            dia_chi_tam_tru: currentUser?.dia_chi_tam_tru || '',
+            dia_chi_tam_tru: currentUser?.dia_chi_tam_tru || getFullTamTru(currentUser) || '',
             ngay_vao_dang: currentUser?.ngay_vao_dang || null,
-            que_quan: currentUser?.quequan || currentUser?.que_quan || '',
-            dia_chi_thuong_tru: currentUser?.chi_tiet_dc || currentUser?.tinh_tp_tt || '',
+            que_quan: currentUser?.que_quan || getFullHometown(currentUser) || currentUser?.quequan || '',
+            dia_chi_thuong_tru: currentUser?.dia_chi_thuong_tru || getFullAddress(currentUser) || currentUser?.chi_tiet_dc || '',
             cccd: currentUser?.cccd || '',
             gioi_tinh: currentUser?.gioi_tinh || 'Nam',
             so_dien_thoai: currentUser?.so_dien_thoai || '',
@@ -375,9 +407,9 @@ const DocumentGenerator = () => {
         khoa: selectedMember.khoa || '',
         ngay_sinh: selectedMember.ngay_sinh ? dayjs(selectedMember.ngay_sinh) : null,
         ngay_vao_dang: selectedMember.ngay_vao_dang ? dayjs(selectedMember.ngay_vao_dang) : null,
-        que_quan: selectedMember.que_quan || selectedMember.tinh_tp_qq || '',
-        dia_chi_thuong_tru: selectedMember.chi_tiet_dc || selectedMember.tinh_tp_tt || selectedMember.dia_chi_thuong_tru || '',
-        dia_chi_tam_tru: selectedMember.dia_chi_tam_tru || '',
+        que_quan: selectedMember.que_quan || getFullHometown(selectedMember) || '',
+        dia_chi_thuong_tru: selectedMember.dia_chi_thuong_tru || getFullAddress(selectedMember) || '',
+        dia_chi_tam_tru: selectedMember.dia_chi_tam_tru || getFullTamTru(selectedMember) || '',
         
         tinh_tp_qq: selectedMember.tinh_tp_qq || '',
         quan_huyen_qq: selectedMember.quan_huyen_qq || '',
@@ -545,9 +577,9 @@ const DocumentGenerator = () => {
   useEffect(() => {
     if (selectedMember) {
       form.setFieldsValue({
-        que_quan: selectedMember.que_quan || selectedMember.tinh_tp_qq || '',
-        dia_chi_thuong_tru: selectedMember.chi_tiet_dc || selectedMember.tinh_tp_tt || selectedMember.dia_chi_thuong_tru || '',
-        dia_chi_tam_tru: selectedMember.dia_chi_tam_tru || '',
+        que_quan: selectedMember.que_quan || getFullHometown(selectedMember) || '',
+        dia_chi_thuong_tru: selectedMember.dia_chi_thuong_tru || getFullAddress(selectedMember) || '',
+        dia_chi_tam_tru: selectedMember.dia_chi_tam_tru || getFullTamTru(selectedMember) || '',
         ngay_sinh: selectedMember.ngay_sinh ? dayjs(selectedMember.ngay_sinh) : null,
         ngay_vao_dang: selectedMember.ngay_vao_dang ? dayjs(selectedMember.ngay_vao_dang) : null,
       });

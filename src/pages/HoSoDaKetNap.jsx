@@ -13,10 +13,60 @@ import {
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { dbMain, dbStudent } from '../firebase';
 import dayjs from 'dayjs';
+
+const disabledFutureDate = (current) => {
+  return current && current > dayjs().endOf('day');
+};
+
+const normalizeDocMssv = (val) => {
+  if (val === undefined || val === null) return "";
+  if (typeof val === 'string' || typeof val === 'number') {
+    return String(val).trim().toLowerCase();
+  }
+  const raw = val.mssv !== undefined && val.mssv !== null ? val.mssv :
+              (val.MSSV !== undefined && val.MSSV !== null ? val.MSSV :
+              (val.ma_sv !== undefined && val.ma_sv !== null ? val.ma_sv :
+              (val.MaSV !== undefined && val.MaSV !== null ? val.MaSV :
+              (val.maSV !== undefined && val.maSV !== null ? val.maSV : ""))));
+  return String(raw).trim().toLowerCase();
+};
+
 import * as XLSX from 'xlsx';
 import debounce from 'lodash/debounce';
 import ProfileDrawer from '../components/ProfileDrawer';
 import { API_BASE_URL } from '../config';
+
+const getFullAddress = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_thuong_tru) return record.dia_chi_thuong_tru;
+  const parts = [];
+  if (record.chi_tiet_dc) parts.push(record.chi_tiet_dc);
+  if (record.xa_phuong_tt) parts.push(record.xa_phuong_tt);
+  if (record.quan_huyen_tt) parts.push(record.quan_huyen_tt);
+  if (record.tinh_tp_tt) parts.push(record.tinh_tp_tt);
+  return parts.join(', ');
+};
+
+const getFullHometown = (record) => {
+  if (!record) return '';
+  if (record.que_quan) return record.que_quan;
+  const parts = [];
+  if (record.xa_phuong_qq) parts.push(record.xa_phuong_qq);
+  if (record.quan_huyen_qq) parts.push(record.quan_huyen_qq);
+  if (record.tinh_tp_qq) parts.push(record.tinh_tp_qq);
+  return parts.join(', ');
+};
+
+const getFullTamTru = (record) => {
+  if (!record) return '';
+  if (record.dia_chi_tam_tru) return record.dia_chi_tam_tru;
+  const parts = [];
+  if (record.chi_tiet_tam_tru) parts.push(record.chi_tiet_tam_tru);
+  if (record.xa_phuong_tam_tru) parts.push(record.xa_phuong_tam_tru);
+  if (record.quan_huyen_tam_tru) parts.push(record.quan_huyen_tam_tru);
+  if (record.tinh_tp_tam_tru) parts.push(record.tinh_tp_tam_tru);
+  return parts.join(', ');
+};
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -41,9 +91,11 @@ const EXPORT_FIELDS = [
   { key: 'facebook', label: 'Facebook', group: 'contact' },
   { key: 'dia_chi_tam_tru', label: 'Địa chỉ tạm trú', group: 'contact' },
   
+  { key: 'dia_chi_thuong_tru', label: 'Địa chỉ thường trú', group: 'address' },
   { key: 'chi_tiet_dc', label: 'Chi tiết ĐC thường trú', group: 'address' },
   { key: 'xa_phuong_tt', label: 'Xã/phường thường trú', group: 'address' },
   { key: 'tinh_tp_tt', label: 'Tỉnh/TP thường trú', group: 'address' },
+  { key: 'que_quan', label: 'Quê quán', group: 'address' },
   { key: 'xa_phuong_qq', label: 'Xã/phường quê quán', group: 'address' },
   { key: 'tinh_tp_qq', label: 'Tỉnh/TP quê quán', group: 'address' },
   
@@ -256,9 +308,9 @@ const HoSoDaKetNap = () => {
 
   // Filters
   const [searchText, setSearchText] = useState("");
-  const [filterKhoa, setFilterKhoa] = useState(null);
-  const [filterNam, setFilterNam] = useState(null);
-  const [filterIntake, setFilterIntake] = useState(null);
+  const [filterKhoa, setFilterKhoa] = useState([]);
+  const [filterNam, setFilterNam] = useState([]);
+  const [filterIntake, setFilterIntake] = useState([]);
 
   // Import Excel Modal states
   const [isImportModalVisible, setIsImportModalVisible] = useState(false);
@@ -872,13 +924,63 @@ const HoSoDaKetNap = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
+      // 1. Fetch ho_so_ket_nap records
       const q = query(collection(dbMain, "ho_so_ket_nap"), where("trangthai", "in", [8, "8"]));
       const querySnapshot = await getDocs(q);
-      const records = querySnapshot.docs.map(doc => ({
+      const ketNapRecords = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
-      setData(records);
+
+      // 2. Fetch dang_vien records to build a mapping by MSSV
+      const dvSnapshot = await getDocs(collection(dbMain, "dang_vien"));
+      const dvMap = {};
+      dvSnapshot.docs.forEach(doc => {
+        const d = doc.data();
+        const mssvStr = normalizeDocMssv(d);
+        if (mssvStr) {
+          dvMap[mssvStr] = { id: doc.id, ...d };
+        }
+      });
+
+      // 3. Merge data from dang_vien for transferred dossiers
+      const mergedRecords = ketNapRecords.map(rec => {
+        const mssvKey = normalizeDocMssv(rec);
+        const dvDoc = dvMap[mssvKey];
+        if (dvDoc) {
+          return {
+            ...rec,
+            ...dvDoc,
+            hoten: dvDoc.ho_ten || rec.hoten,
+            ho_ten: dvDoc.ho_ten || rec.ho_ten,
+            ngaysinh: dvDoc.ngay_sinh || rec.ngaysinh,
+            ngay_sinh: dvDoc.ngay_sinh || rec.ngay_sinh,
+            ngayvaodang: dvDoc.ngay_vao_dang || rec.ngayvaodang,
+            ngay_vao_dang: dvDoc.ngay_vao_dang || rec.ngay_vao_dang,
+            quequan: dvDoc.que_quan || rec.quequan,
+            que_quan: dvDoc.que_quan || rec.que_quan,
+            sdt: dvDoc.so_dien_thoai || dvDoc.sdt || rec.sdt,
+            so_dien_thoai: dvDoc.so_dien_thoai || dvDoc.so_dien_thoai,
+            email: dvDoc.email || rec.email,
+            link_fb: dvDoc.facebook || rec.link_fb,
+            facebook: dvDoc.facebook || rec.facebook,
+            dangvienhuongdan: dvDoc.dvhd || rec.dangvienhuongdan,
+            dvhd: dvDoc.dvhd || rec.dvhd,
+            soqd: dvDoc.soqd || dvDoc.so_qd || rec.soqd,
+            ngaykiqd: dvDoc.ngaykiqd || dvDoc.ngay_ki_qd || rec.ngaykiqd,
+            lop: dvDoc.lop || rec.lop,
+            khoa: dvDoc.khoa || rec.khoa,
+            cccd: dvDoc.cccd || rec.cccd,
+            gioitinh: dvDoc.gioi_tinh || rec.gioitinh,
+            gioi_tinh: dvDoc.gioi_tinh || rec.gioi_tinh,
+            da_chuyen_sinh_hoat: rec.da_chuyen_sinh_hoat || true,
+            id: rec.id
+          };
+        }
+        return rec;
+      });
+
+      setData(mergedRecords);
     } catch (error) {
       message.error("Lỗi khi tải danh sách hồ sơ đã kết nạp");
       console.error(error);
@@ -907,21 +1009,21 @@ const HoSoDaKetNap = () => {
     const result = data.filter(item => {
       const matchSearch = item.mssv?.toLowerCase().includes(searchText.toLowerCase()) || 
                           item.hoten?.toLowerCase().includes(searchText.toLowerCase());
-      const matchKhoa = filterKhoa ? item.khoa === filterKhoa : true;
+      const matchKhoa = filterKhoa && filterKhoa.length > 0 ? filterKhoa.includes(item.khoa) : true;
       
       let matchNam = true;
-      if (filterNam) {
+      if (filterNam && filterNam.length > 0) {
         const itemYear = item.ngayvaodang 
           ? dayjs(item.ngayvaodang).format('YYYY') 
           : (item.ngaynhanhoso ? dayjs(item.ngaynhanhoso).format('YYYY') : (item.created_at ? dayjs(item.created_at).format('YYYY') : 'Chưa rõ'));
-        matchNam = itemYear === filterNam;
+        matchNam = filterNam.includes(itemYear);
       }
 
-      if (filterIntake) {
+      if (filterIntake && filterIntake.length > 0) {
         const lop = item.lop || "";
         const match = lop.match(/^(\d+K)/) || lop.match(/^(\d+)/);
         const intake = match ? match[0] : null;
-        if (intake !== filterIntake) return false;
+        if (!filterIntake.includes(intake)) return false;
       }
 
       return matchSearch && matchKhoa && matchNam;
@@ -950,9 +1052,9 @@ const HoSoDaKetNap = () => {
 
   const resetFilters = () => {
     setSearchText("");
-    setFilterKhoa(null);
-    setFilterNam(null);
-    setFilterIntake(null);
+    setFilterKhoa([]);
+    setFilterNam([]);
+    setFilterIntake([]);
   };
 
   const formatDate = (dateString) => {
@@ -1658,7 +1760,9 @@ const HoSoDaKetNap = () => {
         ho_ten: item.ho_ten || item.hoten || '',
         so_dien_thoai: item.so_dien_thoai || item.sdt || '',
         ngay_sinh: item.ngay_sinh || item.ngaysinh || null,
-        que_quan: item.que_quan || item.quequan || '',
+        que_quan: item.que_quan || item.quequan || getFullHometown(item),
+        dia_chi_thuong_tru: item.dia_chi_thuong_tru || getFullAddress(item),
+        dia_chi_tam_tru: item.dia_chi_tam_tru || getFullTamTru(item),
         ngay_vao_dang: item.ngay_vao_dang || item.ngayvaodang || null,
         dvhd: item.dvhd || item.dangvienhuongdan || '',
         so_the_dang: item.so_the_dang || item.soqd || '',
@@ -1899,11 +2003,13 @@ const HoSoDaKetNap = () => {
         
         <div style={{ flex: 1, minWidth: '120px' }}>
           <Select 
+            mode="multiple"
+            maxTagCount="responsive"
             placeholder="Chọn Khóa" 
             style={{ width: '100%' }} 
             allowClear 
             value={filterIntake} 
-            onChange={setFilterIntake}
+            onChange={val => setFilterIntake(val || [])}
             dropdownStyle={{ borderRadius: '6px' }}
           >
             {uniqueIntakes.map(k => <Option key={k} value={k}>{k}</Option>)}
@@ -1912,12 +2018,14 @@ const HoSoDaKetNap = () => {
 
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select 
+            mode="multiple"
+            maxTagCount="responsive"
             showSearch
             placeholder="Chọn Khoa" 
             style={{ width: '100%' }} 
             allowClear 
             value={filterKhoa} 
-            onChange={setFilterKhoa}
+            onChange={val => setFilterKhoa(val || [])}
             optionFilterProp="children"
             filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}
             dropdownStyle={{ borderRadius: '6px' }}
@@ -1928,11 +2036,13 @@ const HoSoDaKetNap = () => {
 
         <div style={{ flex: 1, minWidth: '150px' }}>
           <Select 
+            mode="multiple"
+            maxTagCount="responsive"
             placeholder="Chọn Năm kết nạp" 
             style={{ width: '100%' }} 
             allowClear 
             value={filterNam} 
-            onChange={setFilterNam}
+            onChange={val => setFilterNam(val || [])}
             dropdownStyle={{ borderRadius: '6px' }}
           >
             {uniqueYears.map(y => (
@@ -1941,7 +2051,7 @@ const HoSoDaKetNap = () => {
           </Select>
         </div>
 
-        {(filterKhoa || filterNam || searchText || filterIntake) && (
+        {((filterKhoa && filterKhoa.length > 0) || (filterNam && filterNam.length > 0) || searchText || (filterIntake && filterIntake.length > 0)) && (
           <div style={{ flexShrink: 0 }}>
             <Button 
               type="text" 

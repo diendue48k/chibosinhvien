@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Table, Typography, Card, Row, Col, Space, Input, Button, Modal, 
   Form, Select, DatePicker, message, Badge, Tooltip, Drawer, Popconfirm, Steps, Divider,
@@ -9,12 +9,37 @@ import {
   CheckCircleOutlined, EyeOutlined, MailOutlined,
   UserOutlined, EnvironmentOutlined, HomeOutlined, PhoneOutlined, FlagOutlined,
   ExportOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, FilterOutlined, SearchOutlined, CloseOutlined,
-  TableOutlined, FullscreenOutlined, FullscreenExitOutlined, SettingOutlined
+  TableOutlined, FullscreenOutlined, FullscreenExitOutlined, SettingOutlined,
+  BoldOutlined, ItalicOutlined, UnderlineOutlined, LinkOutlined, DisconnectOutlined,
+  UnorderedListOutlined, OrderedListOutlined, FileZipOutlined
 } from '@ant-design/icons';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { dbMain as db } from '../firebase';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
+
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
+const checkIsDuBi = (member) => {
+  if (!member) return true;
+  const getOfficialDate = () => {
+    const date = member.ngay_cong_nhan_dvct || member.ngay_chinh_thuc;
+    if (!date) return null;
+    if (date.toDate && typeof date.toDate === 'function') return dayjs(date.toDate());
+    if (date.seconds) return dayjs(date.seconds * 1000);
+    return dayjs(date);
+  };
+  const officialDate = getOfficialDate();
+  if (officialDate && officialDate.isValid()) {
+    return officialDate.isAfter(dayjs(), 'day');
+  }
+  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+};
 import { API_BASE_URL } from '../config';
 import ImportExcel from '../components/ImportExcel';
 import ProfileDrawer from '../components/ProfileDrawer';
@@ -67,6 +92,62 @@ const FIELD_GROUPS = {
   address: { label: "Thường trú & Quê quán", color: "purple" },
   party: { label: "Thông tin Đảng tịch", color: "red" },
   family: { label: "Gia đình", color: "orange" }
+};
+
+const FIELD_LABELS = {
+  ho_ten: "Họ và tên",
+  mssv: "MSSV",
+  ngay_sinh: "Ngày sinh",
+  gioi_tinh: "Giới tính",
+  cccd: "CCCD",
+  dan_toc: "Dân tộc",
+  ton_giao: "Tôn giáo",
+  lop: "Lớp",
+  khoa: "Khoa",
+  nhom: "Nhóm sinh hoạt",
+  so_dien_thoai: "Số điện thoại",
+  sdt: "Số điện thoại",
+  email: "Email cá nhân",
+  email_sv: "Email sinh viên",
+  facebook: "Facebook",
+  dia_chi_tam_tru: "Địa chỉ tạm trú",
+  chi_tiet_dc: "Địa chỉ thường trú",
+  xa_phuong_tt: "Xã/Phường thường trú",
+  quan_huyen_tt: "Quận/Huyện thường trú",
+  tinh_tp_tt: "Tỉnh/TP thường trú",
+  que_quan: "Quê quán (chi tiết)",
+  xa_phuong_qq: "Xã/Phường quê quán",
+  quan_huyen_qq: "Quận/Huyện quê quán",
+  tinh_tp_qq: "Tỉnh/TP quê quán",
+  ngay_vao_dang: "Ngày vào Đảng",
+  ngay_chinh_thuc: "Ngày chính thức",
+  so_the_dang: "Số thẻ Đảng",
+  noi_chuyen_di: "Nơi chuyển đi",
+  ngay_chuyen_vao: "Ngày chuyển vào Chi bộ",
+  dvhd: "Đảng viên hướng dẫn",
+  dvhd_theo_doi: "ĐVHD theo dõi",
+  dvhd_ho_so: "ĐVHD làm hồ sơ",
+  yeu_cau_lam_ho_so: "Yêu cầu làm hồ sơ chính thức",
+  ho_ten_nguoi_than: "Họ tên người thân",
+  sdt_nguoi_than: "SĐT người thân",
+  anh_ca_nhan: "Ảnh cá nhân",
+  dang_vien_du_bi: "Loại Đảng viên",
+  trang_thai: "Trạng thái sinh hoạt",
+  soqd: "Số quyết định kết nạp",
+  ngaykiqd: "Ngày ký quyết định kết nạp",
+  uu_diem: "Ưu điểm",
+  khuyet_diem: "Khuyết điểm",
+  ghi_chu_ho_so: "Ghi chú hồ sơ",
+  ghi_chu: "Ghi chú hồ sơ",
+  hoc_lop_dv_moi: "Học lớp Đảng viên mới",
+  so_gcn: "Số GCN Đảng viên mới",
+  ngay_cap_gcn: "Ngày cấp GCN",
+  noi_cap_gcn: "Nơi cấp GCN",
+  so_quyet_dinh_dvct: "Số quyết định công nhận ĐVCT",
+  ngay_ky_quyet_dinh_dvct: "Ngày ký quyết định công nhận ĐVCT",
+  ngay_cong_nhan_dvct: "Ngày công nhận ĐVCT",
+  ho_so_status: "Bước hồ sơ",
+  allow_self_edit: "Cho phép tự chỉnh sửa"
 };
 
 const HO_SO_STEPS = {
@@ -132,9 +213,20 @@ const DangVienDuBi = () => {
   // Email editor states
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBodyText, setEmailBodyText] = useState("");
+  const [activeComposeTab, setActiveComposeTab] = useState("compose");
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    if (isEmailModalVisible && activeComposeTab === 'compose' && editorRef.current) {
+      if (editorRef.current.innerHTML !== emailBodyText) {
+        editorRef.current.innerHTML = emailBodyText;
+      }
+    }
+  }, [isEmailModalVisible, activeComposeTab]);
 
   // Custom export states
   const [isExportModalVisible, setIsExportModalVisible] = useState(false);
+  const [isExportingPhotos, setIsExportingPhotos] = useState(false);
   const [exportRange, setExportRange] = useState('filtered');
   const [selectedExportFields, setSelectedExportFields] = useState(EXPORT_FIELDS.map(f => f.key));
 
@@ -191,18 +283,35 @@ const DangVienDuBi = () => {
       
       const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
+      // checkIsDuBi is now defined globally
+
       // Filter those who are probationary
-      const probationary = members.filter(member => 
-        member.loai_dang_vien === "Dự bị" || member.dang_vien_du_bi === true
-      );
+      const probationary = members.filter(member => checkIsDuBi(member));
       
       // Filter those who are official members to be guides (DVHD)
       const official = members.filter(member => 
         member.ho_ten && 
-        !(member.loai_dang_vien === "Dự bị" || member.dang_vien_du_bi === true)
+        !checkIsDuBi(member)
       );
 
-      setData(probationary);
+      // Merge flag into each probationary member based on date (within 2 months to deadline)
+      const probationaryWithFlag = probationary.map(m => {
+        let isWithin2M = false;
+        if (m.ngay_vao_dang) {
+          const ngayVao = safeDayjs(m.ngay_vao_dang);
+          if (ngayVao.isValid()) {
+            const deadline = ngayVao.add(12, 'month');
+            const daysLeft = deadline.diff(dayjs(), 'day');
+            isWithin2M = daysLeft <= 60;
+          }
+        }
+        return {
+          ...m,
+          yeu_cau_lam_ho_so: isWithin2M
+        };
+      });
+      setData(probationaryWithFlag);
+
       setAllOfficialMembers(official);
     } catch (error) {
       console.error(error);
@@ -459,7 +568,7 @@ const DangVienDuBi = () => {
   const exportExcel = () => {
     let dataToExport = [];
     if (exportRange === 'selected') {
-      dataToExport = filteredData.filter(item => selectedRowKeys.includes(item.id));
+      dataToExport = (data || []).filter(item => selectedRowKeys.includes(item.id));
     } else if (exportRange === 'all') {
       dataToExport = data;
     } else {
@@ -512,6 +621,81 @@ const DangVienDuBi = () => {
     
     setIsExportModalVisible(false);
     message.success(`Xuất Excel thành công ${dataToExport.length} Đảng viên dự bị!`);
+  };
+
+  const exportPhotosZip = async () => {
+    let dataToExport = [];
+    if (exportRange === 'selected') {
+      dataToExport = (data || []).filter(item => selectedRowKeys.includes(item.id));
+    } else if (exportRange === 'all') {
+      dataToExport = data || [];
+    } else {
+      dataToExport = filteredData || [];
+    }
+
+    const membersWithPhoto = dataToExport.filter(item => item && item.anh_ca_nhan);
+
+    if (membersWithPhoto.length === 0) {
+      message.warning("Không có ảnh Đảng viên nào trong phạm vi được chọn!");
+      return;
+    }
+
+    setIsExportingPhotos(true);
+    const hideLoading = message.loading(`Đang chuẩn bị tải ảnh của ${membersWithPhoto.length} Đảng viên...`, 0);
+
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      const downloadImage = async (member) => {
+        try {
+          const response = await fetch(member.anh_ca_nhan);
+          if (!response.ok) throw new Error("Fetch error");
+          const blob = await response.blob();
+          
+          let ext = 'jpg';
+          const contentType = response.headers.get('Content-Type');
+          if (contentType) {
+            const parts = contentType.split('/');
+            if (parts.length > 1) {
+              ext = parts[1].split(';')[0];
+            }
+          }
+          if (ext === 'octet-stream') ext = 'jpg';
+          
+          const cleanName = member.ho_ten.replace(/[^a-zA-Z0-9\s_àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '').trim().replace(/\s+/g, '_');
+          const filename = `${member.mssv || 'CHUA_CO_MSSV'}_${cleanName}.${ext}`;
+          zip.file(filename, blob);
+        } catch (err) {
+          console.error(`Failed to download photo for ${member.ho_ten}:`, err);
+        }
+      };
+
+      const batchSize = 5;
+      for (let i = 0; i < membersWithPhoto.length; i += batchSize) {
+        const batch = membersWithPhoto.slice(i, i + batchSize);
+        await Promise.all(batch.map(member => downloadImage(member)));
+      }
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Anh_Dang_Vien_Du_Bi_${dayjs().format('YYYYMMDD')}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      message.success(`Tải ảnh Đảng viên thành công!`);
+    } catch (e) {
+      console.error(e);
+      message.error("Lỗi xảy ra khi đóng gói và xuất ảnh ZIP: " + e.message);
+    } finally {
+      hideLoading();
+      setIsExportingPhotos(false);
+      setIsExportModalVisible(false);
+    }
   };
 
   const handleBulkEmail = () => {
@@ -674,6 +858,23 @@ const DangVienDuBi = () => {
           ho_so_history: newHistory,
           updated_at: new Date().toISOString()
         });
+
+        // Log history
+        await addDoc(collection(db, "lich_su_cap_nhat"), {
+          dang_vien_id: record.id,
+          mssv: record.mssv || '',
+          ho_ten: record.ho_ten || '',
+          updated_by: currentUser?.email || currentUser?.username || "Admin (Hàng loạt)",
+          updated_at: new Date().toISOString(),
+          action: "update",
+          changes: [{
+            field: "ho_so_status",
+            label: "Bước hồ sơ",
+            oldVal: record.ho_so_status ? `Bước ${record.ho_so_status}` : 'Chưa thiết lập',
+            newVal: `Bước ${targetStep}`
+          }]
+        });
+
         count++;
       }
       message.success(`Đã cập nhật hàng loạt ${count} Đảng viên sang Bước ${targetStep}: ${HO_SO_STEPS[targetStep]}!`);
@@ -697,6 +898,23 @@ const DangVienDuBi = () => {
           hoc_lop_dv_moi: status,
           updated_at: new Date().toISOString()
         });
+
+        // Log history
+        await addDoc(collection(db, "lich_su_cap_nhat"), {
+          dang_vien_id: record.id,
+          mssv: record.mssv || '',
+          ho_ten: record.ho_ten || '',
+          updated_by: currentUser?.email || currentUser?.username || "Admin (Hàng loạt)",
+          updated_at: new Date().toISOString(),
+          action: "update",
+          changes: [{
+            field: "hoc_lop_dv_moi",
+            label: "Học lớp Đảng viên mới",
+            oldVal: record.hoc_lop_dv_moi ? "Đã học" : "Chưa học",
+            newVal: status ? "Đã học" : "Chưa học"
+          }]
+        });
+
         count++;
       }
       message.success(`Đã cập nhật lớp Đảng viên mới thành công cho ${count} đồng chí!`);
@@ -733,7 +951,7 @@ const DangVienDuBi = () => {
 
   const calculateHanXet = (ngayVaoDang) => {
     if (!ngayVaoDang) return null;
-    const ngayVao = dayjs(ngayVaoDang);
+    const ngayVao = safeDayjs(ngayVaoDang);
     if (!ngayVao.isValid()) return null;
     
     const hanXet = ngayVao.add(12, 'month');
@@ -785,7 +1003,10 @@ const DangVienDuBi = () => {
                 ngay_sinh: record.ngay_sinh ? dayjs(record.ngay_sinh) : null,
                 ngay_vao_dang: record.ngay_vao_dang ? dayjs(record.ngay_vao_dang) : null,
                 ngay_cong_nhan_dvct: record.ngay_cong_nhan_dvct ? dayjs(record.ngay_cong_nhan_dvct) : null,
-                ngay_ky_quyet_dinh_dvct: record.ngay_ky_quyet_dinh_dvct ? dayjs(record.ngay_ky_quyet_dinh_dvct) : null
+                ngay_ky_quyet_dinh_dvct: record.ngay_ky_quyet_dinh_dvct ? dayjs(record.ngay_ky_quyet_dinh_dvct) : null,
+                ngay_cap_gcn: record.ngay_cap_gcn ? dayjs(record.ngay_cap_gcn) : null,
+                so_gcn: record.so_gcn || undefined,
+                noi_cap_gcn: record.noi_cap_gcn || undefined
               });
               setDrawerVisible(true);
             }}
@@ -846,8 +1067,47 @@ const DangVienDuBi = () => {
           </div>
         );
       }
+    },
+    {
+      title: 'Trạng thái HS',
+      key: 'yeu_cau_ho_so',
+      width: 140,
+      align: 'center',
+      render: (_, record) => {
+        const date = record.ngay_cong_nhan_dvct || record.ngay_chinh_thuc;
+        if (date) {
+          const d = safeDayjs(date);
+          if (d && d.isAfter(dayjs(), 'day')) {
+            return (
+              <Tag color="cyan" style={{ fontWeight: 600, padding: '4px 8px', borderRadius: '4px' }}>
+                Đã duyệt (Chờ ngày HL)
+              </Tag>
+            );
+          }
+        }
+
+        let isWithin2M = false;
+        if (record.ngay_vao_dang) {
+          const ngayVao = safeDayjs(record.ngay_vao_dang);
+          if (ngayVao.isValid()) {
+            const deadline = ngayVao.add(12, 'month');
+            const daysLeft = deadline.diff(dayjs(), 'day');
+            isWithin2M = daysLeft <= 60;
+          }
+        }
+        return isWithin2M ? (
+          <Tag color="success" style={{ fontWeight: 600, padding: '4px 8px', borderRadius: '4px' }}>
+            Đang làm HS
+          </Tag>
+        ) : (
+          <Tag color="default" style={{ fontWeight: 500, padding: '4px 8px', borderRadius: '4px' }}>
+            Chưa đến hạn
+          </Tag>
+        );
+      }
     }
   ];
+
 
   const handlePrepareEmail = (record, daysLeft, isUrgent) => {
     const targetEmail = record.dvhd_email || record.email;
@@ -859,28 +1119,29 @@ const DangVienDuBi = () => {
     const status = record.ho_so_status || 1;
     const defaultSubject = "Nhắc chuẩn bị hồ sơ xét công nhận Đảng viên chính thức";
     const defaultBody = 
-      `Kính gửi đồng chí ${record.ho_ten},\n\n` +
-      `Chi bộ Sinh viên xin thông báo về việc chuẩn bị hồ sơ xét công nhận Đảng viên chính thức của đồng chí với các thông tin sau:\n` +
-      `- MSSV: ${record.mssv || 'Chưa cập nhật'}\n` +
-      `- Ngày vào Đảng: ${dayjs(record.ngay_vao_dang).format('DD/MM/YYYY')}\n\n` +
-      (daysLeft >= 0 ? `Đảng viên còn ${daysLeft} ngày` : `Đảng viên đã quá hạn ${Math.abs(daysLeft)} ngày`) + ` để hoàn thiện hồ sơ xét công nhận Đảng viên chính thức.\n` +
-      (isUrgent ? `⚠️ Thời gian rất gấp, đề nghị khẩn trương hoàn thiện!\n\n` : `\n`) +
-      (status <= 3 && daysLeft <= 30 ? `Hiện hồ sơ đang ở bước: Bước ${status} - ${HO_SO_STEPS[status]}\n\n` : '') +
-      `Hồ sơ cần chuẩn bị:\n` +
-      `Vui lòng chuẩn bị đầy đủ hồ sơ theo hướng dẫn tại link sau:\n` +
-      `${configLinkHoSo}\n\n` +
-      `Đảng viên hướng dẫn:\n` +
-      `- Họ tên: ${record.dvhd || 'Chưa cập nhật'}\n` +
-      `- Email: ${targetEmail}\n\n` +
-      `Thông tin liên hệ Hỗ trợ:\n` +
-      `- ${configGroupName}\n` +
-      `- Link tham gia: ${configGroupLink}\n\n` +
-      `Đề nghị đồng chí chủ động liên hệ và hoàn thiện hồ sơ đúng thời hạn.\n\n` +
-      `Trân trọng,\nChi bộ Sinh viên`;
+      `Kính gửi đồng chí ${record.ho_ten},<br /><br />` +
+      `Chi bộ Sinh viên xin thông báo về việc chuẩn bị hồ sơ xét công nhận Đảng viên chính thức của đồng chí với các thông tin sau:<br />` +
+      `- MSSV: ${record.mssv || 'Chưa cập nhật'}<br />` +
+      `- Ngày vào Đảng: ${dayjs(record.ngay_vao_dang).format('DD/MM/YYYY')}<br /><br />` +
+      (daysLeft >= 0 ? `Đảng viên còn ${daysLeft} ngày` : `Đảng viên đã quá hạn ${Math.abs(daysLeft)} ngày`) + ` để hoàn thiện hồ sơ xét công nhận Đảng viên chính thức.<br />` +
+      (isUrgent ? `⚠️ Thời gian rất gấp, đề nghị khẩn trương hoàn thiện!<br /><br />` : `<br />`) +
+      (status <= 3 && daysLeft <= 30 ? `Hiện hồ sơ đang ở bước: Bước ${status} - ${HO_SO_STEPS[status]}<br /><br />` : '') +
+      `Hồ sơ cần chuẩn bị:<br />` +
+      `Vui lòng chuẩn bị đầy đủ hồ sơ theo hướng dẫn tại link sau:<br />` +
+      `<a href="${configLinkHoSo}" target="_blank" style="color: #096dd9; text-decoration: underline;">${configLinkHoSo}</a><br /><br />` +
+      `Đảng viên hướng dẫn:<br />` +
+      `- Họ tên: ${record.dvhd || 'Chưa cập nhật'}<br />` +
+      `- Email: ${targetEmail}<br /><br />` +
+      `Thông tin liên hệ Hỗ trợ:<br />` +
+      `- ${configGroupName}<br />` +
+      `- Link tham gia: <a href="${configGroupLink}" target="_blank" style="color: #096dd9; text-decoration: underline;">${configGroupLink}</a><br /><br />` +
+      `Đề nghị đồng chí chủ động liên hệ và hoàn thiện hồ sơ đúng thời hạn.<br /><br />` +
+      `Trân trọng,<br />Chi bộ Sinh viên`;
 
     setEmailRecord({ ...record, daysLeft, isUrgent, targetEmail });
     setEmailSubject(defaultSubject);
     setEmailBodyText(defaultBody);
+    setActiveComposeTab("compose");
     setIsEmailModalVisible(true);
   };
 
@@ -891,7 +1152,6 @@ const DangVienDuBi = () => {
     setIsSendingEmail(true);
     
     try {
-      const formattedBodyText = emailBodyText.replace(/\n/g, '<br />');
       const htmlBody = `
         <!DOCTYPE html>
         <html>
@@ -1063,6 +1323,7 @@ const DangVienDuBi = () => {
         dvhd_ho_so_email: dvhd_ho_so_email || null,
         ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : null,
         ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
+        ngay_cap_gcn: values.ngay_cap_gcn ? values.ngay_cap_gcn.format('YYYY-MM-DD') : null,
         updated_at: new Date().toISOString()
       };
 
@@ -1073,7 +1334,48 @@ const DangVienDuBi = () => {
       });
 
       if (editingRecord && editingRecord.id) {
+        // Compare values to write to audit log
+        const changes = [];
+        Object.keys(cleaned).forEach(key => {
+          if (key === 'updated_at' || key === 'id') return;
+          const newVal = cleaned[key];
+          const oldVal = editingRecord[key];
+          
+          let strOld = oldVal !== undefined && oldVal !== null ? String(oldVal).trim() : "";
+          let strNew = newVal !== undefined && newVal !== null ? String(newVal).trim() : "";
+          
+          if (key === 'hoc_lop_dv_moi' || key === 'dang_vien_du_bi') {
+            if (!!oldVal !== !!newVal) {
+              changes.push({
+                field: key,
+                label: FIELD_LABELS[key] || key,
+                oldVal: key === 'hoc_lop_dv_moi' ? (!!oldVal ? "Đã học" : "Chưa học") : (!!oldVal ? "Dự bị" : "Chính thức"),
+                newVal: key === 'hoc_lop_dv_moi' ? (!!newVal ? "Đã học" : "Chưa học") : (!!newVal ? "Dự bị" : "Chính thức")
+              });
+            }
+          } else if (strOld !== strNew) {
+            changes.push({
+              field: key,
+              label: FIELD_LABELS[key] || key,
+              oldVal: oldVal !== undefined && oldVal !== null ? oldVal : "",
+              newVal: newVal !== undefined && newVal !== null ? newVal : ""
+            });
+          }
+        });
+
         await updateDoc(doc(db, "dang_vien", editingRecord.id), cleaned);
+
+        if (changes.length > 0) {
+          await addDoc(collection(db, "lich_su_cap_nhat"), {
+            dang_vien_id: editingRecord.id,
+            mssv: editingRecord.mssv || '',
+            ho_ten: editingRecord.ho_ten || '',
+            updated_by: currentUser?.email || currentUser?.username || "Admin",
+            updated_at: new Date().toISOString(),
+            action: "update",
+            changes: changes
+          });
+        }
         message.success("Cập nhật thông tin thành công!");
       } else {
         cleaned.loai_dang_vien = "Dự bị";
@@ -1090,7 +1392,18 @@ const DangVienDuBi = () => {
           return;
         }
 
-        await addDoc(collection(db, "dang_vien"), cleaned);
+        const docRef = await addDoc(collection(db, "dang_vien"), cleaned);
+
+        await addDoc(collection(db, "lich_su_cap_nhat"), {
+          dang_vien_id: docRef.id,
+          mssv: cleaned.mssv || '',
+          ho_ten: cleaned.ho_ten || '',
+          updated_by: currentUser?.email || currentUser?.username || "Admin",
+          updated_at: new Date().toISOString(),
+          action: "create",
+          changes: []
+        });
+
         message.success("Thêm Đảng viên dự bị thành công!");
       }
 
@@ -1118,6 +1431,23 @@ const DangVienDuBi = () => {
       };
 
       await updateDoc(doc(db, "dang_vien", editingRecord.id), formatted);
+      
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: editingRecord.id,
+        mssv: editingRecord.mssv || '',
+        ho_ten: editingRecord.ho_ten || '',
+        updated_by: currentUser?.email || currentUser?.username || "Admin",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [
+          { field: "dang_vien_du_bi", label: "Loại Đảng viên", oldVal: "Dự bị", newVal: "Chính thức" },
+          { field: "ngay_ky_quyet_dinh_dvct", label: "Ngày ký quyết định công nhận ĐVCT", oldVal: editingRecord.ngay_ky_quyet_dinh_dvct || '', newVal: formatted.ngay_ky_quyet_dinh_dvct },
+          { field: "so_quyet_dinh_dvct", label: "Số quyết định công nhận ĐVCT", oldVal: editingRecord.so_quyet_dinh_dvct || '', newVal: formatted.so_quyet_dinh_dvct },
+          { field: "ngay_cong_nhan_dvct", label: "Ngày công nhận ĐVCT", oldVal: editingRecord.ngay_cong_nhan_dvct || '', newVal: formatted.ngay_cong_nhan_dvct || '' }
+        ]
+      });
+
       message.success("Chuyển Đảng viên chính thức thành công!");
       
       setIsChuyenChinhThucModalVisible(false);
@@ -1165,6 +1495,23 @@ const DangVienDuBi = () => {
       };
 
       await updateDoc(doc(db, "dang_vien", editingRecord.id), updateData);
+
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: editingRecord.id,
+        mssv: editingRecord.mssv || '',
+        ho_ten: editingRecord.ho_ten || '',
+        updated_by: currentUser?.email || currentUser?.username || "Admin",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [{
+          field: "ho_so_status",
+          label: "Bước hồ sơ",
+          oldVal: `Bước ${currentStep}: ${HO_SO_STEPS[currentStep] || ''}`,
+          newVal: `Bước ${currentStep + 1}: ${HO_SO_STEPS[currentStep + 1]}${nextStepNote ? ` (Ghi chú: ${nextStepNote})` : ''}`
+        }]
+      });
+
       message.success(`Đã chuyển sang Bước ${currentStep + 1}: ${HO_SO_STEPS[currentStep + 1]}`);
       
       setEditingRecord({ ...editingRecord, ...updateData });
@@ -1278,6 +1625,22 @@ const DangVienDuBi = () => {
       };
 
       await updateDoc(doc(db, "dang_vien", id), updateData);
+      
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: id,
+        mssv: record.mssv || '',
+        ho_ten: record.ho_ten || '',
+        updated_by: currentUser?.email || currentUser?.username || "Admin",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [{
+          field: dataIndex,
+          label: FIELD_LABELS[dataIndex] || dataIndex,
+          oldVal: record[dataIndex] !== undefined && record[dataIndex] !== null ? record[dataIndex] : '',
+          newVal: newVal !== undefined && newVal !== null ? newVal : ''
+        }]
+      });
       
       setData(prevData => prevData.map(item => {
         if (item.id === id) {
@@ -1846,7 +2209,7 @@ const DangVienDuBi = () => {
           loading={loading}
           scroll={{ x: 'max-content' }}
           pagination={{
-            defaultPageSize: 10,
+            defaultPageSize: 50,
             showSizeChanger: true,
             pageSizeOptions: ['5', '10', '20', '50', '100', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} Đảng viên dự bị`
@@ -2034,64 +2397,61 @@ const DangVienDuBi = () => {
         )}
 
         <Form form={form} layout="vertical">
-          {/* Section: Thông tin cá nhân & Học tập */}
+          {/* Section: Thông tin cá nhân & Học tập - CHỈ ĐỌC */}
           <div style={{ 
             padding: '16px', 
             border: '1px solid #e8e8e8', 
             borderRadius: '12px', 
-            backgroundColor: '#fbfbfb', 
+            backgroundColor: '#fafafa', 
             marginBottom: '20px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+            position: 'relative'
           }}>
             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <UserOutlined style={{ fontSize: '16px' }} /> Thông tin cá nhân & Học tập
+              <UserOutlined style={{ fontSize: '16px' }} /> Thông tin cá nhân &amp; Học tập
+              <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 400, color: '#8c8c8c', backgroundColor: '#f5f5f5', padding: '2px 8px', borderRadius: '10px', border: '1px solid #e0e0e0' }}>🔒 Chỉ đọc — sửa tại hồ sơ đang sinh hoạt</span>
             </span>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="mssv" label="MSSV (Mã số sinh viên)" rules={[{ required: true, message: 'Vui lòng nhập MSSV!' }]}>
-                  <Input disabled={!!editingRecord} placeholder="Nhập MSSV..." style={{ borderRadius: '6px' }} />
+                <Form.Item name="mssv" label="MSSV">
+                  <Input disabled placeholder="MSSV..." style={{ borderRadius: '6px', backgroundColor: '#f5f5f5' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="ho_ten" label="Họ và tên" rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}>
-                  <Input placeholder="Nhập họ và tên..." style={{ borderRadius: '6px' }} />
+                <Form.Item name="ho_ten" label="Họ và tên">
+                  <Input disabled placeholder="Họ và tên..." style={{ borderRadius: '6px', backgroundColor: '#f5f5f5' }} />
                 </Form.Item>
               </Col>
             </Row>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="cccd" label="Số CCCD">
-                  <Input placeholder="Nhập số căn cước công dân..." style={{ borderRadius: '6px' }} />
+                  <Input disabled placeholder="CCCD..." style={{ borderRadius: '6px', backgroundColor: '#f5f5f5' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name="ngay_sinh" label="Ngày sinh">
-                  <DatePicker style={{ width: '100%', borderRadius: '6px' }} format="DD/MM/YYYY" placeholder="Chọn ngày sinh..." />
+                  <DatePicker disabled style={{ width: '100%', borderRadius: '6px', backgroundColor: '#f5f5f5' }} format="DD/MM/YYYY" placeholder="Ngày sinh..." />
                 </Form.Item>
               </Col>
             </Row>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="khoa" label="Khoa">
-                  <Select 
-                    showSearch 
-                    optionFilterProp="children" 
-                    placeholder="Chọn Khoa..." 
-                    style={{ borderRadius: '6px' }}
-                  >
+                <Form.Item name="khoa" label="Khoa" style={{ marginBottom: 0 }}>
+                  <Select disabled placeholder="Khoa..." style={{ borderRadius: '6px' }}>
                     {KHOA_LIST.map(k => <Option key={k} value={k}>{k}</Option>)}
                   </Select>
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="lop" label="Lớp sinh hoạt">
-                  <Input placeholder="Nhập tên lớp..." style={{ borderRadius: '6px' }} />
+                <Form.Item name="lop" label="Lớp sinh hoạt" style={{ marginBottom: 0 }}>
+                  <Input disabled placeholder="Lớp..." style={{ borderRadius: '6px', backgroundColor: '#f5f5f5' }} />
                 </Form.Item>
               </Col>
             </Row>
           </div>
 
-          {/* Section: Quê Quán */}
+          {/* Section: Liên hệ */}
           <div style={{ 
             padding: '16px', 
             border: '1px solid #e8e8e8', 
@@ -2101,64 +2461,7 @@ const DangVienDuBi = () => {
             boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
           }}>
             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <EnvironmentOutlined style={{ fontSize: '16px' }} /> Quê quán
-            </span>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="xa_phuong_qq" label="Xã/Phường" style={{ marginBottom: 0 }}>
-                  <Input placeholder="Nhập xã/phường quê quán..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="tinh_tp_qq" label="Tỉnh/Thành phố" style={{ marginBottom: 0 }}>
-                  <Input placeholder="Nhập tỉnh/thành phố quê quán..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
-
-          {/* Section: Thường Trú */}
-          <div style={{ 
-            padding: '16px', 
-            border: '1px solid #e8e8e8', 
-            borderRadius: '12px', 
-            backgroundColor: '#fbfbfb', 
-            marginBottom: '20px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-          }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <HomeOutlined style={{ fontSize: '16px' }} /> Hộ khẩu thường trú
-            </span>
-            <Row gutter={16}>
-              <Col span={8}>
-                <Form.Item name="xa_phuong_tt" label="Xã/Phường" style={{ marginBottom: 0 }}>
-                  <Input placeholder="Xã/Phường..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="tinh_tp_tt" label="Tỉnh/Thành phố" style={{ marginBottom: 0 }}>
-                  <Input placeholder="Tỉnh/Thành phố..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-              <Col span={8}>
-                <Form.Item name="chi_tiet_dc" label="Địa chỉ chi tiết" style={{ marginBottom: 0 }}>
-                  <Input placeholder="Số nhà, tên đường, tổ..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
-
-          {/* Section: Liên lạc & Tạm trú */}
-          <div style={{ 
-            padding: '16px', 
-            border: '1px solid #e8e8e8', 
-            borderRadius: '12px', 
-            backgroundColor: '#fbfbfb', 
-            marginBottom: '20px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-          }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <PhoneOutlined style={{ fontSize: '16px' }} /> Thông tin liên lạc & Tạm trú
+              <PhoneOutlined style={{ fontSize: '16px' }} /> Thông tin liên hệ
             </span>
             <Row gutter={16}>
               <Col span={12}>
@@ -2167,18 +2470,80 @@ const DangVienDuBi = () => {
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="email" label="Địa chỉ Email">
+                <Form.Item name="email" label="Địa chỉ Email" style={{ marginBottom: 0 }}>
                   <Input placeholder="Nhập địa chỉ email liên hệ..." style={{ borderRadius: '6px' }} />
                 </Form.Item>
               </Col>
             </Row>
-            <Row gutter={16} style={{ marginTop: '16px' }}>
-              <Col span={24} style={{ marginBottom: 0 }}>
-                <Form.Item name="dia_chi_tam_tru" label="Địa chỉ tạm trú (Chi tiết)" style={{ marginBottom: 0 }}>
-                  <Input placeholder="Nhập số nhà, tên đường, tổ/phường nơi tạm trú..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
+          </div>
+
+          {/* Section: Địa chỉ (gộp quê quán + thường trú + tạm trú) */}
+          <div style={{ 
+            padding: '16px', 
+            border: '1px solid #e8e8e8', 
+            borderRadius: '12px', 
+            backgroundColor: '#fbfbfb', 
+            marginBottom: '20px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
+          }}>
+            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
+              <EnvironmentOutlined style={{ fontSize: '16px' }} /> Địa chỉ
+            </span>
+
+            {/* Quê quán */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏡 Quê quán</div>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="xa_phuong_qq" label="Xã/Phường" style={{ marginBottom: 0 }}>
+                    <Input placeholder="Xã/phường quê quán..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="tinh_tp_qq" label="Tỉnh/Thành phố" style={{ marginBottom: 0 }}>
+                    <Input placeholder="Tỉnh/thành phố quê quán..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            <Divider style={{ margin: '12px 0' }} />
+
+            {/* Hộ khẩu thường trú */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏠 Hộ khẩu thường trú</div>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="xa_phuong_tt" label="Xã/Phường" style={{ marginBottom: 0 }}>
+                    <Input placeholder="Xã/Phường..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="tinh_tp_tt" label="Tỉnh/Thành phố" style={{ marginBottom: 0 }}>
+                    <Input placeholder="Tỉnh/Thành phố..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="chi_tiet_dc" label="Chi tiết (số nhà, đường, tổ...)" style={{ marginBottom: 0 }}>
+                    <Input placeholder="Số nhà, tên đường, tổ..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            <Divider style={{ margin: '12px 0' }} />
+
+            {/* Tạm trú */}
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📍 Địa chỉ tạm trú</div>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item name="dia_chi_tam_tru" label="Địa chỉ tạm trú (Chi tiết)" style={{ marginBottom: 0 }}>
+                    <Input placeholder="Số nhà, tên đường, tổ/phường, quận/huyện, tỉnh/thành nơi tạm trú..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
           </div>
 
           {/* Section: Thông tin Đảng */}
@@ -2252,6 +2617,62 @@ const DangVienDuBi = () => {
               </Col>
             </Row>
           </div>
+
+          {/* Section: GCN Đảng viên mới - chỉ hiện khi đã học lớp ĐVM */}
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.hoc_lop_dv_moi !== curr.hoc_lop_dv_moi}>
+            {({ getFieldValue }) =>
+              getFieldValue('hoc_lop_dv_moi') === true ? (
+                <div style={{ 
+                  padding: '16px', 
+                  border: '1px solid #d6e4ff', 
+                  borderRadius: '12px', 
+                  backgroundColor: '#f0f5ff', 
+                  marginBottom: '10px',
+                  boxShadow: '0 2px 6px rgba(24,144,255,0.06)'
+                }}>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1d39c4', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #d6e4ff', paddingBottom: '6px' }}>
+                    📄 Giấy chứng nhận Đảng viên mới (GCN)
+                  </span>
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item
+                        name="ngay_cap_gcn"
+                        label="Ngày cấp GCN"
+                        tooltip="Ngày Chi bộ/Đảng ủy cấp Giấy chứng nhận hoàn thành lớp bồi dưỡng Đảng viên mới"
+                      >
+                        <DatePicker 
+                          style={{ width: '100%', borderRadius: '6px' }} 
+                          format="DD/MM/YYYY" 
+                          placeholder="Chọn ngày cấp GCN..."
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name="so_gcn"
+                        label="Số GCN (nếu có)"
+                        tooltip="Số Giấy chứng nhận hoàn thành lớp bồi dưỡng Đảng viên mới"
+                      >
+                        <Input placeholder="Nhập số GCN (nếu có)..." style={{ borderRadius: '6px' }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                  <Row gutter={16}>
+                    <Col span={24}>
+                      <Form.Item
+                        name="noi_cap_gcn"
+                        label="Nơi cấp GCN"
+                        tooltip="Chi bộ hoặc Đảng ủy cấp Giấy chứng nhận"
+                        style={{ marginBottom: 0 }}
+                      >
+                        <Input placeholder="Nhập tên Chi bộ / Đảng ủy cấp GCN..." style={{ borderRadius: '6px' }} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              ) : null
+            }
+          </Form.Item>
 
         </Form>
       </Drawer>
@@ -2341,7 +2762,7 @@ const DangVienDuBi = () => {
         style={{ top: 40 }}
       >
         {emailRecord && (
-          <Tabs defaultActiveKey="compose" style={{ marginTop: -8 }}>
+          <Tabs activeKey={activeComposeTab} onChange={setActiveComposeTab} style={{ marginTop: -8 }}>
             <Tabs.TabPane tab={<span><EditOutlined />Soạn thảo & Cấu hình</span>} key="compose">
               {/* Configuration Inputs */}
               <div style={{ backgroundColor: '#fafafa', padding: 12, borderRadius: 8, border: '1px solid #f0f0f0', marginBottom: 16 }}>
@@ -2376,12 +2797,121 @@ const DangVienDuBi = () => {
                 </div>
                 <div>
                   <label style={{ fontWeight: 'bold', display: 'block', marginBottom: 6 }}>Nội dung email:</label>
-                  <Input.TextArea 
-                    value={emailBodyText} 
-                    onChange={e => setEmailBodyText(e.target.value)} 
-                    rows={12} 
-                    placeholder="Soạn nội dung email nhắc nhở..." 
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #d9d9d9', borderRadius: '6px', overflow: 'hidden' }}>
+                    <div 
+                      style={{
+                        padding: '8px',
+                        backgroundColor: '#f5f5f5',
+                        borderBottom: '1px solid #d9d9d9',
+                        display: 'flex',
+                        gap: '4px',
+                        flexWrap: 'wrap',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Tooltip title="In đậm">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<BoldOutlined />}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            document.execCommand('bold', false);
+                          }}
+                        />
+                      </Tooltip>
+                      <Tooltip title="In nghiêng">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<ItalicOutlined />}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            document.execCommand('italic', false);
+                          }}
+                        />
+                      </Tooltip>
+                      <Tooltip title="Gạch chân">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<UnderlineOutlined />}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            document.execCommand('underline', false);
+                          }}
+                        />
+                      </Tooltip>
+                      <Divider type="vertical" style={{ margin: '0 4px' }} />
+                      <Tooltip title="Danh sách không thứ tự">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<UnorderedListOutlined />}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            document.execCommand('insertUnorderedList', false);
+                          }}
+                        />
+                      </Tooltip>
+                      <Tooltip title="Danh sách có thứ tự">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<OrderedListOutlined />}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            document.execCommand('insertOrderedList', false);
+                          }}
+                        />
+                      </Tooltip>
+                      <Divider type="vertical" style={{ margin: '0 4px' }} />
+                      <Tooltip title="Chèn link">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<LinkOutlined />}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            const url = prompt("Nhập đường dẫn URL:");
+                            if (url) {
+                              document.execCommand('createLink', false, url);
+                            }
+                          }}
+                        />
+                      </Tooltip>
+                      <Tooltip title="Bỏ link">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<DisconnectOutlined />}
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            document.execCommand('unlink', false);
+                          }}
+                        />
+                      </Tooltip>
+                    </div>
+                    <div
+                      ref={editorRef}
+                      contentEditable
+                      onInput={(e) => {
+                        setEmailBodyText(e.target.innerHTML);
+                      }}
+                      style={{
+                        minHeight: '260px',
+                        maxHeight: '350px',
+                        padding: '12px',
+                        backgroundColor: '#ffffff',
+                        outline: 'none',
+                        overflowY: 'auto',
+                        textAlign: 'justify',
+                        fontSize: '14px',
+                        lineHeight: '1.8',
+                        fontFamily: "'SVN-Gilroy', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </Tabs.TabPane>
@@ -2397,12 +2927,10 @@ const DangVienDuBi = () => {
                   </div>
                   
                   {/* Email Body Content */}
-                  <div style={{ padding: '30px 24px', lineHeight: '1.8', color: '#333333', fontSize: '14px', fontFamily: '-apple-system, BlinkMacSystemFont, Arial, sans-serif' }}>
-                    {emailBodyText.split('\n').map((para, idx) => {
-                      if (!para.trim()) return <div key={idx} style={{ height: 14 }} />;
-                      return <p key={idx} style={{ margin: '0 0 10px 0', textAlign: 'justify' }}>{para}</p>;
-                    })}
-                  </div>
+                  <div 
+                    style={{ padding: '30px 24px', lineHeight: '1.8', color: '#333333', fontSize: '14px', fontFamily: '-apple-system, BlinkMacSystemFont, Arial, sans-serif', textAlign: 'justify' }}
+                    dangerouslySetInnerHTML={{ __html: emailBodyText }}
+                  />
                   
                   {/* Email Footer */}
                   <div style={{ backgroundColor: '#fafafa', padding: '20px 24px', borderTop: '1px solid #eeeeee', textAlign: 'center', color: '#888888', fontSize: '12px' }}>
@@ -2427,14 +2955,33 @@ const DangVienDuBi = () => {
           </div>
         }
         open={isExportModalVisible}
-        onOk={exportExcel}
         onCancel={() => setIsExportModalVisible(false)}
-        okText="XUẤT FILE EXCEL"
-        cancelText="HỦY BỎ"
         width={850}
         style={{ top: 40 }}
-        okButtonProps={{ style: { backgroundColor: '#c62828', borderColor: '#c62828', height: 40, fontWeight: 700, borderRadius: '6px' } }}
-        cancelButtonProps={{ style: { height: 40, borderRadius: '6px' } }}
+        footer={[
+          <Button key="cancel" onClick={() => setIsExportModalVisible(false)} style={{ height: 40, borderRadius: '6px' }}>
+            HỦY BỎ
+          </Button>,
+          <Button
+            key="zip-photos"
+            type="dashed"
+            icon={<FileZipOutlined style={{ color: '#fa8c16' }} />}
+            onClick={exportPhotosZip}
+            loading={isExportingPhotos}
+            style={{ borderColor: '#fa8c16', color: '#fa8c16', height: 40, fontWeight: 600, borderRadius: '6px' }}
+          >
+            TẢI ẢNH ĐẢNG VIÊN (.ZIP)
+          </Button>,
+          <Button
+            key="ok"
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={exportExcel}
+            style={{ backgroundColor: '#c62828', borderColor: '#c62828', height: 40, fontWeight: 700, borderRadius: '6px' }}
+          >
+            XUẤT FILE EXCEL
+          </Button>
+        ]}
       >
         <div style={{ padding: '0 8px' }}>
           <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626', marginBottom: 12 }}>
@@ -2612,7 +3159,7 @@ const DangVienDuBi = () => {
           scroll={{ x: 4200, y: isTableFullscreen ? 'calc(100vh - 155px)' : 'calc(80vh - 135px)' }}
           bordered
           pagination={{
-            defaultPageSize: 20,
+            defaultPageSize: 50,
             showSizeChanger: true,
             pageSizeOptions: ['10', '20', '50', '100', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} Đảng viên dự bị`

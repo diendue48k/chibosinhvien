@@ -7,6 +7,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
 import dayjs from 'dayjs';
 
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
@@ -75,7 +82,7 @@ const XinVang = () => {
         id: doc.id,
         ...doc.data()
       }));
-      mList.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+      mList.sort((a, b) => safeDayjs(b.date).valueOf() - safeDayjs(a.date).valueOf());
       setMeetings(mList);
 
     } catch (e) {
@@ -102,7 +109,7 @@ const XinVang = () => {
         list = list.filter(r => r.mssv === currentUser.mssv || r.ho_ten === getCleanName(currentUser.name));
       }
 
-      list.sort((a, b) => dayjs(b.created_at).valueOf() - dayjs(a.created_at).valueOf());
+      list.sort((a, b) => safeDayjs(b.created_at).valueOf() - safeDayjs(a.created_at).valueOf());
       setAbsenceRequests(list);
     } catch (e) {
       console.error("Lỗi tải đơn vắng:", e);
@@ -197,7 +204,7 @@ const XinVang = () => {
   };
 
   const upcomingMeetings = useMemo(() => {
-    return meetings.filter(m => dayjs(m.date).isAfter(dayjs()));
+    return meetings.filter(m => safeDayjs(m.date).isAfter(dayjs()));
   }, [meetings]);
 
   // Separate personal requests vs master requests in memory for Admin/Chi ủy
@@ -228,7 +235,7 @@ const XinVang = () => {
           <div style={{ fontWeight: 600, color: '#1e293b' }}>{record.cuoc_hop_title}</div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: 2 }}>
             <CalendarOutlined style={{ marginRight: 4 }} />
-            {record.cuoc_hop_date ? dayjs(record.cuoc_hop_date).format('HH:mm - DD/MM/YYYY') : '--'}
+            {record.cuoc_hop_date ? safeDayjs(record.cuoc_hop_date).format('HH:mm - DD/MM/YYYY') : '--'}
           </div>
         </div>
       )
@@ -327,7 +334,7 @@ const XinVang = () => {
           <div style={{ fontWeight: 600, color: '#1e293b', fontSize: '13px' }}>{record.cuoc_hop_title}</div>
           <div style={{ fontSize: '11px', color: '#64748b', marginTop: 2 }}>
             <CalendarOutlined style={{ marginRight: 4 }} />
-            {record.cuoc_hop_date ? dayjs(record.cuoc_hop_date).format('HH:mm - DD/MM/YYYY') : '--'}
+            {record.cuoc_hop_date ? safeDayjs(record.cuoc_hop_date).format('HH:mm - DD/MM/YYYY') : '--'}
           </div>
         </div>
       )
@@ -545,7 +552,7 @@ const XinVang = () => {
                 >
                   {upcomingMeetings.map(m => (
                     <Option key={m.id} value={m.id}>
-                      {m.title} ({dayjs(m.date).format('HH:mm - DD/MM/YYYY')})
+                      {m.title} ({safeDayjs(m.date).format('HH:mm - DD/MM/YYYY')})
                     </Option>
                   ))}
                 </Select>

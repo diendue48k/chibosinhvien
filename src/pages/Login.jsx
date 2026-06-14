@@ -4,8 +4,10 @@ import { UserOutlined, LockOutlined, FlagOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
-import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, limit } from 'firebase/firestore';
 import { db } from '../firebase';
+import { dbMain } from '../firebase';
+import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -65,13 +67,53 @@ const Login = () => {
 
       // Login dynamically — use the role stored in Firestore, fallback to DANGVIEN
       const memberRole = memberData.role || ROLES.DANGVIEN;
+
+      // Check if probationary and within 2 months of the 12-month deadline
+      const safeDayjs = (val) => {
+        if (!val) return dayjs(null);
+        if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+        if (val.seconds) return dayjs(val.seconds * 1000);
+        return dayjs(val);
+      };
+      
+      const checkIsDuBi = (member) => {
+        if (!member) return true;
+        const getOfficialDate = () => {
+          const date = member.ngay_cong_nhan_dvct || member.ngay_chinh_thuc;
+          if (!date) return null;
+          return safeDayjs(date);
+        };
+        const officialDate = getOfficialDate();
+        if (officialDate && officialDate.isValid()) {
+          return officialDate.isAfter(dayjs(), 'day');
+        }
+        return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+      };
+      
+      const isDuBi = checkIsDuBi(memberData);
+      let yeuCauLamHoSo = false;
+      if (isDuBi) {
+        if (memberData.ngay_vao_dang) {
+          const ngayVao = safeDayjs(memberData.ngay_vao_dang);
+          if (ngayVao && ngayVao.isValid()) {
+            const deadline = ngayVao.add(12, 'month');
+            const daysLeft = deadline.diff(dayjs(), 'day');
+            yeuCauLamHoSo = daysLeft <= 60;
+          }
+        }
+      } else {
+        // Admin or official members always bypass this limit
+        yeuCauLamHoSo = true;
+      }
+
       const customUser = {
         id: memberDoc.id,
         username: memberData.mssv,
         name: `Đ/c ${memberData.ho_ten}`,
         mssv: memberData.mssv,
         role: memberRole,
-        dang_vien_du_bi: memberData.dang_vien_du_bi !== false,
+        dang_vien_du_bi: isDuBi,
+        yeu_cau_lam_ho_so: yeuCauLamHoSo,
         status: 'active'
       };
 

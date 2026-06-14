@@ -26,6 +26,13 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
 const PIE_COLORS = ['#52c41a', '#ff4d4f'];
 
 // ============================================================
@@ -84,7 +91,7 @@ const buildEmailHtml = (session, candidates, origin) => {
           <div style="font-size:13px;color:#333;line-height:1.8;">
             • Loại biểu quyết: <strong>${typeLabel}</strong><br/>
             • Số ứng viên: <strong>${candidates.length} đồng chí</strong><br/>
-            • Ngày mở: <strong>${dayjs(session.createdAt).format('HH:mm DD/MM/YYYY')}</strong>
+            • Ngày mở: <strong>${safeDayjs(session.createdAt).format('HH:mm DD/MM/YYYY')}</strong>
           </div>
         </div>
         <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">DANH SÁCH ỨNG VIÊN</div>
@@ -1140,7 +1147,7 @@ const Voting = () => {
                         <UserOutlined style={{ marginRight: 6 }} /> {v.voterName}
                       </span>
                       <span style={{ fontSize: 11, color: '#8c8c8c' }}>
-                        {v.createdAt ? dayjs(v.createdAt).format('HH:mm DD/MM') : ''}
+                        {v.createdAt ? safeDayjs(v.createdAt).format('HH:mm DD/MM') : ''}
                       </span>
                     </div>
                     <div style={{ color: '#434343', fontStyle: 'italic', lineHeight: '1.5' }}>"{v.reason}"</div>
@@ -1172,7 +1179,7 @@ const Voting = () => {
       )
     },
     { title: 'Trạng thái', dataIndex: 'status', key: 'status', width: 140, render: s => statusBadge(s) },
-    { title: 'Ngày tạo', dataIndex: 'createdAt', key: 'createdAt', width: 160, render: d => dayjs(d).format('HH:mm DD/MM/YYYY') },
+    { title: 'Ngày tạo', dataIndex: 'createdAt', key: 'createdAt', width: 160, render: d => safeDayjs(d).format('HH:mm DD/MM/YYYY') },
     { title: 'Người tạo', dataIndex: 'createdBy', key: 'createdBy', width: 200 },
     {
       title: '', key: 'action', width: 130,
@@ -1483,8 +1490,8 @@ const Voting = () => {
                   <Space>{typeTag(selectedSession.type)}{statusBadge(selectedSession.status)}</Space>
                   <Title level={4} style={{ margin: 0 }}>{selectedSession.title}</Title>
                   <Text style={{ color: '#8c8c8c', fontSize: 12 }}>
-                    Tạo bởi: {selectedSession.createdBy} · {dayjs(selectedSession.createdAt).format('HH:mm DD/MM/YYYY')}
-                    {selectedSession.closedAt && ` · Đóng: ${dayjs(selectedSession.closedAt).format('HH:mm DD/MM/YYYY')}`}
+                    Tạo bởi: {selectedSession.createdBy} · {safeDayjs(selectedSession.createdAt).format('HH:mm DD/MM/YYYY')}
+                    {selectedSession.closedAt && ` · Đóng: ${safeDayjs(selectedSession.closedAt).format('HH:mm DD/MM/YYYY')}`}
                   </Text>
                 </Space>
               </Col>

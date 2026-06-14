@@ -5,6 +5,8 @@ import dayjs from 'dayjs';
 import AddressWardSelect from './AddressWardSelect';
 import AddressProvinceSelect from './AddressProvinceSelect';
 import AddressDistrictSelect from './AddressDistrictSelect';
+import addressDataCu from '../data/addressDataCu.json';
+import addressDataMoi from '../data/addressDataMoi.json';
 const { Option } = Select;
 
 import { doc, getDoc } from 'firebase/firestore';
@@ -14,6 +16,122 @@ import { DEFAULT_KHOA, DEFAULT_NHOM } from '../services/permissionService';
 const DAN_TOC = ["Kinh", "Tày", "Thái", "Hoa", "Khmer", "Mường", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ngái", "Ê Đê", "Ba Na", "Xơ Đăng", "Sán Chay", "Cơ Ho", "Chăm", "Sán Dìu", "Hrê", "Mnông", "Ra Glai", "Xtiêng", "Bru-Vân Kiều", "Thổ", "Giáy", "Cơ Tu", "Giẻ Triêng", "Mạ", "Khơ Mú", "Co", "Tà Ôi", "Chơ Ro", "Kháng", "Xinh Mun", "Hà Nhì", "Chu Ru", "Lào", "La Chí", "La Ha", "Phù Lá", "La Hủ", "Lự", "Lô Lô", "Chứt", "Mảng", "Pà Thẻn", "Co Lao", "Cống", "Bố Y", "Si La", "Pu Péo", "Brâu", "Ơ Đu", "Rơ Măm", "Khác"];
 const TON_GIAO = ["Không", "Phật giáo", "Công giáo", "Tin Lành", "Cao Đài", "Hòa Hảo", "Hồi giáo", "Bà La Môn", "Khác"];
 const { TabPane } = Tabs;
+
+const normalizeAddressForForm = (data) => {
+  if (!data) return {};
+  const res = { ...data };
+  
+  const findProvinceKey = (val) => {
+    if (!val) return val;
+    if (addressDataCu[val]) return val;
+    if (addressDataCu[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
+    if (addressDataCu[`Thành phố ${val}`]) return `Thành phố ${val}`;
+    return val;
+  };
+
+  const findDistrictKey = (provKey, distVal) => {
+    if (!provKey || !distVal) return distVal;
+    const provData = addressDataCu[provKey];
+    if (!provData) return distVal;
+    
+    if (provData[distVal]) return distVal;
+    
+    const prefixes = ["Quận", "Huyện", "Thị xã", "Thành phố"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${distVal}`;
+      if (provData[candidate]) return candidate;
+    }
+    
+    const distLower = distVal.toLowerCase();
+    const match = Object.keys(provData).find(k => k.toLowerCase().includes(distLower) || distLower.includes(k.toLowerCase()));
+    if (match) return match;
+    
+    return distVal;
+  };
+
+  const findWardKey = (provKey, distKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const provData = addressDataCu[provKey] || {};
+    let wardsList = [];
+    if (distKey && provData[distKey]) {
+      wardsList = provData[distKey];
+    } else {
+      Object.values(provData).forEach(list => {
+        if (Array.isArray(list)) wardsList.push(...list);
+      });
+    }
+    
+    if (wardsList.includes(wardVal)) return wardVal;
+    
+    const prefixes = ["Phường", "Xã", "Thị trấn"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${wardVal}`;
+      if (wardsList.includes(candidate)) return candidate;
+    }
+    
+    const wardLower = wardVal.toLowerCase();
+    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
+    if (match) return match;
+    
+    return wardVal;
+  };
+
+  const findProvinceKeyMoi = (val) => {
+    if (!val) return val;
+    if (addressDataMoi[val]) return val;
+    if (addressDataMoi[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
+    if (addressDataMoi[`Thành phố ${val}`]) return `Thành phố ${val}`;
+    return val;
+  };
+
+  const findWardKeyMoi = (provKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const wardsList = addressDataMoi[provKey] || [];
+    
+    if (wardsList.includes(wardVal)) return wardVal;
+    
+    const prefixes = ["Phường", "Xã", "Thị trấn"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${wardVal}`;
+      if (wardsList.includes(candidate)) return candidate;
+    }
+    
+    const wardLower = wardVal.toLowerCase();
+    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
+    if (match) return match;
+    
+    return wardVal;
+  };
+
+  if (res.tinh_tp_qq) {
+    res.tinh_tp_qq = findProvinceKeyMoi(res.tinh_tp_qq);
+    res.xa_phuong_qq = findWardKeyMoi(res.tinh_tp_qq, res.xa_phuong_qq);
+  }
+  
+  if (res.tinh_tp_tt) {
+    res.tinh_tp_tt = findProvinceKeyMoi(res.tinh_tp_tt);
+    res.xa_phuong_tt = findWardKeyMoi(res.tinh_tp_tt, res.xa_phuong_tt);
+  }
+
+  if (res.tinh_tp_tam_tru) {
+    res.tinh_tp_tam_tru = findProvinceKeyMoi(res.tinh_tp_tam_tru);
+    res.xa_phuong_tam_tru = findWardKeyMoi(res.tinh_tp_tam_tru, res.xa_phuong_tam_tru);
+  }
+
+  if (res.tinh_tp_qq_cu) {
+    res.tinh_tp_qq_cu = findProvinceKey(res.tinh_tp_qq_cu);
+    res.quan_huyen_qq_cu = findDistrictKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu);
+    res.xa_phuong_qq_cu = findWardKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu, res.xa_phuong_qq_cu);
+  }
+
+  if (res.tinh_tp_tt_cu) {
+    res.tinh_tp_tt_cu = findProvinceKey(res.tinh_tp_tt_cu);
+    res.quan_huyen_tt_cu = findDistrictKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu);
+    res.xa_phuong_tt_cu = findWardKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu, res.xa_phuong_tt_cu);
+  }
+
+  return res;
+};
 
 const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
   const [form] = Form.useForm();
@@ -67,18 +185,19 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
   useEffect(() => {
     if (open) {
       if (initialValues) {
+        const normalizedValues = normalizeAddressForForm(initialValues);
         form.setFieldsValue({
-          ...initialValues,
-          tinh_tp_tam_tru: initialValues.tinh_tp_tam_tru || 'Đà Nẵng',
-          ngay_sinh: initialValues.ngay_sinh ? dayjs(initialValues.ngay_sinh) : null,
-          ngay_vao_dang: initialValues.ngay_vao_dang ? dayjs(initialValues.ngay_vao_dang) : null,
-          ngay_chuyen_vao: initialValues.ngay_chuyen_vao ? dayjs(initialValues.ngay_chuyen_vao) : null,
-          ngay_chinh_thuc: initialValues.ngay_chinh_thuc ? dayjs(initialValues.ngay_chinh_thuc) : null,
+          ...normalizedValues,
+          tinh_tp_tam_tru: normalizedValues.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
+          ngay_sinh: normalizedValues.ngay_sinh ? dayjs(normalizedValues.ngay_sinh) : null,
+          ngay_vao_dang: normalizedValues.ngay_vao_dang ? dayjs(normalizedValues.ngay_vao_dang) : null,
+          ngay_chuyen_vao: normalizedValues.ngay_chuyen_vao ? dayjs(normalizedValues.ngay_chuyen_vao) : null,
+          ngay_chinh_thuc: normalizedValues.ngay_chinh_thuc ? dayjs(normalizedValues.ngay_chinh_thuc) : null,
         });
       } else {
         form.resetFields();
         form.setFieldsValue({
-          tinh_tp_tam_tru: 'Đà Nẵng'
+          tinh_tp_tam_tru: 'Thành phố Đà Nẵng'
         });
       }
     }
@@ -96,15 +215,15 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
       return parts.join(', ');
     };
 
-    const queQuanMoi = buildAddress(values.tinh_tp_qq, null, values.xa_phuong_qq, null);
+    const queQuanMoi = buildAddress(values.tinh_tp_qq, undefined, values.xa_phuong_qq, null);
     const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
     const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
 
-    const thuongTruMoi = buildAddress(values.tinh_tp_tt, null, values.xa_phuong_tt, values.chi_tiet_dc);
+    const thuongTruMoi = buildAddress(values.tinh_tp_tt, undefined, values.xa_phuong_tt, values.chi_tiet_dc);
     const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
     const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
 
-    const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, null, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
+    const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, undefined, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
     const diaChiTamTru = tamTruMoi;
 
     let chiTiet = values.chi_tiet_dc;
@@ -117,6 +236,9 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
 
     const formattedValues = {
       ...values,
+      quan_huyen_qq: "", // Clear current districts in database
+      quan_huyen_tt: "",
+      quan_huyen_tam_tru: "",
       chi_tiet_dc: chiTiet,
       que_quan: queQuan,
       dia_chi_thuong_tru: diaChiThuongTru,
@@ -268,12 +390,12 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="tinh_tp_qq" label="Tỉnh/TP quê quán">
-                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} size="large" />
+                   <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} size="large" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name="xa_phuong_qq" label="Xã/Phường quê quán">
-                  <AddressWardSelect province={watchTinhTpQq} />
+                   <AddressWardSelect province={watchTinhTpQq} />
                 </Form.Item>
               </Col>
             </Row>
@@ -308,12 +430,12 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="tinh_tp_tt" label="Tỉnh/TP thường trú">
-                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} size="large" />
+                   <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} size="large" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name="xa_phuong_tt" label="Xã/Phường thường trú">
-                  <AddressWardSelect province={watchTinhTpTt} />
+                   <AddressWardSelect province={watchTinhTpTt} />
                 </Form.Item>
               </Col>
             </Row>
@@ -355,12 +477,12 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="tinh_tp_tam_tru" label="Tỉnh/TP tạm trú">
-                  <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} size="large" />
+                   <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} size="large" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name="xa_phuong_tam_tru" label="Xã/Phường tạm trú">
-                  <AddressWardSelect province={watchTinhTpTamTru} />
+                   <AddressWardSelect province={watchTinhTpTamTru} />
                 </Form.Item>
               </Col>
             </Row>

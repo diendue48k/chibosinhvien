@@ -19,6 +19,7 @@ import { ROLES, permissionService } from '../services/permissionService';
 import PermissionWrapper from '../components/PermissionWrapper';
 import dayjs from 'dayjs';
 import { API_BASE_URL } from '../config';
+import RichTextEditor from '../components/RichTextEditor';
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -40,6 +41,33 @@ const EMAIL_SIGNATURE_HTML = `
     </tr>
   </table>
 `;
+
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
+const stripHtml = (html) => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '');
+};
+
+const isValidEmail = (email) => {
+  if (!email) return false;
+  const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!regex.test(email)) return false;
+  
+  const dummyDomains = ['example.com', 'test.com', 'dummy.com', 'none.com', 'abc.com'];
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (dummyDomains.includes(domain)) return false;
+  
+  const username = email.split('@')[0]?.toLowerCase();
+  if (['none', 'no-email', 'null', 'placeholder', 'test', 'dummy'].includes(username)) return false;
+
+  return true;
+};
 
 const ThongBao = () => {
   const { currentUser } = useAuth();
@@ -85,11 +113,15 @@ const ThongBao = () => {
   const watchedSenderPhone = Form.useWatch('sender_phone', form);
   const watchedSendEmail = Form.useWatch('send_email', form);
 
+  // Rich text content state (HTML)
+  const [richContent, setRichContent] = useState('');
+
   // ── Email HTML Generator ──────────────────────────────────────────────────
   const generateEmailHtml = (title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone, attachments = []) => {
-    const formattedContent = (content || '').replace(/\n/g, '<br />');
+    // content is now HTML from RichTextEditor — use directly
+    const formattedContent = content || '';
     const sentDate = dayjs().format('HH:mm, DD/MM/YYYY');
-    const deadlineStr = deadline ? dayjs(deadline).format('HH:mm, DD/MM/YYYY') : null;
+    const deadlineStr = deadline ? safeDayjs(deadline).format('HH:mm, DD/MM/YYYY') : null;
 
     return `
 <!DOCTYPE html>
@@ -274,19 +306,17 @@ const ThongBao = () => {
   };
 
   // Live preview
-  const livePreviewHtml = useMemo(() => {
-    return generateEmailHtml(
-      watchedTitle,
-      watchedContent,
-      watchedImageUrl || previewImage,
-      watchedCreatedBy,
-      watchedDeadline,
-      watchedSenderEmail,
-      watchedSenderPhone,
-      uploadedFiles
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchedTitle, watchedContent, watchedCreatedBy, watchedDeadline, watchedImageUrl, previewImage, watchedSenderEmail, watchedSenderPhone, uploadedFiles]);
+  const livePreviewHtml = generateEmailHtml(
+    watchedTitle,
+    richContent,  // Use rich HTML content from editor
+    watchedImageUrl || previewImage,
+    watchedCreatedBy,
+    watchedDeadline,
+    watchedSenderEmail,
+    watchedSenderPhone,
+    uploadedFiles
+  );
+
 
   // ── Image & File Upload ───────────────────────────────────────────────────
   const handleImageUpload = (file) => {
@@ -383,7 +413,7 @@ const ThongBao = () => {
     try {
       const snap = await getDocs(collection(db, 'notifications'));
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      list.sort((a, b) => safeDayjs(b.created_at).valueOf() - safeDayjs(a.created_at).valueOf());
       setNotifications(list);
     } catch (e) { message.error('Lỗi khi tải thông báo'); }
     finally { setLoading(false); }
@@ -411,10 +441,10 @@ const ThongBao = () => {
 
       let matchDate = true;
       if (filterDateRange && filterDateRange[0] && filterDateRange[1]) {
-        const start = filterDateRange[0].startOf('day');
-        const end = filterDateRange[1].endOf('day');
-        const createdAtVal = dayjs(n.created_at);
-        matchDate = createdAtVal.isAfter(start) && createdAtVal.isBefore(end);
+        const start = filterDateRange[0].startOf('day').valueOf();
+        const end = filterDateRange[1].endOf('day').valueOf();
+        const createdAtVal = safeDayjs(n.created_at).valueOf();
+        matchDate = createdAtVal >= start && createdAtVal <= end;
       }
 
       return matchKeyword && matchType && matchDate;
@@ -450,6 +480,7 @@ const ThongBao = () => {
     setRecipientType('ca_nhan');
     setUploadedFiles([]);
     setFileList([]);
+    setRichContent('');
     form.setFieldsValue({
       created_by: currentUser?.name || 'Chi ủy Chi bộ',
       recipient_type: 'ca_nhan',
@@ -473,12 +504,14 @@ const ThongBao = () => {
       status: 'done',
       url: att.url
     })));
+    // Restore rich content from saved HTML
+    setRichContent(record.content || '');
     // Populate form with existing data
     form.setFieldsValue({
       title: record.title,
       content: record.content,
       created_by: record.created_by,
-      deadline: record.deadline ? dayjs(record.deadline) : undefined,
+      deadline: record.deadline ? safeDayjs(record.deadline) : undefined,
       image_url: record.image_url || '',
       recipient_type: record.recipient_type,
       send_email: false,
@@ -496,6 +529,7 @@ const ThongBao = () => {
     setEditingRecord(null);
     setUploadedFiles([]);
     setFileList([]);
+    setRichContent('');
     setIsFormModalVisible(false);
   };
 
@@ -527,15 +561,15 @@ const ThongBao = () => {
       
       if (emailType === 'personal') {
         const val = r.email ? r.email.trim() : personal;
-        if (val && val.includes('@')) emails.push(val);
+        if (isValidEmail(val)) emails.push(val);
       } else if (emailType === 'school') {
-        if (school && school.includes('@')) emails.push(school);
+        if (isValidEmail(school)) emails.push(school);
       } else { // both
         const pVal = r.email ? r.email.trim() : '';
         const sVal = school;
-        if (pVal && pVal.includes('@')) emails.push(pVal);
-        if (sVal && sVal.includes('@') && sVal !== pVal) emails.push(sVal);
-        if (!pVal && !sVal && personal && personal.includes('@')) emails.push(personal);
+        if (isValidEmail(pVal)) emails.push(pVal);
+        if (isValidEmail(sVal) && sVal !== pVal) emails.push(sVal);
+        if (!isValidEmail(pVal) && !isValidEmail(sVal) && isValidEmail(personal)) emails.push(personal);
       }
     });
 
@@ -545,33 +579,60 @@ const ThongBao = () => {
     }
     const noEmailCount = recipientList.length - emails.length;
     const htmlBody = generateEmailHtml(title, content, imageUrl, createdBy, deadline, senderEmail, senderPhone, attachments);
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/send-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bcc: emails.join(', '), subject: `[Thông báo Chi bộ] ${title}`, html: htmlBody, attachments })
-      });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${response.status}`);
+    
+    // Send in batches of 25 emails using BCC to respect SMTP limits and avoid anti-spam blocks
+    const batchSize = 25;
+    let sentCount = 0;
+    let failedCount = 0;
+    
+    for (let i = 0; i < emails.length; i += batchSize) {
+      const batch = emails.slice(i, i + batchSize);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bcc: batch.join(', '), subject: `[Thông báo Chi bộ] ${title}`, html: htmlBody, attachments })
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${response.status}`);
+        }
+        sentCount += batch.length;
+      } catch (err) {
+        console.error(`Batch send failed for index ${i}:`, err);
+        failedCount += batch.length;
+        if (err.message.includes('fetch') || err.message.includes('Failed') || err.message.includes('NetworkError')) {
+          throw new Error('Server gửi email chưa được khởi động (cổng 5000). Hãy chạy lệnh: cd server && npm start');
+        }
+        if (sentCount === 0) {
+          throw err;
+        }
       }
-      if (noEmailCount > 0 && noEmailCount !== recipientList.length) message.warning(`⚠ Gửi thành công nhưng có một số Đảng viên không có email hợp lệ, đã bỏ qua.`, 5);
-      return { sent: emails.length, failed: 0 };
-    } catch (err) {
-      if (err.message.includes('fetch') || err.message.includes('Failed') || err.message.includes('NetworkError')) {
-        throw new Error('Server gửi email chưa được khởi động (cổng 5000). Hãy chạy lệnh: cd server && npm start');
-      }
-      throw err;
     }
+
+    if (failedCount > 0) {
+      message.error(`⚠ Có ${failedCount} email không gửi được do lỗi hệ thống!`, 5);
+    } else if (noEmailCount > 0 && noEmailCount !== recipientList.length) {
+      message.warning(`⚠ Gửi thành công nhưng có một số Đảng viên không có email hợp lệ, đã bỏ qua.`, 5);
+    }
+    return { sent: sentCount, failed: failedCount };
   };
 
   // ── Create / Update Notification ──────────────────────────────────────────
   const handleSave = async () => {
     try {
-      await form.validateFields(['title', 'content', 'created_by', 'recipient_type']);
+      // Validate content manually since RichTextEditor is not a Form field
+      const htmlContent = richContent?.trim();
+      if (!htmlContent || htmlContent === '<br>' || htmlContent === '<p><br></p>') {
+        message.warning('Vui lòng nhập nội dung thông báo!');
+        return;
+      }
+      await form.validateFields(['title', 'created_by', 'recipient_type']);
       const values = form.getFieldsValue();
       setSubmitting(true);
-      const { title, content, deadline, image_url, created_by, recipient_type, send_email, email_type, sender_email, sender_phone } = values;
+      // Use richContent (HTML) as the content
+      const content = htmlContent;
+      const { title, deadline, image_url, created_by, recipient_type, send_email, email_type, sender_email, sender_phone } = values;
 
       const resolvedRecipients = resolveRecipients(values);
       if (resolvedRecipients.length === 0) {
@@ -593,7 +654,7 @@ const ThongBao = () => {
       const payload = {
         title, content,
         created_by,
-        deadline: deadline ? dayjs(deadline).toISOString() : null,
+        deadline: deadline ? safeDayjs(deadline).toISOString() : null,
         image_url: image_url || null,
         recipient_type,
         send_email: emailEnabled,
@@ -699,7 +760,7 @@ const ThongBao = () => {
   const tableColumns = [
     {
       title: 'Ngày', dataIndex: 'created_at', key: 'created_at', width: 110,
-      render: d => <span style={{ fontSize: 12, color: '#595959' }}>{dayjs(d).format('DD/MM/YY HH:mm')}</span>
+      render: d => <span style={{ fontSize: 12, color: '#595959' }}>{safeDayjs(d).format('DD/MM/YY HH:mm')}</span>
     },
     {
       title: 'Tiêu đề & Người phát hành', key: 'info',
@@ -728,7 +789,7 @@ const ThongBao = () => {
     },
     {
       title: 'Hạn p/h', dataIndex: 'deadline', key: 'deadline', width: 110,
-      render: dl => dl ? <Tag color="volcano" style={{ fontSize: 11 }}>{dayjs(dl).format('DD/MM HH:mm')}</Tag> : <span style={{ color: '#bfbfbf' }}>–</span>
+      render: dl => dl ? <Tag color="volcano" style={{ fontSize: 11 }}>{safeDayjs(dl).format('DD/MM HH:mm')}</Tag> : <span style={{ color: '#bfbfbf' }}>–</span>
     },
     {
       title: 'Thao tác', key: 'action', width: 130,
@@ -827,16 +888,16 @@ const ThongBao = () => {
                       <div style={{ padding: '14px 16px 10px', flex: 1 }}>
                         <div style={{ fontSize: 12, color: '#595959', marginBottom: 4 }}>
                           <CalendarOutlined style={{ color: '#c62828', marginRight: 6 }} />
-                          <span style={{ fontWeight: 600 }}>Ngày đăng:</span> {dayjs(record.created_at).format('HH:mm - DD/MM/YYYY')}
+                          <span style={{ fontWeight: 600 }}>Ngày đăng:</span> {safeDayjs(record.created_at).format('HH:mm - DD/MM/YYYY')}
                         </div>
                         {record.deadline && (
                           <div style={{ fontSize: 12, color: '#cf1322', marginBottom: 6 }}>
                             <ClockCircleOutlined style={{ marginRight: 6 }} />
-                            <span style={{ fontWeight: 600 }}>Hạn phản hồi:</span> {dayjs(record.deadline).format('HH:mm - DD/MM/YYYY')}
+                            <span style={{ fontWeight: 600 }}>Hạn phản hồi:</span> {safeDayjs(record.deadline).format('HH:mm - DD/MM/YYYY')}
                           </div>
                         )}
                         <div style={{ fontSize: 13, color: '#595959', lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                          {record.content}
+                          {stripHtml(record.content)}
                         </div>
                       </div>
                       <div style={{ padding: '8px 16px 10px', borderTop: '1px solid #f0f0f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -947,8 +1008,21 @@ const ThongBao = () => {
                 <Input placeholder="Tiêu đề chính thức..." maxLength={120} showCount />
               </Form.Item>
 
-              <Form.Item name="content" label={<b>Nội dung</b>} rules={[{ required: true, message: 'Nhập nội dung!' }]} style={{ marginBottom: 12 }}>
-                <TextArea rows={5} placeholder="Nội dung chi tiết..." maxLength={2000} showCount />
+              <Form.Item name="content" label={<b>Nội dung</b>} rules={[{ required: false }]} style={{ marginBottom: 12 }}>
+                <div>
+                  <RichTextEditor
+                    value={richContent}
+                    onChange={(html) => {
+                      setRichContent(html);
+                      form.setFieldsValue({ content: html });
+                    }}
+                    placeholder="Nhập nội dung thông báo... (hỗ trợ định dạng đậm, nghiêng, link, danh sách...)"
+                    minHeight={160}
+                  />
+                  {(!richContent || richContent === '<br>' || richContent === '<p><br></p>') && (
+                    <div style={{ fontSize: 11, color: '#ff4d4f', marginTop: 3 }}>Vui lòng nhập nội dung!</div>
+                  )}
+                </div>
               </Form.Item>
 
               <Row gutter={10}>
@@ -1165,13 +1239,13 @@ const ThongBao = () => {
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', marginBottom: 3 }}>Ngày phát hành</div>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}><CalendarOutlined style={{ marginRight: 5, color: '#c62828' }} />{dayjs(detailRecord.created_at).format('HH:mm - DD/MM/YYYY')}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}><CalendarOutlined style={{ marginRight: 5, color: '#c62828' }} />{safeDayjs(detailRecord.created_at).format('HH:mm - DD/MM/YYYY')}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 600, textTransform: 'uppercase', marginBottom: 3 }}>Hạn phản hồi</div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: detailRecord.deadline ? '#cf1322' : '#bfbfbf' }}>
                     <ClockCircleOutlined style={{ marginRight: 5 }} />
-                    {detailRecord.deadline ? dayjs(detailRecord.deadline).format('HH:mm - DD/MM/YYYY') : 'Không có hạn chót'}
+                    {detailRecord.deadline ? safeDayjs(detailRecord.deadline).format('HH:mm - DD/MM/YYYY') : 'Không có hạn chót'}
                   </div>
                 </div>
                 <div>
@@ -1186,7 +1260,7 @@ const ThongBao = () => {
 
               <div style={{ marginBottom: 20 }}>
                 <div style={{ fontSize: 11, color: '#8c8c8c', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8, borderBottom: '2px solid #c62828', paddingBottom: 5, display: 'inline-block' }}>Nội dung thông báo</div>
-                <Paragraph style={{ whiteSpace: 'pre-wrap', lineHeight: 2, fontSize: 14, textAlign: 'justify', color: '#333', margin: 0 }}>{detailRecord.content}</Paragraph>
+                <div style={{ lineHeight: 2, fontSize: 14, textAlign: 'justify', color: '#333', margin: 0 }} dangerouslySetInnerHTML={{ __html: detailRecord.content }} />
               </div>
 
               {detailRecord.image_url && (

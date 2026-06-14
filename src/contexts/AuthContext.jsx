@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { message } from 'antd';
 import { ROLES, permissionService } from '../services/permissionService';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
+import dayjs from 'dayjs';
 
 const AuthContext = createContext();
 
@@ -17,6 +20,68 @@ export const AuthProvider = ({ children }) => {
     }
     return null;
   });
+
+  useEffect(() => {
+    const refreshUserSession = async () => {
+      if (!currentUser || currentUser.role !== 'DANGVIEN') return;
+      try {
+        const q = query(collection(db, "dang_vien"), where("mssv", "==", currentUser.mssv || currentUser.username));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const memberData = snap.docs[0].data();
+          const safeDayjs = (val) => {
+            if (!val) return dayjs(null);
+            if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+            if (val.seconds) return dayjs(val.seconds * 1000);
+            return dayjs(val);
+          };
+          
+          const checkIsDuBi = (member) => {
+            if (!member) return true;
+            const getOfficialDate = () => {
+              const date = member.ngay_cong_nhan_dvct || member.ngay_chinh_thuc;
+              if (!date) return null;
+              return safeDayjs(date);
+            };
+            const officialDate = getOfficialDate();
+            if (officialDate && officialDate.isValid()) {
+              return officialDate.isAfter(dayjs(), 'day');
+            }
+            return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+          };
+          
+          let isDuBi = checkIsDuBi(memberData);
+          let yeuCauLamHoSo = false;
+          if (isDuBi) {
+            if (memberData.ngay_vao_dang) {
+              const ngayVao = safeDayjs(memberData.ngay_vao_dang);
+              if (ngayVao && ngayVao.isValid()) {
+                const deadline = ngayVao.add(12, 'month');
+                const daysLeft = deadline.diff(dayjs(), 'day');
+                yeuCauLamHoSo = daysLeft <= 60;
+              }
+            }
+          } else {
+            yeuCauLamHoSo = true;
+          }
+
+          if (yeuCauLamHoSo !== currentUser.yeu_cau_lam_ho_so || isDuBi !== currentUser.dang_vien_du_bi) {
+            const updatedUser = {
+              ...currentUser,
+              dang_vien_du_bi: isDuBi,
+              yeu_cau_lam_ho_so: yeuCauLamHoSo
+            };
+            setCurrentUser(updatedUser);
+            localStorage.setItem('logged_in_custom_user', JSON.stringify(updatedUser));
+          }
+        }
+      } catch (e) {
+        console.error("Lỗi đồng bộ dữ liệu phiên đăng nhập:", e);
+      }
+    };
+
+    refreshUserSession();
+  }, [currentUser]);
 
   const login = async (roleName, customUserData) => {
     if (!customUserData) {

@@ -11,13 +11,20 @@ import { API_BASE_URL } from '../config';
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
 // Real-time Meeting Notification Email Template Generator
 const generateDefaultMeetingEmailTemplate = (values, imageUrl) => {
   if (!values) return { subject: '', html: '' };
   
-  const parsedMonth = values.date ? dayjs(values.date).format('M') : dayjs().format('M');
-  const parsedYear = values.date ? dayjs(values.date).format('YYYY') : dayjs().format('YYYY');
-  const formattedTime = values.date ? dayjs(values.date).format('HH:mm - DD/MM/YYYY') : dayjs().format('HH:mm - DD/MM/YYYY');
+  const parsedMonth = values.date ? safeDayjs(values.date).format('M') : safeDayjs().format('M');
+  const parsedYear = values.date ? safeDayjs(values.date).format('YYYY') : safeDayjs().format('YYYY');
+  const formattedTime = values.date ? safeDayjs(values.date).format('HH:mm - DD/MM/YYYY') : safeDayjs().format('HH:mm - DD/MM/YYYY');
   
   const subject = `[THÔNG BÁO] V/v HỌP CHI BỘ THÁNG ${parsedMonth}/${parsedYear}`;
   
@@ -63,9 +70,9 @@ const generateDefaultMeetingEmailTemplate = (values, imageUrl) => {
 const generateDefaultNotificationTemplate = (values) => {
   if (!values) return { title: '', content: '' };
   
-  const parsedMonth = values.date ? dayjs(values.date).format('M') : dayjs().format('M');
-  const parsedYear = values.date ? dayjs(values.date).format('YYYY') : dayjs().format('YYYY');
-  const formattedTime = values.date ? dayjs(values.date).format('HH:mm - DD/MM/YYYY') : dayjs().format('HH:mm - DD/MM/YYYY');
+  const parsedMonth = values.date ? safeDayjs(values.date).format('M') : safeDayjs().format('M');
+  const parsedYear = values.date ? safeDayjs(values.date).format('YYYY') : safeDayjs().format('YYYY');
+  const formattedTime = values.date ? safeDayjs(values.date).format('HH:mm - DD/MM/YYYY') : safeDayjs().format('HH:mm - DD/MM/YYYY');
   
   const title = `[THÔNG BÁO] V/v HỌP CHI BỘ THÁNG ${parsedMonth}/${parsedYear}`;
   
@@ -135,7 +142,7 @@ const LichHop = () => {
       }));
 
       // Sort by date descending
-      list.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+      list.sort((a, b) => safeDayjs(b.date).valueOf() - safeDayjs(a.date).valueOf());
       setMeetings(list);
     } catch (e) {
       console.error("Lỗi tải lịch họp:", e);
@@ -203,7 +210,7 @@ const LichHop = () => {
 
     form.setFieldsValue({
       title: meeting.title,
-      date: dayjs(meeting.date),
+      date: safeDayjs(meeting.date),
       location: meeting.location,
       dress_code: meeting.dress_code || 'Tự do',
       note: meeting.note || '',
@@ -435,9 +442,9 @@ const LichHop = () => {
       ) : (
         <Row gutter={[20, 20]}>
           {meetings.map((meeting) => {
-            const isUpcoming = dayjs(meeting.date).isAfter(dayjs());
-            const formattedDate = dayjs(meeting.date).format('DD/MM/YYYY');
-            const formattedTime = dayjs(meeting.date).format('HH:mm');
+            const isUpcoming = safeDayjs(meeting.date).isAfter(safeDayjs());
+            const formattedDate = safeDayjs(meeting.date).format('DD/MM/YYYY');
+            const formattedTime = safeDayjs(meeting.date).format('HH:mm');
 
             return (
               <Col xs={24} sm={12} md={8} key={meeting.id}>
@@ -937,7 +944,7 @@ const LichHop = () => {
         open={isDetailModalVisible}
         onCancel={() => setIsDetailModalVisible(false)}
         footer={[
-          dayjs(selectedMeeting?.date).isAfter(dayjs()) && !isAdminOrChiUy && (
+          safeDayjs(selectedMeeting?.date).isAfter(safeDayjs()) && !isAdminOrChiUy && (
             <Button 
               key="vắng" 
               type="primary" 
@@ -979,7 +986,7 @@ const LichHop = () => {
                   <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Thời gian diễn ra:</div>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: '#262626', display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
                     <CalendarOutlined style={{ color: '#c62828' }} />
-                    <span>{dayjs(selectedMeeting.date).format('HH:mm - DD/MM/YYYY')}</span>
+                    <span>{safeDayjs(selectedMeeting.date).format('HH:mm - DD/MM/YYYY')}</span>
                   </div>
                 </Col>
                 <Col span={12}>
@@ -1028,7 +1035,7 @@ const LichHop = () => {
                 {selectedMeeting.content || 'Không có chương trình chi tiết được thêm.'}
               </div>
               <div style={{ fontSize: '11px', color: '#8c8c8c', marginTop: 8, textAlign: 'right' }}>
-                Đăng bởi: {selectedMeeting.created_by || 'Chi ủy'} | Tạo lúc: {selectedMeeting.created_at ? dayjs(selectedMeeting.created_at).format('HH:mm DD/MM/YYYY') : '--'}
+                Đăng bởi: {selectedMeeting.created_by || 'Chi ủy'} | Tạo lúc: {selectedMeeting.created_at ? safeDayjs(selectedMeeting.created_at).format('HH:mm DD/MM/YYYY') : '--'}
               </div>
             </div>
           </div>

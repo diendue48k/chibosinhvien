@@ -8,6 +8,13 @@ import * as XLSX from 'xlsx';
 import debounce from 'lodash/debounce';
 import dayjs from 'dayjs';
 
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
 const { Title, Text } = Typography;
 const { Option } = Select;
 
@@ -141,9 +148,9 @@ const ChuyenSinhHoat = () => {
     });
 
     result.sort((a, b) => {
-       const dateA = a.ngay_chuyen_ra ? dayjs(a.ngay_chuyen_ra).valueOf() : 0;
-       const dateB = b.ngay_chuyen_ra ? dayjs(b.ngay_chuyen_ra).valueOf() : 0;
-       if (dateA !== dateB) return dateB - dateA; // Show latest transfers first
+        const dateA = a.ngay_chuyen_ra ? safeDayjs(a.ngay_chuyen_ra).valueOf() : 0;
+        const dateB = b.ngay_chuyen_ra ? safeDayjs(b.ngay_chuyen_ra).valueOf() : 0;
+        if (dateA !== dateB) return dateB - dateA; // Show latest transfers first
        
        const nameA = a.ho_ten || '';
        const nameB = b.ho_ten || '';
@@ -205,7 +212,7 @@ const ChuyenSinhHoat = () => {
   const exportExcel = () => {
     let dataToExport = [];
     if (exportRange === 'selected') {
-      dataToExport = filteredData.filter(item => selectedRowKeys.includes(item.id));
+      dataToExport = (data || []).filter(item => selectedRowKeys.includes(item.id));
     } else if (exportRange === 'all') {
       dataToExport = data;
     } else {
@@ -322,8 +329,8 @@ const ChuyenSinhHoat = () => {
       title: 'Ngày chuyển ra', 
       dataIndex: 'ngay_chuyen_ra', 
       key: 'ngay_chuyen_ra',
-      sorter: (a, b) => (a.ngay_chuyen_ra || '').localeCompare(b.ngay_chuyen_ra || ''),
-      render: (date) => date ? dayjs(date).format('DD/MM/YYYY') : '--'
+      sorter: (a, b) => safeDayjs(a.ngay_chuyen_ra).valueOf() - safeDayjs(b.ngay_chuyen_ra).valueOf(),
+      render: (date) => formatDate(date) || '--'
     },
     { 
       title: 'Nơi chuyển ra', 
@@ -482,9 +489,9 @@ const ChuyenSinhHoat = () => {
           onClick: () => handleRowClick(record)
         })}
         pagination={{
-          defaultPageSize: 10,
+          defaultPageSize: 50,
           showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50', '1000'],
+          pageSizeOptions: ['10', '20', '50', '100', '1000'],
           showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đảng viên chuyển`
         }}
         style={{ cursor: 'pointer' }}

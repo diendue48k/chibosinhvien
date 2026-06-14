@@ -8,6 +8,13 @@ import PermissionWrapper from '../components/PermissionWrapper';
 import ProfileDrawer from '../components/ProfileDrawer';
 import * as XLSX from 'xlsx';
 
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 
@@ -186,7 +193,7 @@ const ChuyenTamThoi = () => {
   const exportExcel = async () => {
     let dataToExport = [];
     if (exportRange === 'selected') {
-      dataToExport = filteredData.filter(item => selectedRowKeys.includes(item.id));
+      dataToExport = (data || []).filter(item => selectedRowKeys.includes(item.id));
     } else if (exportRange === 'all') {
       dataToExport = data;
     } else {
@@ -270,8 +277,8 @@ const ChuyenTamThoi = () => {
     });
 
     result.sort((a, b) => {
-      const dateA = a.ngay_chuyen_tam_thoi ? dayjs(a.ngay_chuyen_tam_thoi).valueOf() : 0;
-      const dateB = b.ngay_chuyen_tam_thoi ? dayjs(b.ngay_chuyen_tam_thoi).valueOf() : 0;
+      const dateA = a.ngay_chuyen_tam_thoi ? safeDayjs(a.ngay_chuyen_tam_thoi).valueOf() : 0;
+      const dateB = b.ngay_chuyen_tam_thoi ? safeDayjs(b.ngay_chuyen_tam_thoi).valueOf() : 0;
       return dateB - dateA; // Show latest first
     });
 
@@ -312,7 +319,7 @@ const ChuyenTamThoi = () => {
       dataIndex: 'ngay_chuyen_tam_thoi',
       key: 'ngay_chuyen_tam_thoi',
       render: (text) => formatDate(text),
-      sorter: (a, b) => dayjs(a.ngay_chuyen_tam_thoi).valueOf() - dayjs(b.ngay_chuyen_tam_thoi).valueOf()
+      sorter: (a, b) => safeDayjs(a.ngay_chuyen_tam_thoi).valueOf() - safeDayjs(b.ngay_chuyen_tam_thoi).valueOf()
     },
     {
       title: 'Thời gian về dự kiến',
@@ -455,9 +462,9 @@ const ChuyenTamThoi = () => {
         loading={loading}
         rowKey="id"
         pagination={{
-          defaultPageSize: 10,
+          defaultPageSize: 50,
           showSizeChanger: true,
-          pageSizeOptions: ['5', '10', '20', '50', '1000'],
+          pageSizeOptions: ['10', '20', '50', '100', '1000'],
           showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} đợt chuyển tạm thời`
         }}
         onRow={(record) => {

@@ -74,6 +74,29 @@ const INITIAL_TASKS = [
   }
 ];
 
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
+const checkIsDuBi = (member) => {
+  if (!member) return true;
+  const getOfficialDate = () => {
+    const date = member.ngay_cong_nhan_dvct || member.ngay_chinh_thuc;
+    if (!date) return null;
+    if (date.toDate && typeof date.toDate === 'function') return dayjs(date.toDate());
+    if (date.seconds) return dayjs(date.seconds * 1000);
+    return dayjs(date);
+  };
+  const officialDate = getOfficialDate();
+  if (officialDate && officialDate.isValid()) {
+    return officialDate.isAfter(dayjs(), 'day');
+  }
+  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+};
+
 const DangVienDashboard = () => {
   const { currentUser, getRoleBadgeName } = useAuth();
   const navigate = useNavigate();
@@ -416,11 +439,28 @@ const DangVienDashboard = () => {
     }
   ];
 
-  // Filter utilities dynamically based on whether they are reserve (dự bị)
   const activeUtilities = useMemo(() => {
-    const isReserve = currentUser?.dang_vien_du_bi === true || memberDetail?.dang_vien_du_bi !== false;
-    if (!isReserve) {
-      // Hide 'Tạo biểu mẫu hồ sơ' (document generator) if they are already an official member
+    let isRequested = false;
+    if (currentUser?.role === 'DANGVIEN') {
+      const isDuBi = checkIsDuBi(memberDetail);
+      if (isDuBi) {
+        if (memberDetail?.ngay_vao_dang) {
+          const ngayVao = safeDayjs(memberDetail.ngay_vao_dang);
+          if (ngayVao && ngayVao.isValid()) {
+            const deadline = ngayVao.add(12, 'month');
+            const daysLeft = deadline.diff(dayjs(), 'day');
+            isRequested = daysLeft <= 60;
+          }
+        }
+      } else {
+        isRequested = true;
+      }
+    } else {
+      isRequested = true;
+    }
+
+    if (!isRequested) {
+      // Hide 'Tạo biểu mẫu hồ sơ' (document generator) if admin has not requested official profile
       return utilities.filter(util => util.route !== '/document-generator');
     }
     return utilities;
@@ -436,7 +476,7 @@ const DangVienDashboard = () => {
   }
 
   // Personal status
-  const isDuBi = memberDetail?.dang_vien_du_bi !== false;
+  const isDuBi = checkIsDuBi(memberDetail);
   const statusText = isDuBi ? "Đảng viên dự bị" : "Đảng viên chính thức";
   const statusColor = isDuBi ? "orange" : "green";
 

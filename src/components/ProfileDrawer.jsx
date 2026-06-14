@@ -16,12 +16,156 @@ import AddressWardSelect from './AddressWardSelect';
 import AddressProvinceSelect from './AddressProvinceSelect';
 import AddressDistrictSelect from './AddressDistrictSelect';
 import PermissionWrapper from './PermissionWrapper';
+import addressDataCu from '../data/addressDataCu.json';
+import addressDataMoi from '../data/addressDataMoi.json';
 const { Option } = Select;
+
+const getDisplayAddress = (tinh, huyen, xa, chiTiet) => {
+  const parts = [];
+  if (chiTiet) parts.push(chiTiet);
+  if (xa) parts.push(xa);
+  if (huyen) parts.push(huyen);
+  if (tinh) parts.push(tinh);
+  return parts.join(', ');
+};
 
 const safeDayjs = (dateVal) => {
   if (!dateVal || dateVal === "Invalid Date") return null;
   const d = dayjs(dateVal);
   return d.isValid() ? d : null;
+};
+
+const normalizeAddressForForm = (data) => {
+  if (!data) return {};
+  const res = { ...data };
+  
+  const findProvinceKey = (val) => {
+    if (!val) return val;
+    if (addressDataCu[val]) return val;
+    if (addressDataCu[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
+    if (addressDataCu[`Thành phố ${val}`]) return `Thành phố ${val}`;
+    return val;
+  };
+
+  const findDistrictKey = (provKey, distVal) => {
+    if (!provKey || !distVal) return distVal;
+    const provData = addressDataCu[provKey];
+    if (!provData) return distVal;
+    
+    if (provData[distVal]) return distVal;
+    
+    const prefixes = ["Quận", "Huyện", "Thị xã", "Thành phố"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${distVal}`;
+      if (provData[candidate]) return candidate;
+    }
+    
+    const distLower = distVal.toLowerCase();
+    const match = Object.keys(provData).find(k => k.toLowerCase().includes(distLower) || distLower.includes(k.toLowerCase()));
+    if (match) return match;
+    
+    return distVal;
+  };
+
+  const findWardKey = (provKey, distKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const provData = addressDataCu[provKey] || {};
+    let wardsList = [];
+    if (distKey && provData[distKey]) {
+      wardsList = provData[distKey];
+    } else {
+      Object.values(provData).forEach(list => {
+        if (Array.isArray(list)) wardsList.push(...list);
+      });
+    }
+    
+    if (wardsList.includes(wardVal)) return wardVal;
+    
+    const prefixes = ["Phường", "Xã", "Thị trấn"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${wardVal}`;
+      if (wardsList.includes(candidate)) return candidate;
+    }
+    
+    const wardLower = wardVal.toLowerCase();
+    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
+    if (match) return match;
+    
+    return wardVal;
+  };
+
+  const findProvinceKeyMoi = (val) => {
+    if (!val) return val;
+    if (addressDataMoi[val]) return val;
+    if (addressDataMoi[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
+    if (addressDataMoi[`Thành phố ${val}`]) return `Thành phố ${val}`;
+    return val;
+  };
+
+  const findWardKeyMoi = (provKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const wardsList = addressDataMoi[provKey] || [];
+    
+    if (wardsList.includes(wardVal)) return wardVal;
+    
+    const prefixes = ["Phường", "Xã", "Thị trấn"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${wardVal}`;
+      if (wardsList.includes(candidate)) return candidate;
+    }
+    
+    const wardLower = wardVal.toLowerCase();
+    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
+    if (match) return match;
+    
+    return wardVal;
+  };
+
+  if (res.tinh_tp_qq) {
+    res.tinh_tp_qq = findProvinceKeyMoi(res.tinh_tp_qq);
+    res.xa_phuong_qq = findWardKeyMoi(res.tinh_tp_qq, res.xa_phuong_qq);
+  }
+  
+  if (res.tinh_tp_tt) {
+    res.tinh_tp_tt = findProvinceKeyMoi(res.tinh_tp_tt);
+    res.xa_phuong_tt = findWardKeyMoi(res.tinh_tp_tt, res.xa_phuong_tt);
+  }
+
+  if (res.tinh_tp_tam_tru) {
+    res.tinh_tp_tam_tru = findProvinceKeyMoi(res.tinh_tp_tam_tru);
+    res.xa_phuong_tam_tru = findWardKeyMoi(res.tinh_tp_tam_tru, res.xa_phuong_tam_tru);
+  }
+
+  if (res.tinh_tp_qq_cu) {
+    res.tinh_tp_qq_cu = findProvinceKey(res.tinh_tp_qq_cu);
+    res.quan_huyen_qq_cu = findDistrictKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu);
+    res.xa_phuong_qq_cu = findWardKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu, res.xa_phuong_qq_cu);
+  }
+
+  if (res.tinh_tp_tt_cu) {
+    res.tinh_tp_tt_cu = findProvinceKey(res.tinh_tp_tt_cu);
+    res.quan_huyen_tt_cu = findDistrictKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu);
+    res.xa_phuong_tt_cu = findWardKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu, res.xa_phuong_tt_cu);
+  }
+
+  return res;
+};
+
+const disabledFutureDate = (current) => {
+  return current && current > dayjs().endOf('day');
+};
+
+const normalizeDocMssv = (val) => {
+  if (val === undefined || val === null) return "";
+  if (typeof val === 'string' || typeof val === 'number') {
+    return String(val).trim().toLowerCase();
+  }
+  const raw = val.mssv !== undefined && val.mssv !== null ? val.mssv :
+              (val.MSSV !== undefined && val.MSSV !== null ? val.MSSV :
+              (val.ma_sv !== undefined && val.ma_sv !== null ? val.ma_sv :
+              (val.MaSV !== undefined && val.MaSV !== null ? val.MaSV :
+              (val.maSV !== undefined && val.maSV !== null ? val.maSV : ""))));
+  return String(raw).trim().toLowerCase();
 };
 
 const DAN_TOC = ["Kinh", "Tày", "Thái", "Hoa", "Khmer", "Mường", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ngái", "Ê Đê", "Ba Na", "Xơ Đăng", "Sán Chay", "Cơ Ho", "Chăm", "Sán Dìu", "Hrê", "Mnông", "Ra Glai", "Xtiêng", "Bru-Vân Kiều", "Thổ", "Giáy", "Cơ Tu", "Giẻ Triêng", "Mạ", "Khơ Mú", "Co", "Tà Ôi", "Chơ Ro", "Kháng", "Xinh Mun", "Hà Nhì", "Chu Ru", "Lào", "La Chí", "La Ha", "Phù Lá", "La Hủ", "Lự", "Lô Lô", "Chứt", "Mảng", "Pà Thẻn", "Co Lao", "Cống", "Bố Y", "Si La", "Pu Péo", "Brâu", "Ơ Đu", "Rơ Măm", "Khác"];
@@ -43,6 +187,7 @@ const FIELD_LABELS = {
   khoa: "Khoa",
   nhom: "Nhóm sinh hoạt",
   so_dien_thoai: "Số điện thoại",
+  sdt: "Số điện thoại",
   email: "Email cá nhân",
   email_sv: "Email sinh viên",
   facebook: "Facebook",
@@ -69,6 +214,9 @@ const FIELD_LABELS = {
   noi_chuyen_di: "Nơi chuyển đi",
   ngay_chuyen_vao: "Ngày chuyển vào Chi bộ",
   dvhd: "Đảng viên hướng dẫn",
+  dvhd_theo_doi: "ĐVHD theo dõi",
+  dvhd_ho_so: "ĐVHD làm hồ sơ",
+  yeu_cau_lam_ho_so: "Yêu cầu làm hồ sơ chính thức",
   ho_ten_nguoi_than: "Họ tên người thân",
   sdt_nguoi_than: "SĐT người thân",
   anh_ca_nhan: "Ảnh cá nhân",
@@ -78,7 +226,17 @@ const FIELD_LABELS = {
   ngaykiqd: "Ngày ký quyết định kết nạp",
   uu_diem: "Ưu điểm",
   khuyet_diem: "Khuyết điểm",
-  ghi_chu_ho_so: "Ghi chú hồ sơ"
+  ghi_chu_ho_so: "Ghi chú hồ sơ",
+  ghi_chu: "Ghi chú hồ sơ",
+  hoc_lop_dv_moi: "Học lớp Đảng viên mới",
+  so_gcn: "Số GCN Đảng viên mới",
+  ngay_cap_gcn: "Ngày cấp GCN",
+  noi_cap_gcn: "Nơi cấp GCN",
+  so_quyet_dinh_dvct: "Số quyết định công nhận ĐVCT",
+  ngay_ky_quyet_dinh_dvct: "Ngày ký quyết định công nhận ĐVCT",
+  ngay_cong_nhan_dvct: "Ngày công nhận ĐVCT",
+  ho_so_status: "Bước hồ sơ",
+  allow_self_edit: "Cho phép tự chỉnh sửa"
 };
 
 const FieldContext = React.createContext(null);
@@ -161,6 +319,13 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         soqd: originalData.soqd || '',
         ngaykiqd: originalData.ngaykiqd || null,
         facebook: originalData.facebook || originalData.link_fb || '',
+        gioi_tinh: originalData.gioi_tinh || originalData.gioitinh || '',
+        cccd: originalData.cccd || '',
+        dan_toc: originalData.dan_toc || '',
+        ton_giao: originalData.ton_giao || '',
+        anh_ca_nhan: originalData.anh_ca_nhan || '',
+        dia_chi_thuong_tru: originalData.dia_chi_thuong_tru || '',
+        dia_chi_tam_tru: originalData.dia_chi_tam_tru || '',
       };
     }
     return {
@@ -297,6 +462,17 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         updated_at: new Date().toISOString()
       });
       
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: data.id,
+        mssv: data.mssv || '',
+        ho_ten: data.ho_ten || '',
+        updated_by: currentUser?.email || currentUser?.username || "Hệ thống",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [{ field: "so_the_dang", label: "Số thẻ Đảng", oldVal: data.so_the_dang || '', newVal: cccdVal }]
+      });
+
       // Sync to dang_vien_dang_sinh_hoat
       const dshDoc = await findDocByMssv("dang_vien_dang_sinh_hoat", mssvStr);
       if (dshDoc) {
@@ -342,15 +518,18 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         ngayChinhThuc = ngayVaoDang.add(1, 'year');
       }
 
+      const normalizedData = normalizeAddressForForm(data);
       form.setFieldsValue({
-        ...data,
-        tinh_tp_tam_tru: data.tinh_tp_tam_tru || 'Đà Nẵng',
-        ngay_sinh: safeDayjs(data.ngay_sinh),
+        ...normalizedData,
+        tinh_tp_tam_tru: normalizedData.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
+        ngay_sinh: safeDayjs(normalizedData.ngay_sinh),
         ngay_vao_dang: ngayVaoDang,
-        ngay_chuyen_vao: safeDayjs(data.ngay_chuyen_vao),
+        ngay_chuyen_vao: safeDayjs(normalizedData.ngay_chuyen_vao),
         ngay_chinh_thuc: ngayChinhThuc,
-        ngay_chuyen_ra: safeDayjs(data.ngay_chuyen_ra),
-        ngaykiqd: safeDayjs(data.ngaykiqd),
+        ngay_chuyen_ra: safeDayjs(normalizedData.ngay_chuyen_ra),
+        ngaykiqd: safeDayjs(normalizedData.ngaykiqd),
+        ngay_ky_quyet_dinh_dvct: safeDayjs(normalizedData.ngay_ky_quyet_dinh_dvct),
+        so_quyet_dinh_dvct: normalizedData.so_quyet_dinh_dvct || '',
       });
       fetchHistoryLogs();
       fetchTransferProcess();
@@ -379,15 +558,18 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
   };
 
   const handleCancelEdit = () => {
+    const normalizedData = normalizeAddressForForm(data);
     form.setFieldsValue({
-      ...data,
-      tinh_tp_tam_tru: data.tinh_tp_tam_tru || 'Đà Nẵng',
-      ngay_sinh: data.ngay_sinh ? dayjs(data.ngay_sinh) : null,
-      ngay_vao_dang: data.ngay_vao_dang ? dayjs(data.ngay_vao_dang) : null,
-      ngay_chuyen_vao: data.ngay_chuyen_vao ? dayjs(data.ngay_chuyen_vao) : null,
-      ngay_chinh_thuc: data.ngay_chinh_thuc ? dayjs(data.ngay_chinh_thuc) : null,
-      ngay_chuyen_ra: data.ngay_chuyen_ra ? dayjs(data.ngay_chuyen_ra) : null,
-      ngaykiqd: data.ngaykiqd ? dayjs(data.ngaykiqd) : null,
+      ...normalizedData,
+      tinh_tp_tam_tru: normalizedData.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
+      ngay_sinh: normalizedData.ngay_sinh ? dayjs(normalizedData.ngay_sinh) : null,
+      ngay_vao_dang: normalizedData.ngay_vao_dang ? dayjs(normalizedData.ngay_vao_dang) : null,
+      ngay_chuyen_vao: normalizedData.ngay_chuyen_vao ? dayjs(normalizedData.ngay_chuyen_vao) : null,
+      ngay_chinh_thuc: normalizedData.ngay_chinh_thuc ? dayjs(normalizedData.ngay_chinh_thuc) : null,
+      ngay_chuyen_ra: normalizedData.ngay_chuyen_ra ? dayjs(normalizedData.ngay_chuyen_ra) : null,
+      ngaykiqd: normalizedData.ngaykiqd ? dayjs(normalizedData.ngaykiqd) : null,
+      ngay_ky_quyet_dinh_dvct: normalizedData.ngay_ky_quyet_dinh_dvct ? dayjs(normalizedData.ngay_ky_quyet_dinh_dvct) : null,
+      so_quyet_dinh_dvct: normalizedData.so_quyet_dinh_dvct || '',
     });
     setEditMode(false);
     setIsModified(false);
@@ -448,15 +630,15 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         return parts.join(', ');
       };
 
-      const queQuanMoi = buildAddress(values.tinh_tp_qq, null, values.xa_phuong_qq, null);
+      const queQuanMoi = buildAddress(values.tinh_tp_qq, undefined, values.xa_phuong_qq, null);
       const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
       const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
 
-      const thuongTruMoi = buildAddress(values.tinh_tp_tt, null, values.xa_phuong_tt, values.chi_tiet_dc);
+      const thuongTruMoi = buildAddress(values.tinh_tp_tt, undefined, values.xa_phuong_tt, values.chi_tiet_dc);
       const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
       const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
 
-      const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, null, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
+      const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, undefined, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
       const diaChiTamTru = tamTruMoi;
 
       let chiTiet = values.chi_tiet_dc;
@@ -470,6 +652,9 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
       // Format dates
       const formatted = {
         ...values,
+        quan_huyen_qq: "", // Clear current districts in database
+        quan_huyen_tt: "",
+        quan_huyen_tam_tru: "",
         chi_tiet_dc: chiTiet,
         que_quan: queQuan,
         dia_chi_thuong_tru: diaChiThuongTru,
@@ -478,8 +663,12 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
         ngay_chuyen_vao: values.ngay_chuyen_vao ? values.ngay_chuyen_vao.format('YYYY-MM-DD') : null,
         ngay_chinh_thuc: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : null,
+        ngay_cong_nhan_dvct: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : null,
         ngay_chuyen_ra: values.ngay_chuyen_ra ? values.ngay_chuyen_ra.format('YYYY-MM-DD') : null,
         ngaykiqd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : null,
+        ngay_ky_quyet_dinh_dvct: values.ngay_ky_quyet_dinh_dvct ? values.ngay_ky_quyet_dinh_dvct.format('YYYY-MM-DD') : null,
+        so_quyet_dinh_dvct: values.so_quyet_dinh_dvct || null,
+        so_qd: values.so_quyet_dinh_dvct || null,
         dang_vien_du_bi: !!values.dang_vien_du_bi
       };
 
@@ -551,23 +740,40 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         };
         await updateDoc(doc(db, "ho_so_ket_nap", data.id), mappedBack);
 
-        if (data.da_chuyen_sinh_hoat || data.trangthai === 8) {
+        if (data.da_chuyen_sinh_hoat) {
           const mssvStr = String(mappedBack.mssv || '').trim();
           if (mssvStr) {
+            // Full sync payload — propagate all basic info to dang_vien
+            const fullSyncPayload = {
+              ho_ten: mappedBack.hoten || '',
+              lop: mappedBack.lop || '',
+              khoa: mappedBack.khoa || '',
+              cccd: mappedBack.cccd || '',
+              so_dien_thoai: mappedBack.sdt || '',
+              sdt: mappedBack.sdt || '',
+              email: mappedBack.email || '',
+              facebook: mappedBack.link_fb || '',
+              ngay_sinh: mappedBack.ngaysinh || null,
+              gioi_tinh: mappedBack.gioitinh || 'Nam',
+              que_quan: mappedBack.quequan || '',
+              ngay_vao_dang: mappedBack.ngayvaodang || null,
+              dvhd: mappedBack.dangvienhuongdan || '',
+              soqd: mappedBack.soqd || '',
+              so_qd: mappedBack.soqd || '',
+              ngaykiqd: mappedBack.ngaykiqd || null,
+              ngay_ki_qd: mappedBack.ngaykiqd || null,
+              updated_at: new Date().toISOString()
+            };
+
             const existingDvDoc = await findDocByMssv("dang_vien", mssvStr);
             if (existingDvDoc) {
-              await updateDoc(doc(db, "dang_vien", existingDvDoc.id), {
-                soqd: mappedBack.soqd || '',
-                ngaykiqd: mappedBack.ngaykiqd || null,
-                updated_at: new Date().toISOString()
-              });
+              await updateDoc(doc(db, "dang_vien", existingDvDoc.id), fullSyncPayload);
             }
             const existingDshDoc = await findDocByMssv("dang_vien_dang_sinh_hoat", mssvStr);
             if (existingDshDoc) {
               await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", existingDshDoc.id), {
-                so_qd: mappedBack.soqd || '',
-                ngay_ki_qd: mappedBack.ngaykiqd || null,
-                updated_at: new Date().toISOString()
+                ...fullSyncPayload,
+                dang_vien_huong_dan: mappedBack.dangvienhuongdan || existingDshDoc.data()?.dang_vien_huong_dan || ''
               });
             }
           }
@@ -581,6 +787,47 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
           ngay_ki_qd: formatted.ngaykiqd || null,
         };
         await updateDoc(doc(db, collectionName, data.id), updateData);
+
+        if (collectionName === "dang_vien") {
+          const mssvStr = normalizeDocMssv(formatted);
+          if (mssvStr) {
+            const mappedKetNap = {
+              mssv: formatted.mssv || '',
+              cccd: formatted.cccd || '',
+              hoten: formatted.ho_ten || '',
+              lop: formatted.lop || '',
+              khoa: formatted.khoa || '',
+              ngaysinh: formatted.ngay_sinh || null,
+              gioitinh: formatted.gioi_tinh || 'Nam',
+              quequan: formatted.que_quan || '',
+              email: formatted.email || '',
+              link_fb: formatted.facebook || '',
+              sdt: formatted.so_dien_thoai || formatted.sdt || '',
+              dangvienhuongdan: formatted.dvhd || '',
+              ngayvaodang: formatted.ngay_vao_dang || null,
+              soqd: formatted.soqd || '',
+              ngaykiqd: formatted.ngaykiqd || null,
+              updated_at: new Date().toISOString()
+            };
+
+            const existingKetNapDoc = await findDocByMssv("ho_so_ket_nap", mssvStr);
+            if (existingKetNapDoc) {
+              await updateDoc(doc(db, "ho_so_ket_nap", existingKetNapDoc.id), mappedKetNap);
+            }
+
+            const existingDshDoc = await findDocByMssv("dang_vien_dang_sinh_hoat", mssvStr);
+            if (existingDshDoc) {
+              await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", existingDshDoc.id), {
+                ...formatted,
+                soqd: formatted.soqd || '',
+                so_qd: formatted.soqd || '',
+                ngaykiqd: formatted.ngaykiqd || null,
+                ngay_ki_qd: formatted.ngaykiqd || null,
+                dang_vien_huong_dan: formatted.dvhd || existingDshDoc.data()?.dang_vien_huong_dan || ''
+              });
+            }
+          }
+        }
       }
       fetchHistoryLogs();
 
@@ -654,6 +901,21 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         ngay_chuyen_ra: formattedDate,
         noi_chuyen_ra: values.noi_chuyen,
         ghi_chu_chuyen: values.ghi_chu || ""
+      });
+
+      // Log history
+      await addDoc(collection(db, "lich_su_cap_nhat"), {
+        dang_vien_id: data.id,
+        mssv: data.mssv || '',
+        ho_ten: data.ho_ten || '',
+        updated_by: currentUser?.email || currentUser?.username || "Hệ thống",
+        updated_at: new Date().toISOString(),
+        action: "update",
+        changes: [
+          { field: "trang_thai", label: "Trạng thái sinh hoạt", oldVal: data.trang_thai || '', newVal: "da_chuyen" },
+          { field: "ngay_chuyen_ra", label: "Ngày chuyển ra", oldVal: data.ngay_chuyen_ra || '', newVal: formattedDate || '' },
+          { field: "noi_chuyen_ra", label: "Nơi chuyển đến", oldVal: data.noi_chuyen_ra || '', newVal: values.noi_chuyen || '' }
+        ]
       });
       
       message.success('Chuyển sinh hoạt thành công');
@@ -888,6 +1150,17 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                         trang_thai: "dang_sinh_hoat",
                         updated_at: new Date().toISOString()
                       });
+                      
+                      // Log history
+                      await addDoc(collection(db, "lich_su_cap_nhat"), {
+                        dang_vien_id: data.id,
+                        mssv: data.mssv || '',
+                        ho_ten: data.ho_ten || '',
+                        updated_by: currentUser?.email || currentUser?.username || "Hệ thống",
+                        updated_at: new Date().toISOString(),
+                        action: "update",
+                        changes: [{ field: "trang_thai", label: "Trạng thái sinh hoạt", oldVal: "da_chuyen", newVal: "dang_sinh_hoat" }]
+                      });
                       // Delete corresponding transfer records to keep in sync
                       try {
                         const q = query(collection(db, "chuyen_sinh_hoat"), where("dang_vien_id", "==", data.id));
@@ -918,6 +1191,17 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   onConfirm={async () => {
                     try {
                       await updateDoc(doc(db, "dang_vien", data.id), { allow_self_edit: !data.allow_self_edit });
+                      
+                      // Log history
+                      await addDoc(collection(db, "lich_su_cap_nhat"), {
+                        dang_vien_id: data.id,
+                        mssv: data.mssv || '',
+                        ho_ten: data.ho_ten || '',
+                        updated_by: currentUser?.email || currentUser?.username || "Hệ thống",
+                        updated_at: new Date().toISOString(),
+                        action: "update",
+                        changes: [{ field: "allow_self_edit", label: "Cho phép tự chỉnh sửa", oldVal: data.allow_self_edit ? "Cho phép" : "Khóa", newVal: !data.allow_self_edit ? "Cho phép" : "Khóa" }]
+                      });
                       message.success(data.allow_self_edit ? "Đã khóa quyền tự sửa" : "Đã cấp quyền tự sửa");
                       if (onUpdate) onUpdate();
                       onClose();
@@ -1063,7 +1347,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                     <Field name="ho_ten" label="Họ và tên" rules={[{ required: true, message: 'Bắt buộc' }]} span={24}><Input size="large" /></Field>
                   </Row>
                   <Row gutter={16}>
-                    <Field name="ngay_sinh" label="Ngày sinh" span={6}><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" /></Field>
+                    <Field name="ngay_sinh" label="Ngày sinh" span={6}><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" disabledDate={disabledFutureDate} /></Field>
                     <Field name="gioi_tinh" label="Giới tính" span={6}><Select size="large"><Option value="Nam">Nam</Option><Option value="Nữ">Nữ</Option></Select></Field>
                     <Field name="dan_toc" label="Dân tộc" span={6}>
                       <Select showSearch size="large" allowClear placeholder="Chọn Dân tộc" filterOption={(input, option) => option.children.toLowerCase().includes(input.toLowerCase())}>
@@ -1099,7 +1383,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
 
                 <Card title={<><StarOutlined style={{marginRight: 8}}/> Thông tin Đảng</>} bordered={false} style={cardStyle} headStyle={headStyle}>
                   <Row gutter={16}>
-                    <Field name="ngay_vao_dang" label="Ngày vào Đảng" span={12}><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" onChange={(date) => { if (date) form.setFieldsValue({ ngay_chinh_thuc: date.add(1, 'year') }); setIsModified(true); }} /></Field>
+                    <Field name="ngay_vao_dang" label="Ngày vào Đảng" span={12}><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" disabledDate={disabledFutureDate} onChange={(date) => { if (date) form.setFieldsValue({ ngay_chinh_thuc: date.add(1, 'year') }); setIsModified(true); }} /></Field>
                     <Col span={12}>
                       {editMode ? (
                         <Form.Item name="dang_vien_du_bi" valuePropName="checked" style={{ marginBottom: 12, marginTop: 30 }}>
@@ -1114,7 +1398,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                     </Col>
                   </Row>
                   <Row gutter={16}>
-                    <Field name="ngay_chuyen_vao" label="Ngày chuyển vào Chi bộ" span={12}><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large"/></Field>
+                    <Field name="ngay_chuyen_vao" label="Ngày chuyển vào Chi bộ" span={12}><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" disabledDate={disabledFutureDate} /></Field>
                     <Field name="noi_chuyen_di" label="Nơi chuyển đi (Nơi sinh hoạt cũ)" span={12}><Input size="large" /></Field>
                   </Row>
                   {/* Quyết định kết nạp (Always show this since both probationary, official, and ho_so_ket_nap have an admission decision!) */}
@@ -1131,28 +1415,46 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                           },
                         }),
                        ]}
-                    ><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large"/></Field>
+                    ><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" disabledDate={disabledFutureDate} /></Field>
                     <Field name="soqd" label="Số quyết định kết nạp" span={12}><Input size="large" /></Field>
                   </Row>
                   
                   {/* Official membership details (Only show if not probationary) */}
                   {!shouldHideOfficialDetails && (
-                    <Row gutter={16}>
-                      <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} 
-                         rules={[
-                          ({ getFieldValue }) => ({
-                            validator(_, value) {
-                              const vaoDang = getFieldValue('ngay_vao_dang');
-                              if (!value || !vaoDang || value.isAfter(vaoDang)) {
-                                return Promise.resolve();
-                              }
-                              return Promise.reject(new Error('Ngày chính thức phải lớn hơn ngày vào'));
-                            },
-                          }),
-                         ]}
-                      ><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large"/></Field>
-                      <Field name="so_the_dang" label="Số thẻ Đảng" span={12}><Input size="large" /></Field>
-                    </Row>
+                    <>
+                      <Row gutter={16}>
+                        <Field name="ngay_chinh_thuc" label="Ngày chính thức" span={12} 
+                           rules={[
+                            ({ getFieldValue }) => ({
+                              validator(_, value) {
+                                const vaoDang = getFieldValue('ngay_vao_dang');
+                                if (!value || !vaoDang || value.isAfter(vaoDang)) {
+                                  return Promise.resolve();
+                                }
+                                return Promise.reject(new Error('Ngày chính thức phải lớn hơn ngày vào'));
+                              },
+                            }),
+                           ]}
+                        ><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" disabledDate={disabledFutureDate} /></Field>
+                        <Field name="so_the_dang" label="Số thẻ Đảng" span={12}><Input size="large" /></Field>
+                      </Row>
+                      <Row gutter={16}>
+                        <Field name="ngay_ky_quyet_dinh_dvct" label="Ngày ký quyết định chính thức" span={12} 
+                           rules={[
+                            ({ getFieldValue }) => ({
+                              validator(_, value) {
+                                const vaoDang = getFieldValue('ngay_vao_dang');
+                                if (!value || !vaoDang || value.isAfter(vaoDang)) {
+                                  return Promise.resolve();
+                                }
+                                return Promise.reject(new Error('Ngày ký quyết định chính thức phải sau ngày vào Đảng'));
+                              },
+                            }),
+                           ]}
+                        ><DatePicker style={{width:'100%'}} format={['DD/MM/YYYY', 'DDMMYYYY']} placeholder="DD/MM/YYYY" size="large" disabledDate={disabledFutureDate} /></Field>
+                        <Field name="so_quyet_dinh_dvct" label="Số quyết định chính thức" span={12}><Input size="large" /></Field>
+                      </Row>
+                    </>
                   )}
                   <Row gutter={16}>
                     <Field name="dvhd" label="Đảng viên hướng dẫn" span={24}><Input size="large" /></Field>
@@ -1176,8 +1478,6 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                     </Row>
                   </Card>
                 )}
-
-
 
                 <Card title={<><PhoneOutlined style={{marginRight: 8}}/> Liên hệ</>} bordered={false} style={cardStyle} headStyle={headStyle}>
                   <Row gutter={16}>
@@ -1216,9 +1516,20 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
 
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
                   <Row gutter={16}>
-                    <Field name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24}>
-                      <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
-                    </Field>
+                    {editMode ? (
+                      <Field name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24}>
+                         <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
+                      </Field>
+                    ) : (
+                      <Col span={24}>
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Địa chỉ chi tiết</div>
+                          <div style={{ fontWeight: 500, fontSize: 15, color: '#262626' }}>
+                            {getDisplayAddress(data.tinh_tp_tt, undefined, data.xa_phuong_tt, data.chi_tiet_dc) || '--'}
+                          </div>
+                        </div>
+                      </Col>
+                    )}
                   </Row>
                   <Row gutter={16}>
                     <Field name="tinh_tp_tt" label="Tỉnh/TP thường trú" span={12}>
@@ -1231,9 +1542,20 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
 
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
                   <Row gutter={16}>
-                    <Field name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ" span={24}>
-                      <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
-                    </Field>
+                    {editMode ? (
+                      <Field name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ" span={24}>
+                         <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
+                      </Field>
+                    ) : (
+                      <Col span={24}>
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Địa chỉ chi tiết cũ</div>
+                          <div style={{ fontWeight: 500, fontSize: 15, color: '#262626' }}>
+                            {getDisplayAddress(data.tinh_tp_tt_cu, data.quan_huyen_tt_cu, data.xa_phuong_tt_cu, data.chi_tiet_tt_cu) || '--'}
+                          </div>
+                        </div>
+                      </Col>
+                    )}
                   </Row>
                   <Row gutter={16}>
                     <Field name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" span={8}>
@@ -1249,9 +1571,20 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
 
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
                   <Row gutter={16}>
-                    <Field name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24}>
-                      <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
-                    </Field>
+                    {editMode ? (
+                      <Field name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24}>
+                         <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
+                      </Field>
+                    ) : (
+                      <Col span={24}>
+                        <div style={{ marginBottom: 16 }}>
+                          <div style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 4 }}>Địa chỉ chi tiết</div>
+                          <div style={{ fontWeight: 500, fontSize: 15, color: '#262626' }}>
+                            {getDisplayAddress(data.tinh_tp_tam_tru, undefined, data.xa_phuong_tam_tru, data.chi_tiet_tam_tru) || '--'}
+                          </div>
+                        </div>
+                      </Col>
+                    )}
                   </Row>
                   <Row gutter={16}>
                     <Field name="tinh_tp_tam_tru" label="Tỉnh/TP tạm trú" span={12}>
@@ -1416,18 +1749,23 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                                 ✓ Khởi tạo thông tin hồ sơ Đảng viên mới.
                               </div>
                             ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                {log.changes && log.changes.map((change, idx) => (
-                                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '13px' }}>
-                                    <span style={{ fontWeight: 600, color: '#555', minWidth: '120px' }}>{change.label}:</span>
-                                    <span style={{ color: '#bfbfbf', textDecoration: 'line-through' }}>{String(change.oldVal) || '(Trống)'}</span>
-                                    <span style={{ color: '#faad14', fontWeight: 'bold' }}>➔</span>
-                                    <span style={{ color: '#d46b08', fontWeight: 700, backgroundColor: '#fffbe6', padding: '1px 6px', borderRadius: '4px', border: '1px solid #ffe58f' }}>
-                                      {String(change.newVal) || '(Trống)'}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {log.changes && log.changes.map((change, idx) => {
+                                    const fieldLabel = change.label || FIELD_LABELS[change.field] || change.field;
+                                    const oldV = change.oldVal !== undefined && change.oldVal !== null ? change.oldVal : (change.from !== undefined && change.from !== null ? change.from : '');
+                                    const newV = change.newVal !== undefined && change.newVal !== null ? change.newVal : (change.to !== undefined && change.to !== null ? change.to : '');
+                                    return (
+                                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '13px' }}>
+                                        <span style={{ fontWeight: 600, color: '#555', minWidth: '120px' }}>{fieldLabel}:</span>
+                                        <span style={{ color: '#bfbfbf', textDecoration: 'line-through' }}>{String(oldV) || '(Trống)'}</span>
+                                        <span style={{ color: '#faad14', fontWeight: 'bold' }}>➔</span>
+                                        <span style={{ color: '#d46b08', fontWeight: 700, backgroundColor: '#fffbe6', padding: '1px 6px', borderRadius: '4px', border: '1px solid #ffe58f' }}>
+                                          {String(newV) || '(Trống)'}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
                             )}
                           </Card>
                         </Timeline.Item>

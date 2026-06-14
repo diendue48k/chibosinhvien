@@ -16,6 +16,29 @@ import {
 } from 'recharts';
 import dayjs from 'dayjs';
 
+const safeDayjs = (val) => {
+  if (!val) return dayjs(null);
+  if (val.toDate && typeof val.toDate === 'function') return dayjs(val.toDate());
+  if (val.seconds) return dayjs(val.seconds * 1000);
+  return dayjs(val);
+};
+
+const checkIsDuBi = (member) => {
+  if (!member) return true;
+  const getOfficialDate = () => {
+    const date = member.ngay_cong_nhan_dvct || member.ngay_chinh_thuc;
+    if (!date) return null;
+    if (date.toDate && typeof date.toDate === 'function') return dayjs(date.toDate());
+    if (date.seconds) return dayjs(date.seconds * 1000);
+    return dayjs(date);
+  };
+  const officialDate = getOfficialDate();
+  if (officialDate && officialDate.isValid()) {
+    return officialDate.isAfter(dayjs(), 'day');
+  }
+  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+};
+
 const { Text, Title } = Typography;
 const { Option } = Select;
 
@@ -125,23 +148,32 @@ const ThongKeHoSoChinhThuc = () => {
   const yearsList = useMemo(() => {
     const list = new Set();
     data.forEach(item => {
-      const isOfficial = (item.loai_dang_vien === "Chính thức" || item.dang_vien_du_bi === false);
+      const isOfficial = !checkIsDuBi(item);
       let dateStr = null;
       if (isOfficial) {
         dateStr = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct;
         if (!dateStr && item.ngay_vao_dang) {
-          dateStr = dayjs(item.ngay_vao_dang).add(1, 'year').toISOString();
+          const d = safeDayjs(item.ngay_vao_dang);
+          if (d && d.isValid()) {
+            dateStr = d.add(1, 'year').toISOString();
+          }
         }
       } else {
         if (item.ngay_vao_dang) {
-          dateStr = dayjs(item.ngay_vao_dang).add(1, 'year').toISOString();
+          const d = safeDayjs(item.ngay_vao_dang);
+          if (d && d.isValid()) {
+            dateStr = d.add(1, 'year').toISOString();
+          }
         }
       }
       dateStr = dateStr || item.created_at;
       
       if (dateStr) {
-        const yr = dayjs(dateStr).format('YYYY');
-        list.add(yr);
+        const d = safeDayjs(dateStr);
+        if (d && d.isValid()) {
+          const yr = d.format('YYYY');
+          list.add(yr);
+        }
       }
     });
     return Array.from(list).sort((a, b) => b - a);
@@ -160,27 +192,34 @@ const ThongKeHoSoChinhThuc = () => {
         return false;
       }
       
-      // Filter by Year
-      const isOfficial = (item.loai_dang_vien === "Chính thức" || item.dang_vien_du_bi === false);
+      const isOfficial = !checkIsDuBi(item);
       let dateStr = null;
       if (isOfficial) {
         dateStr = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct;
         if (!dateStr && item.ngay_vao_dang) {
-          dateStr = dayjs(item.ngay_vao_dang).add(1, 'year').toISOString();
+          const d = safeDayjs(item.ngay_vao_dang);
+          if (d && d.isValid()) {
+            dateStr = d.add(1, 'year').toISOString();
+          }
         }
       } else {
         if (item.ngay_vao_dang) {
-          dateStr = dayjs(item.ngay_vao_dang).add(1, 'year').toISOString();
+          const d = safeDayjs(item.ngay_vao_dang);
+          if (d && d.isValid()) {
+            dateStr = d.add(1, 'year').toISOString();
+          }
         }
       }
       dateStr = dateStr || item.created_at;
 
       if (dateStr) {
-        const itemYear = dayjs(dateStr).format('YYYY');
-        const itemYearNum = parseInt(itemYear, 10);
-        
-
-        if (filterYear && itemYear !== filterYear) {
+        const d = safeDayjs(dateStr);
+        if (d && d.isValid()) {
+          const itemYear = d.format('YYYY');
+          if (filterYear && itemYear !== filterYear) {
+            return false;
+          }
+        } else {
           return false;
         }
       } else {
@@ -193,24 +232,35 @@ const ThongKeHoSoChinhThuc = () => {
 
   // 2. Computed Statistics
   const stats = useMemo(() => {
+    const checkIsInProgress = (item) => {
+      const isDuBi = checkIsDuBi(item);
+      if (!isDuBi) return false;
+      if (!item.ngay_vao_dang) return false;
+      const ngayVao = safeDayjs(item.ngay_vao_dang);
+      if (!ngayVao || !ngayVao.isValid()) return false;
+      const deadline = ngayVao.add(12, 'month');
+      const daysLeft = deadline.diff(dayjs(), 'day');
+      return daysLeft <= 60;
+    };
+
+    const checkIsOfficial = (member) => {
+      return !checkIsDuBi(member);
+    };
+
     // 1. Tổng số hồ sơ đang làm (Probationary members preparing dossiers: Steps 1-6)
-    const inProgress = filteredData.filter(item => {
-      return item.loai_dang_vien === "Dự bị" || item.dang_vien_du_bi === true;
-    }).length;
+    const inProgress = filteredData.filter(item => checkIsInProgress(item)).length;
     
     // 2. Tổng số hồ sơ đã chính thức (Official members)
-    const admitted = filteredData.filter(item => {
-      return item.loai_dang_vien === "Chính thức" || item.dang_vien_du_bi === false;
-    }).length;
+    const admitted = filteredData.filter(item => checkIsOfficial(item)).length;
     
     // 3. Tổng số hồ sơ Đã nộp lên Đảng ủy ĐHĐN (Probationary members at Step 6)
     const submittedDhdn = filteredData.filter(item => {
-      const isProbationary = item.loai_dang_vien === "Dự bị" || item.dang_vien_du_bi === true;
+      const isInProgress = checkIsInProgress(item);
       const step = Number(item.ho_so_status || 1);
-      return isProbationary && step === 6;
+      return isInProgress && step === 6;
     }).length;
 
-    const total = filteredData.length;
+    const total = inProgress + admitted;
 
     // Faculty maps for both admitted & in-progress
     const facultyMap = {};
@@ -231,8 +281,8 @@ const ThongKeHoSoChinhThuc = () => {
     }
 
     filteredData.forEach(item => {
-      const isProbationary = item.loai_dang_vien === "Dự bị" || item.dang_vien_du_bi === true;
-      const isOfficial = item.loai_dang_vien === "Chính thức" || item.dang_vien_du_bi === false;
+      const isProbationary = checkIsInProgress(item);
+      const isOfficial = checkIsOfficial(item);
 
       // Faculty Grouping
       const f = standardizeKhoa(item.khoa);
@@ -389,8 +439,8 @@ const ThongKeHoSoChinhThuc = () => {
         if (itemF !== f) return;
 
         const c = getCohort(item);
-        const isProbationary = item.loai_dang_vien === "Dự bị" || item.dang_vien_du_bi === true;
-        const isOfficial = !isProbationary;
+        const isProbationary = checkIsInProgress(item);
+        const isOfficial = checkIsOfficial(item);
 
         if (isProbationary) {
           cohortsInProgress[c] = (cohortsInProgress[c] || 0) + 1;

@@ -20,9 +20,9 @@ const ProtectedRoute = ({ children }) => {
   const path = location.pathname;
   let isAllowed = permissionService.hasRouteAccess(currentUser.role, path);
 
-  // Dynamic override: DANGVIEN can only access /document-generator if they are a reserve member
+  // Dynamic override: DANGVIEN can only access /document-generator if admin has requested them to complete official profile
   if (isAllowed && path === '/document-generator' && currentUser.role === ROLES.DANGVIEN) {
-    if (currentUser.dang_vien_du_bi !== true) {
+    if (!currentUser.yeu_cau_lam_ho_so) {
       isAllowed = false;
     }
   }

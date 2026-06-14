@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,11 +67,12 @@ app.post('/api/send-email', async (req, res) => {
     const attachments = [];
     let processedHtml = html;
     
-    if (html.includes('logo.png')) {
+    const logoPath = path.join(__dirname, '../public/logo.png');
+    if (html.includes('logo.png') && fs.existsSync(logoPath)) {
       processedHtml = html.replace(/src=["'](?:https?:\/\/[^"'>\s]+)?\/logo\.png["']/g, 'src="cid:chibologo"');
       attachments.push({
         filename: 'logo.png',
-        path: path.join(__dirname, '../public/logo.png'),
+        path: logoPath,
         cid: 'chibologo'
       });
     }
