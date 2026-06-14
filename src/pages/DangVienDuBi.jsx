@@ -3326,6 +3326,16 @@ const DangVienDuBi = () => {
             HỦY BỎ
           </Button>,
           <Button
+            key="photo-zip"
+            type="dashed"
+            icon={<FileZipOutlined />}
+            onClick={exportPhotosZip}
+            loading={isExportingPhotos}
+            style={{ borderColor: '#fa541c', color: '#fa541c', height: 40, fontWeight: 600, borderRadius: '6px' }}
+          >
+            TẢI THƯ MỤC ẢNH (.ZIP)
+          </Button>,
+          <Button
             key="photo-excel"
             type="dashed"
             icon={<DownloadOutlined style={{ color: '#fa8c16' }} />}
