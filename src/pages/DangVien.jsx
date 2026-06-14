@@ -117,7 +117,11 @@ const EXPORT_FIELDS = [
   { key: 'sdt_nguoi_than', label: 'SĐT người thân', group: 'family' },
   
   { key: 'ngay_vao_dang', label: 'Ngày vào Đảng', group: 'party', isDate: true },
+  { key: 'soqd', label: 'Số quyết định kết nạp', group: 'party' },
+  { key: 'ngaykiqd', label: 'Ngày ký quyết định kết nạp', group: 'party', isDate: true },
   { key: 'ngay_chinh_thuc', label: 'Ngày chính thức', group: 'party', isDate: true },
+  { key: 'so_quyet_dinh_dvct', label: 'Số quyết định chính thức', group: 'party' },
+  { key: 'ngay_ky_quyet_dinh_dvct', label: 'Ngày ký quyết định chính thức', group: 'party', isDate: true },
   { key: 'so_the_dang', label: 'Số thẻ Đảng', group: 'party' },
   { key: 'noi_chuyen_di', label: 'Nơi chuyển đi', group: 'party' },
   { key: 'ngay_chuyen_vao', label: 'Ngày chuyển vào', group: 'party', isDate: true },
@@ -555,43 +559,38 @@ const DangVien = () => {
       dataToExport.forEach((item, index) => {
         if (!item) return;
         try {
+          const normItem = {
+            ...item,
+            so_dien_thoai: item.so_dien_thoai || item.sdt || '',
+            email: item.email || item.email_sv || '',
+            email_sv: item.email_sv || item.email || '',
+            que_quan: item.que_quan || getFullHometown(item) || '',
+            dia_chi_thuong_tru: item.dia_chi_thuong_tru || getFullAddress(item) || '',
+            dia_chi_tam_tru: item.dia_chi_tam_tru || getFullTamTru(item) || '',
+            tinh_tp_qq: item.tinh_tp_qq || item.tinh_tp_qq_cu || '',
+            xa_phuong_qq: item.xa_phuong_qq || item.xa_phuong_qq_cu || '',
+            tinh_tp_tt: item.tinh_tp_tt || item.tinh_tp_tt_cu || '',
+            xa_phuong_tt: item.xa_phuong_tt || item.xa_phuong_tt_cu || '',
+            chi_tiet_dc: item.chi_tiet_dc || item.chi_tiet_tt_cu || '',
+            soqd: item.soqd || item.so_qd || '',
+            ngaykiqd: item.ngaykiqd || item.ngay_ki_qd || null,
+            so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || '',
+            ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || null,
+          };
           const row = { 'STT': index + 1 };
           EXPORT_FIELDS.forEach(field => {
             if (selectedExportFields.includes(field.key)) {
               if (field.isDate) {
-                row[field.label] = formatDate(item[field.key]);
+                row[field.label] = formatDate(normItem[field.key]);
               } else if (field.isSpecial === 'type') {
-                row[field.label] = item.dang_vien_du_bi ? "Dự bị" : "Chính thức";
+                row[field.label] = normItem.dang_vien_du_bi ? "Dự bị" : "Chính thức";
               } else if (field.isSpecial === 'status') {
-                row[field.label] = item.trang_thai === 'dang_sinh_hoat' ? 'Đang sinh hoạt' :
-                                   item.trang_thai === 'da_chuyen' ? 'Đã chuyển ra' :
-                                   item.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
-                                   item.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
+                row[field.label] = normItem.trang_thai === 'dang_sinh_hoat' ? 'Đang sinh hoạt' :
+                                   normItem.trang_thai === 'da_chuyen' ? 'Đã chuyển ra' :
+                                   normItem.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
+                                   normItem.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
               } else {
-                let val = item[field.key];
-                if (field.key === 'so_dien_thoai') {
-                  val = item.so_dien_thoai || item.sdt;
-                } else if (field.key === 'email') {
-                  val = item.email || item.email_sv;
-                } else if (field.key === 'email_sv') {
-                  val = item.email_sv || item.email;
-                } else if (field.key === 'que_quan') {
-                  val = item.que_quan || getFullHometown(item);
-                } else if (field.key === 'dia_chi_thuong_tru') {
-                  val = item.dia_chi_thuong_tru || getFullAddress(item);
-                } else if (field.key === 'dia_chi_tam_tru') {
-                  val = item.dia_chi_tam_tru || getFullTamTru(item);
-                } else if (field.key === 'tinh_tp_qq') {
-                  val = item.tinh_tp_qq || item.tinh_tp_qq_cu;
-                } else if (field.key === 'xa_phuong_qq') {
-                  val = item.xa_phuong_qq || item.xa_phuong_qq_cu;
-                } else if (field.key === 'tinh_tp_tt') {
-                  val = item.tinh_tp_tt || item.tinh_tp_tt_cu;
-                } else if (field.key === 'xa_phuong_tt') {
-                  val = item.xa_phuong_tt || item.xa_phuong_tt_cu;
-                } else if (field.key === 'chi_tiet_dc') {
-                  val = item.chi_tiet_dc || item.chi_tiet_tt_cu;
-                }
+                let val = normItem[field.key];
                 
                 if (val !== null && val !== undefined) {
                   if (typeof val === 'object') {

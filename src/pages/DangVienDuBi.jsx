@@ -204,8 +204,14 @@ const EXPORT_FIELDS = [
   { key: 'tinh_tp_qq', label: 'Tỉnh/TP quê quán', group: 'address' },
   
   { key: 'ngay_vao_dang', label: 'Ngày vào Đảng', group: 'party', isDate: true },
+  { key: 'soqd', label: 'Số quyết định kết nạp', group: 'party' },
+  { key: 'ngaykiqd', label: 'Ngày ký quyết định kết nạp', group: 'party', isDate: true },
   { key: 'ngay_chinh_thuc', label: 'Ngày chính thức', group: 'party', isDate: true },
+  { key: 'so_quyet_dinh_dvct', label: 'Số quyết định chính thức', group: 'party' },
+  { key: 'ngay_ky_quyet_dinh_dvct', label: 'Ngày ký quyết định chính thức', group: 'party', isDate: true },
   { key: 'so_the_dang', label: 'Số thẻ Đảng', group: 'party' },
+  { key: 'noi_chuyen_di', label: 'Nơi chuyển đi', group: 'party' },
+  { key: 'ngay_chuyen_vao', label: 'Ngày chuyển vào', group: 'party', isDate: true },
   { key: 'dang_vien_du_bi', label: 'Loại Đảng viên', group: 'party', isSpecial: 'type' },
   { key: 'trang_thai', label: 'Trạng thái sinh hoạt', group: 'party', isSpecial: 'status' },
   { key: 'dvhd', label: 'Đảng viên hướng dẫn', group: 'party' },
@@ -722,33 +728,35 @@ const DangVienDuBi = () => {
     }
 
     const mappedData = dataToExport.map((item, index) => {
+      const normItem = {
+        ...item,
+        so_dien_thoai: item.so_dien_thoai || item.sdt || '',
+        email: item.email || item.email_sv || '',
+        email_sv: item.email_sv || item.email || '',
+        que_quan: item.que_quan || item.quequan || '',
+        tinh_tp_qq: item.tinh_tp_qq || item.tinh_tp_qq_cu || '',
+        xa_phuong_qq: item.xa_phuong_qq || item.xa_phuong_qq_cu || '',
+        tinh_tp_tt: item.tinh_tp_tt || item.tinh_tp_tt_cu || '',
+        xa_phuong_tt: item.xa_phuong_tt || item.xa_phuong_tt_cu || '',
+        soqd: item.soqd || item.so_qd || '',
+        ngaykiqd: item.ngaykiqd || item.ngay_ki_qd || null,
+        so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || '',
+        ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || null,
+        so_the_dang: item.so_the_dang || '',
+        noi_chuyen_di: item.noi_chuyen_di || '',
+        ngay_chuyen_vao: item.ngay_chuyen_vao || null,
+      };
       const row = { 'STT': index + 1 };
       EXPORT_FIELDS.forEach(field => {
         if (selectedExportFields.includes(field.key)) {
           if (field.isDate) {
-            row[field.label] = item[field.key] ? (item[field.key]?.toDate ? dayjs(item[field.key].toDate()).format('DD/MM/YYYY') : (item[field.key]?.seconds ? dayjs(item[field.key].seconds * 1000).format('DD/MM/YYYY') : dayjs(item[field.key]).format('DD/MM/YYYY'))) : "";
+            row[field.label] = normItem[field.key] ? (normItem[field.key]?.toDate ? dayjs(normItem[field.key].toDate()).format('DD/MM/YYYY') : (normItem[field.key]?.seconds ? dayjs(normItem[field.key].seconds * 1000).format('DD/MM/YYYY') : dayjs(normItem[field.key]).format('DD/MM/YYYY'))) : "";
           } else if (field.isSpecial === 'type') {
             row[field.label] = "Dự bị";
           } else if (field.isSpecial === 'status') {
-            row[field.label] = `B${item.ho_so_status || 1}: ${HO_SO_STEPS[item.ho_so_status || 1]}`;
+            row[field.label] = `B${normItem.ho_so_status || 1}: ${HO_SO_STEPS[normItem.ho_so_status || 1]}`;
           } else {
-            let val = item[field.key];
-            if (field.key === 'so_dien_thoai') {
-              val = item.so_dien_thoai || item.sdt;
-            } else if (field.key === 'email') {
-              val = item.email || item.email_sv;
-            } else if (field.key === 'que_quan') {
-              val = item.que_quan || item.quequan;
-            } else if (field.key === 'tinh_tp_qq') {
-              val = item.tinh_tp_qq || item.tinh_tp_qq_cu;
-            } else if (field.key === 'xa_phuong_qq') {
-              val = item.xa_phuong_qq || item.xa_phuong_qq_cu;
-            } else if (field.key === 'tinh_tp_tt') {
-              val = item.tinh_tp_tt || item.tinh_tp_tt_cu;
-            } else if (field.key === 'xa_phuong_tt') {
-              val = item.xa_phuong_tt || item.xa_phuong_tt_cu;
-            }
-            row[field.label] = val || "";
+            row[field.label] = normItem[field.key] || "";
           }
         }
       });
