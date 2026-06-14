@@ -965,26 +965,27 @@ const DangVien = () => {
       render: (_, __, index) => index + 1
     },
     { 
-      title: 'MSSV', 
-      dataIndex: 'mssv', 
-      key: 'mssv',
-      sorter: (a, b) => (a.mssv || '').localeCompare(b.mssv || '')
+      title: 'Họ tên & MSSV', 
+      key: 'ho_ten_mssv',
+      sorter: (a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || ''),
+      render: (_, r) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Space>
+            <span style={{ fontWeight: 600, color: '#1890ff' }}>{r.ho_ten || '--'}</span>
+            {r.trang_thai_tam_thoi === 'dang_di_tam_thoi' && (
+              <Tag color="cyan" style={{ fontWeight: 600, borderRadius: '4px' }}>
+                Sinh hoạt tạm thời
+              </Tag>
+            )}
+          </Space>
+          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{r.mssv || '--'}</span>
+        </div>
+      )
     },
     { 
-      title: 'Họ tên', 
-      dataIndex: 'ho_ten', 
-      key: 'ho_ten',
-      sorter: (a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || ''),
-      render: (text, r) => (
-        <Space>
-          <span>{text}</span>
-          {r.trang_thai_tam_thoi === 'dang_di_tam_thoi' && (
-            <Tag color="cyan" style={{ fontWeight: 600, borderRadius: '4px' }}>
-              Sinh hoạt tạm thời
-            </Tag>
-          )}
-        </Space>
-      )
+      title: 'SĐT', 
+      key: 'so_dien_thoai',
+      render: (_, r) => r.so_dien_thoai || r.sdt || '--'
     },
     { 
       title: 'Lớp', 

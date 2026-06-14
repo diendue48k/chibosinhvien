@@ -101,8 +101,8 @@ const ThongKeHoSoChinhThuc = () => {
       const q = collection(dbMain, "dang_vien");
       const querySnapshot = await getDocs(q);
       const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // We display all active/transferred members, but they must be registered in the system (have ho_ten)
-      setData(docs.filter(item => item.ho_ten));
+      // We display all active/transferred members who have went through the preparatory process in this branch (have ho_so_status)
+      setData(docs.filter(item => item.ho_ten && item.ho_so_status !== undefined && item.ho_so_status !== null && item.ho_so_status !== ""));
     } catch (error) {
       console.error("Lỗi tải dữ liệu thống kê:", error);
       message.error("Lỗi tải dữ liệu thống kê hồ sơ chính thức");
