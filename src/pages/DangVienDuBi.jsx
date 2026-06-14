@@ -756,7 +756,11 @@ const DangVienDuBi = () => {
           } else if (field.isSpecial === 'status') {
             row[field.label] = `B${normItem.ho_so_status || 1}: ${HO_SO_STEPS[normItem.ho_so_status || 1]}`;
           } else {
-            row[field.label] = normItem[field.key] || "";
+            let val = normItem[field.key];
+            if (field.key === 'anh_ca_nhan' && typeof val === 'string' && val.startsWith('data:')) {
+              val = '[Ảnh Base64 - Đã lưu trực tiếp]';
+            }
+            row[field.label] = val || "";
           }
         }
       });

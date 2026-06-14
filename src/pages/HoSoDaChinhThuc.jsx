@@ -1054,7 +1054,11 @@ const HoSoDaChinhThuc = () => {
                                normItem.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
                                normItem.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
           } else {
-            row[field.label] = normItem[field.key] || "";
+            let val = normItem[field.key];
+            if (field.key === 'anh_ca_nhan' && typeof val === 'string' && val.startsWith('data:')) {
+              val = '[Ảnh Base64 - Đã lưu trực tiếp]';
+            }
+            row[field.label] = val || "";
           }
         }
       });

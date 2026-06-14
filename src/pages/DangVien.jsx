@@ -591,6 +591,9 @@ const DangVien = () => {
                                    normItem.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
               } else {
                 let val = normItem[field.key];
+                if (field.key === 'anh_ca_nhan' && typeof val === 'string' && val.startsWith('data:')) {
+                  val = '[Ảnh Base64 - Đã lưu trực tiếp]';
+                }
                 
                 if (val !== null && val !== undefined) {
                   if (typeof val === 'object') {
