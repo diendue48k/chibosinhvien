@@ -36,7 +36,26 @@ const checkIsDuBi = (member) => {
   if (officialDate && officialDate.isValid()) {
     return officialDate.isAfter(dayjs(), 'day');
   }
-  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+  if (member.so_quyet_dinh_dvct || member.so_qd) {
+    return false;
+  }
+  if (member.dang_vien_du_bi === true) return true;
+  if (member.dang_vien_du_bi === false) return false;
+  if (member.loai_dang_vien === "Dự bị" || member.loai_dang_vien === "dubi") return true;
+  if (member.loai_dang_vien === "Chính thức") return false;
+  return true;
+};
+
+const getOfficialDateVal = (item) => {
+  let d = safeDayjs(item.ngay_cong_nhan_dvct);
+  if (d && d.isValid()) return d;
+  d = safeDayjs(item.ngay_chinh_thuc);
+  if (d && d.isValid()) return d;
+  if (item.ngay_vao_dang) {
+    d = safeDayjs(item.ngay_vao_dang);
+    if (d && d.isValid()) return d.add(1, 'year');
+  }
+  return safeDayjs(item.created_at);
 };
 
 const { Text, Title } = Typography;
@@ -101,8 +120,8 @@ const ThongKeHoSoChinhThuc = () => {
       const q = collection(dbMain, "dang_vien");
       const querySnapshot = await getDocs(q);
       const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // We display all active/transferred members who have went through the preparatory process in this branch (have ho_so_status)
-      setData(docs.filter(item => item.ho_ten && item.ho_so_status !== undefined && item.ho_so_status !== null && item.ho_so_status !== ""));
+      // We display all active members who have went through the preparatory process or are official/probationary members
+      setData(docs.filter(item => item.ho_ten && (!item.trang_thai || item.trang_thai === 'dang_sinh_hoat')));
     } catch (error) {
       console.error("Lỗi tải dữ liệu thống kê:", error);
       message.error("Lỗi tải dữ liệu thống kê hồ sơ chính thức");
@@ -148,32 +167,10 @@ const ThongKeHoSoChinhThuc = () => {
   const yearsList = useMemo(() => {
     const list = new Set();
     data.forEach(item => {
-      const isOfficial = !checkIsDuBi(item);
-      let dateStr = null;
-      if (isOfficial) {
-        dateStr = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct;
-        if (!dateStr && item.ngay_vao_dang) {
-          const d = safeDayjs(item.ngay_vao_dang);
-          if (d && d.isValid()) {
-            dateStr = d.add(1, 'year').toISOString();
-          }
-        }
-      } else {
-        if (item.ngay_vao_dang) {
-          const d = safeDayjs(item.ngay_vao_dang);
-          if (d && d.isValid()) {
-            dateStr = d.add(1, 'year').toISOString();
-          }
-        }
-      }
-      dateStr = dateStr || item.created_at;
-      
-      if (dateStr) {
-        const d = safeDayjs(dateStr);
-        if (d && d.isValid()) {
-          const yr = d.format('YYYY');
-          list.add(yr);
-        }
+      const d = getOfficialDateVal(item);
+      if (d && d.isValid()) {
+        const yr = d.format('YYYY');
+        list.add(yr);
       }
     });
     return Array.from(list).sort((a, b) => b - a);
@@ -240,27 +237,34 @@ const ThongKeHoSoChinhThuc = () => {
       if (!ngayVao || !ngayVao.isValid()) return false;
       const deadline = ngayVao.add(12, 'month');
       const daysLeft = deadline.diff(dayjs(), 'day');
-      return daysLeft <= 60;
+      return daysLeft <= 90 || (item.ho_so_status && Number(item.ho_so_status) > 1);
     };
 
     const checkIsOfficial = (member) => {
       return !checkIsDuBi(member);
     };
 
+    const checkIsNotStarted = (member) => {
+      return checkIsDuBi(member) && !checkIsInProgress(member);
+    };
+
     // 1. Tổng số hồ sơ đang làm (Probationary members preparing dossiers: Steps 1-6)
     const inProgress = filteredData.filter(item => checkIsInProgress(item)).length;
+
+    // 2. Đảng viên dự bị chưa đến hạn làm hồ sơ
+    const notStarted = filteredData.filter(item => checkIsNotStarted(item)).length;
     
-    // 2. Tổng số hồ sơ đã chính thức (Official members)
+    // 3. Tổng số hồ sơ đã chính thức (Official members)
     const admitted = filteredData.filter(item => checkIsOfficial(item)).length;
     
-    // 3. Tổng số hồ sơ Đã nộp lên Đảng ủy ĐHĐN (Probationary members at Step 6)
+    // 4. Tổng số hồ sơ Đã nộp lên Đảng ủy ĐHĐN (Probationary members at Step 6)
     const submittedDhdn = filteredData.filter(item => {
       const isInProgress = checkIsInProgress(item);
       const step = Number(item.ho_so_status || 1);
       return isInProgress && step === 6;
     }).length;
 
-    const total = inProgress + admitted;
+    const total = inProgress + admitted + notStarted;
 
     // Faculty maps for both admitted & in-progress
     const facultyMap = {};
@@ -317,11 +321,10 @@ const ThongKeHoSoChinhThuc = () => {
 
       // Trends (Specifically for members recognized as official)
       if (isOfficial) {
-        const dateStr = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || item.created_at;
-        if (dateStr) {
-          const dateVal = dayjs(dateStr);
-          const yr = dateVal.format('YYYY');
-          const mth = dateVal.month() + 1; // 1-indexed
+        const d = getOfficialDateVal(item);
+        if (d && d.isValid()) {
+          const yr = d.format('YYYY');
+          const mth = d.month() + 1; // 1-indexed
           
           yearTrendCounts[yr] = (yearTrendCounts[yr] || 0) + 1;
           
@@ -468,6 +471,7 @@ const ThongKeHoSoChinhThuc = () => {
 
     return {
       inProgress,
+      notStarted,
       admitted,
       submittedDhdn,
       facultyData,
@@ -622,9 +626,14 @@ const ThongKeHoSoChinhThuc = () => {
         }
         .kpi-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(3, 1fr);
           gap: 16px;
           margin-bottom: 24px;
+        }
+        @media (max-width: 992px) {
+          .kpi-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
         }
         @media (max-width: 768px) {
           .kpi-grid {
@@ -799,7 +808,20 @@ const ThongKeHoSoChinhThuc = () => {
           </div>
         </div>
 
-        {/* KPI 2: Đã chính thức */}
+        {/* KPI 2: Chưa đến hạn */}
+        <div className="kpi-card-compact" style={{ borderLeft: '4px solid #1890ff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div className="kpi-icon-wrapper-compact" style={{ color: '#1890ff', backgroundColor: 'rgba(24, 144, 255, 0.08)' }}>
+              <ClockCircleOutlined />
+            </div>
+            <div>
+              <div className="kpi-value-compact">{stats.notStarted}</div>
+              <div className="kpi-label-compact">Đảng viên dự bị (Chưa đến hạn)</div>
+            </div>
+          </div>
+        </div>
+
+        {/* KPI 3: Đã chính thức */}
         <div className="kpi-card-compact" style={{ borderLeft: '4px solid #c62828' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div className="kpi-icon-wrapper-compact" style={{ color: '#c62828', backgroundColor: 'rgba(198, 40, 40, 0.08)' }}>

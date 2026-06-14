@@ -17,6 +17,11 @@ import { collection, query, where, getDocs, addDoc, updateDoc, doc, deleteDoc } 
 import { dbMain as db } from '../firebase';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
+import addressDataCu from '../data/addressDataCu.json';
+import addressDataMoi from '../data/addressDataMoi.json';
+import AddressWardSelect from '../components/AddressWardSelect';
+import AddressProvinceSelect from '../components/AddressProvinceSelect';
+import AddressDistrictSelect from '../components/AddressDistrictSelect';
 
 const safeDayjs = (val) => {
   if (!val) return dayjs(null);
@@ -38,8 +43,132 @@ const checkIsDuBi = (member) => {
   if (officialDate && officialDate.isValid()) {
     return officialDate.isAfter(dayjs(), 'day');
   }
-  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+  if (member.so_quyet_dinh_dvct || member.so_qd) {
+    return false;
+  }
+  if (member.dang_vien_du_bi === true) return true;
+  if (member.dang_vien_du_bi === false) return false;
+  if (member.loai_dang_vien === "Dự bị" || member.loai_dang_vien === "dubi") return true;
+  if (member.loai_dang_vien === "Chính thức") return false;
+  return true;
 };
+
+const normalizeAddressForForm = (data) => {
+  if (!data) return {};
+  const res = { ...data };
+  
+  const findProvinceKey = (val) => {
+    if (!val) return val;
+    if (addressDataCu[val]) return val;
+    if (addressDataCu[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
+    if (addressDataCu[`Thành phố ${val}`]) return `Thành phố ${val}`;
+    return val;
+  };
+
+  const findDistrictKey = (provKey, distVal) => {
+    if (!provKey || !distVal) return distVal;
+    const provData = addressDataCu[provKey];
+    if (!provData) return distVal;
+    
+    if (provData[distVal]) return distVal;
+    
+    const prefixes = ["Quận", "Huyện", "Thị xã", "Thành phố"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${distVal}`;
+      if (provData[candidate]) return candidate;
+    }
+    
+    const distLower = distVal.toLowerCase();
+    const match = Object.keys(provData).find(k => k.toLowerCase().includes(distLower) || distLower.includes(k.toLowerCase()));
+    if (match) return match;
+    
+    return distVal;
+  };
+
+  const findWardKey = (provKey, distKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const provData = addressDataCu[provKey] || {};
+    let wardsList = [];
+    if (distKey && provData[distKey]) {
+      wardsList = provData[distKey];
+    } else {
+      Object.values(provData).forEach(list => {
+        if (Array.isArray(list)) wardsList.push(...list);
+      });
+    }
+    
+    if (wardsList.includes(wardVal)) return wardVal;
+    
+    const prefixes = ["Phường", "Xã", "Thị trấn"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${wardVal}`;
+      if (wardsList.includes(candidate)) return candidate;
+    }
+    
+    const wardLower = wardVal.toLowerCase();
+    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
+    if (match) return match;
+    
+    return wardVal;
+  };
+
+  const findProvinceKeyMoi = (val) => {
+    if (!val) return val;
+    if (addressDataMoi[val]) return val;
+    if (addressDataMoi[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
+    if (addressDataMoi[`Thành phố ${val}`]) return `Thành phố ${val}`;
+    return val;
+  };
+
+  const findWardKeyMoi = (provKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const wardsList = addressDataMoi[provKey] || [];
+    
+    if (wardsList.includes(wardVal)) return wardVal;
+    
+    const prefixes = ["Phường", "Xã", "Thị trấn"];
+    for (const prefix of prefixes) {
+      const candidate = `${prefix} ${wardVal}`;
+      if (wardsList.includes(candidate)) return candidate;
+    }
+    
+    const wardLower = wardVal.toLowerCase();
+    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
+    if (match) return match;
+    
+    return wardVal;
+  };
+
+  if (res.tinh_tp_qq) {
+    res.tinh_tp_qq = findProvinceKeyMoi(res.tinh_tp_qq);
+    res.xa_phuong_qq = findWardKeyMoi(res.tinh_tp_qq, res.xa_phuong_qq);
+  }
+  
+  if (res.tinh_tp_tt) {
+    res.tinh_tp_tt = findProvinceKeyMoi(res.tinh_tp_tt);
+    res.xa_phuong_tt = findWardKeyMoi(res.tinh_tp_tt, res.xa_phuong_tt);
+  }
+
+  if (res.tinh_tp_tam_tru) {
+    res.tinh_tp_tam_tru = findProvinceKeyMoi(res.tinh_tp_tam_tru);
+    res.xa_phuong_tam_tru = findWardKeyMoi(res.tinh_tp_tam_tru, res.xa_phuong_tam_tru);
+  }
+
+  if (res.tinh_tp_qq_cu) {
+    res.tinh_tp_qq_cu = findProvinceKey(res.tinh_tp_qq_cu);
+    res.quan_huyen_qq_cu = findDistrictKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu);
+    res.xa_phuong_qq_cu = findWardKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu, res.xa_phuong_qq_cu);
+  }
+
+  if (res.tinh_tp_tt_cu) {
+    res.tinh_tp_tt_cu = findProvinceKey(res.tinh_tp_tt_cu);
+    res.quan_huyen_tt_cu = findDistrictKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu);
+    res.xa_phuong_tt_cu = findWardKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu, res.xa_phuong_tt_cu);
+  }
+
+  return res;
+};
+
 import { API_BASE_URL } from '../config';
 import ImportExcel from '../components/ImportExcel';
 import ProfileDrawer from '../components/ProfileDrawer';
@@ -191,8 +320,16 @@ const DangVienDuBi = () => {
   
   // Drawer/Modal state
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState("inprogress");
   const [editingRecord, setEditingRecord] = useState(null);
   const [form] = Form.useForm();
+  const watchTinhTpTt = Form.useWatch('tinh_tp_tt', form);
+  const watchTinhTpQq = Form.useWatch('tinh_tp_qq', form);
+  const watchTinhTpQqCu = Form.useWatch('tinh_tp_qq_cu', form);
+  const watchTinhTpTtCu = Form.useWatch('tinh_tp_tt_cu', form);
+  const watchTinhTpTamTru = Form.useWatch('tinh_tp_tam_tru', form);
+  const watchQuanHuyenQqCu = Form.useWatch('quan_huyen_qq_cu', form);
+  const watchQuanHuyenTtCu = Form.useWatch('quan_huyen_tt_cu', form);
   const [chuyenChinhThucForm] = Form.useForm();
   const [isChuyenChinhThucModalVisible, setIsChuyenChinhThucModalVisible] = useState(false);
   const [isEmailModalVisible, setIsEmailModalVisible] = useState(false);
@@ -286,11 +423,15 @@ const DangVienDuBi = () => {
       // checkIsDuBi is now defined globally
 
       // Filter those who are probationary
-      const probationary = members.filter(member => checkIsDuBi(member));
+      const probationary = members.filter(member => {
+        if (member.trang_thai && member.trang_thai !== 'dang_sinh_hoat') return false;
+        return checkIsDuBi(member);
+      });
       
       // Filter those who are official members to be guides (DVHD)
       const official = members.filter(member => 
         member.ho_ten && 
+        (!member.trang_thai || member.trang_thai === 'dang_sinh_hoat') &&
         !checkIsDuBi(member)
       );
 
@@ -649,7 +790,11 @@ const DangVienDuBi = () => {
       
       const downloadImage = async (member) => {
         try {
-          const response = await fetch(member.anh_ca_nhan);
+          let fetchUrl = member.anh_ca_nhan;
+          if (fetchUrl && fetchUrl.startsWith('http') && !fetchUrl.startsWith(window.location.origin)) {
+            fetchUrl = `${API_BASE_URL}/api/proxy-image?url=${encodeURIComponent(fetchUrl)}`;
+          }
+          const response = await fetch(fetchUrl);
           if (!response.ok) throw new Error("Fetch error");
           const blob = await response.blob();
           
@@ -1038,8 +1183,11 @@ const DangVienDuBi = () => {
             style={{ fontWeight: 500, color: '#1890ff' }} 
             onClick={() => {
               setEditingRecord(record);
+              const normalized = normalizeAddressForForm(record);
               form.setFieldsValue({
-                ...record,
+                ...normalized,
+                so_dien_thoai: record.so_dien_thoai || record.sdt || '',
+                tinh_tp_tam_tru: normalized.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
                 dvhd_theo_doi: record.dvhd_theo_doi || record.dvhd || undefined,
                 dvhd_ho_so: record.dvhd_ho_so || record.dvhd || undefined,
                 ngay_sinh: record.ngay_sinh ? dayjs(record.ngay_sinh) : null,
@@ -1359,8 +1507,44 @@ const DangVienDuBi = () => {
       const selectedHoSoGuide = allOfficialMembers.find(m => m.ho_ten === values.dvhd_ho_so);
       const dvhd_ho_so_email = selectedHoSoGuide ? selectedHoSoGuide.email : null;
 
+      const buildAddress = (tinh, huyen, xa, chiTiet) => {
+        const parts = [];
+        if (chiTiet) parts.push(chiTiet);
+        if (xa) parts.push(xa);
+        if (huyen) parts.push(huyen);
+        if (tinh) parts.push(tinh);
+        return parts.join(', ');
+      };
+
+      const queQuanMoi = buildAddress(values.tinh_tp_qq, undefined, values.xa_phuong_qq, null);
+      const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
+      const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
+
+      const thuongTruMoi = buildAddress(values.tinh_tp_tt, undefined, values.xa_phuong_tt, values.chi_tiet_dc);
+      const thuongTruCu = buildAddress(values.tinh_tp_tt_cu, values.quan_huyen_tt_cu, values.xa_phuong_tt_cu, values.chi_tiet_tt_cu);
+      const diaChiThuongTru = thuongTruCu ? `${thuongTruMoi} (Trước đây là ${thuongTruCu})` : thuongTruMoi;
+
+      const tamTruMoi = buildAddress(values.tinh_tp_tam_tru, undefined, values.xa_phuong_tam_tru, values.chi_tiet_tam_tru);
+      const diaChiTamTru = tamTruMoi;
+
+      let chiTiet = values.chi_tiet_dc;
+      if (!chiTiet) {
+        const parts = [];
+        if (values.xa_phuong_tt) parts.push(values.xa_phuong_tt);
+        if (values.tinh_tp_tt) parts.push(values.tinh_tp_tt);
+        chiTiet = parts.join(", ");
+      }
+
       const formatted = {
         ...values,
+        sdt: values.so_dien_thoai || '',
+        quan_huyen_qq: "", // Clear current districts in database
+        quan_huyen_tt: "",
+        quan_huyen_tam_tru: "",
+        chi_tiet_dc: chiTiet,
+        que_quan: queQuan,
+        dia_chi_thuong_tru: diaChiThuongTru,
+        dia_chi_tam_tru: diaChiTamTru,
         dvhd_theo_doi_email: dvhd_theo_doi_email || null,
         dvhd_ho_so_email: dvhd_ho_so_email || null,
         ngay_sinh: values.ngay_sinh ? values.ngay_sinh.format('YYYY-MM-DD') : null,
@@ -1628,6 +1812,24 @@ const DangVienDuBi = () => {
       return daysA - daysB;
     });
   }, [data, searchText, filterKhoa, filterLop, filterIntake, filterHocLop, filterHanXet, filterThangXet]);
+
+  const checkIsInProgress = (item) => {
+    if (!item.ngay_vao_dang) return false;
+    const ngayVao = safeDayjs(item.ngay_vao_dang);
+    if (!ngayVao.isValid()) return false;
+    const deadline = ngayVao.add(12, 'month');
+    const today = dayjs();
+    const daysLeft = deadline.diff(today, 'day');
+    return daysLeft <= 90 || (item.ho_so_status && Number(item.ho_so_status) > 1);
+  };
+
+  const inProgressData = useMemo(() => {
+    return filteredData.filter(item => checkIsInProgress(item));
+  }, [filteredData]);
+
+  const notStartedData = useMemo(() => {
+    return filteredData.filter(item => !checkIsInProgress(item));
+  }, [filteredData]);
 
   const rowSelection = {
     selectedRowKeys,
@@ -1897,8 +2099,11 @@ const DangVienDuBi = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 setEditingRecord(record);
+                const normalized = normalizeAddressForForm(record);
                 form.setFieldsValue({
-                  ...record,
+                  ...normalized,
+                  so_dien_thoai: record.so_dien_thoai || record.sdt || '',
+                  tinh_tp_tam_tru: normalized.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
                   dvhd_theo_doi: record.dvhd_theo_doi || record.dvhd || undefined,
                   dvhd_ho_so: record.dvhd_ho_so || record.dvhd || undefined,
                   ngay_sinh: record.ngay_sinh ? dayjs(record.ngay_sinh) : null,
@@ -2119,7 +2324,7 @@ const DangVienDuBi = () => {
           </Button>
 
           <Button type="primary" ghost icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)} style={{ borderRadius: '6px', fontWeight: 500, borderColor: '#c62828', color: '#c62828' }}>Nhập & Cập nhật từ Excel</Button>
-          <Button type="primary" icon={<PlusOutlined />} style={{ backgroundColor: '#c62828', borderRadius: '6px', fontWeight: 500 }} onClick={() => { setEditingRecord(null); form.resetFields(); setDrawerVisible(true); }}>Thêm Đảng viên</Button>
+          <Button type="primary" icon={<PlusOutlined />} style={{ backgroundColor: '#c62828', borderRadius: '6px', fontWeight: 500 }} onClick={() => { setEditingRecord(null); form.resetFields(); form.setFieldsValue({ tinh_tp_tam_tru: 'Thành phố Đà Nẵng' }); setDrawerVisible(true); }}>Thêm Đảng viên</Button>
         </Space>
       </div>
       <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', backgroundColor: '#fff', padding: '12px 16px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
@@ -2243,10 +2448,33 @@ const DangVienDuBi = () => {
       </div>
 
       <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+        <Tabs
+          activeKey={activeTabKey}
+          onChange={setActiveTabKey}
+          style={{ marginBottom: 16 }}
+          items={[
+            {
+              key: 'inprogress',
+              label: (
+                <span>
+                  🚀 Hồ sơ đang làm (Còn ≤ 3 tháng) <Badge count={inProgressData.length} overflowCount={999} style={{ backgroundColor: '#faad14', marginLeft: 4 }} />
+                </span>
+              ),
+            },
+            {
+              key: 'notstarted',
+              label: (
+                <span>
+                  ⏳ Đảng viên dự bị (Chưa đến hạn) <Badge count={notStartedData.length} overflowCount={999} style={{ backgroundColor: '#1890ff', marginLeft: 4 }} />
+                </span>
+              ),
+            }
+          ]}
+        />
         <Table 
           rowSelection={rowSelection}
           columns={columns} 
-          dataSource={filteredData} 
+          dataSource={activeTabKey === 'inprogress' ? inProgressData : notStartedData} 
           rowKey="id" 
           loading={loading}
           scroll={{ x: 'max-content' }}
@@ -2507,13 +2735,25 @@ const DangVienDuBi = () => {
             </span>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item name="sdt" label="Số điện thoại">
+                <Form.Item name="so_dien_thoai" label="Số điện thoại" rules={[{ pattern: /^[0-9]+$/, message: 'SĐT không hợp lệ' }]}>
                   <Input placeholder="Nhập số điện thoại..." style={{ borderRadius: '6px' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item name="email" label="Địa chỉ Email" style={{ marginBottom: 0 }}>
+                <Form.Item name="facebook" label="Facebook">
+                  <Input placeholder="Nhập link Facebook..." style={{ borderRadius: '6px' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="email" label="Email cá nhân" rules={[{ type: 'email', message: 'Email không hợp lệ' }]}>
                   <Input placeholder="Nhập địa chỉ email liên hệ..." style={{ borderRadius: '6px' }} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="email_sv" label="Email SV" rules={[{ type: 'email', message: 'Email không hợp lệ' }]} style={{ marginBottom: 0 }}>
+                  <Input placeholder="Nhập email sinh viên..." style={{ borderRadius: '6px' }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -2537,13 +2777,37 @@ const DangVienDuBi = () => {
               <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏡 Quê quán</div>
               <Row gutter={16}>
                 <Col span={12}>
-                  <Form.Item name="xa_phuong_qq" label="Xã/Phường" style={{ marginBottom: 0 }}>
-                    <Input placeholder="Xã/phường quê quán..." style={{ borderRadius: '6px' }} />
+                  <Form.Item name="tinh_tp_qq" label="Tỉnh/Thành phố quê quán" style={{ marginBottom: 0 }}>
+                    <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} />
                   </Form.Item>
                 </Col>
                 <Col span={12}>
-                  <Form.Item name="tinh_tp_qq" label="Tỉnh/Thành phố" style={{ marginBottom: 0 }}>
-                    <Input placeholder="Tỉnh/thành phố quê quán..." style={{ borderRadius: '6px' }} />
+                  <Form.Item name="xa_phuong_qq" label="Xã/Phường quê quán" style={{ marginBottom: 0 }}>
+                    <AddressWardSelect province={watchTinhTpQq} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            <Divider style={{ margin: '12px 0' }} />
+
+            {/* Quê quán cũ (nếu có) */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏡 Quê quán cũ (nếu có)</div>
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item name="tinh_tp_qq_cu" label="Tỉnh/TP quê quán cũ" style={{ marginBottom: 0 }}>
+                    <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="quan_huyen_qq_cu" label="Quận/Huyện quê quán cũ" style={{ marginBottom: 0 }}>
+                    <AddressDistrictSelect province={watchTinhTpQqCu} onChange={() => form.setFieldsValue({ xa_phuong_qq_cu: undefined })} />
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item name="xa_phuong_qq_cu" label="Xã/Phường quê quán cũ" style={{ marginBottom: 0 }}>
+                    <AddressWardSelect isOld={true} province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -2555,19 +2819,52 @@ const DangVienDuBi = () => {
             <div style={{ marginBottom: '16px' }}>
               <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏠 Hộ khẩu thường trú</div>
               <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
+                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="tinh_tp_tt" label="Tỉnh/Thành phố thường trú" style={{ marginBottom: 0 }}>
+                    <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="xa_phuong_tt" label="Xã/Phường thường trú" style={{ marginBottom: 0 }}>
+                    <AddressWardSelect province={watchTinhTpTt} />
+                  </Form.Item>
+                </Col>
+              </Row>
+            </div>
+
+            <Divider style={{ margin: '12px 0' }} />
+
+            {/* Thường trú cũ (nếu có) */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏠 Thường trú cũ (nếu có)</div>
+              <Row gutter={16}>
+                <Col span={24}>
+                  <Form.Item name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ...">
+                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
                 <Col span={8}>
-                  <Form.Item name="xa_phuong_tt" label="Xã/Phường" style={{ marginBottom: 0 }}>
-                    <Input placeholder="Xã/Phường..." style={{ borderRadius: '6px' }} />
+                  <Form.Item name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" style={{ marginBottom: 0 }}>
+                    <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
-                  <Form.Item name="tinh_tp_tt" label="Tỉnh/Thành phố" style={{ marginBottom: 0 }}>
-                    <Input placeholder="Tỉnh/Thành phố..." style={{ borderRadius: '6px' }} />
+                  <Form.Item name="quan_huyen_tt_cu" label="Quận/Huyện thường trú cũ" style={{ marginBottom: 0 }}>
+                    <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} />
                   </Form.Item>
                 </Col>
                 <Col span={8}>
-                  <Form.Item name="chi_tiet_dc" label="Chi tiết (số nhà, đường, tổ...)" style={{ marginBottom: 0 }}>
-                    <Input placeholder="Số nhà, tên đường, tổ..." style={{ borderRadius: '6px' }} />
+                  <Form.Item name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ" style={{ marginBottom: 0 }}>
+                    <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -2580,8 +2877,20 @@ const DangVienDuBi = () => {
               <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📍 Địa chỉ tạm trú</div>
               <Row gutter={16}>
                 <Col span={24}>
-                  <Form.Item name="dia_chi_tam_tru" label="Địa chỉ tạm trú (Chi tiết)" style={{ marginBottom: 0 }}>
-                    <Input placeholder="Số nhà, tên đường, tổ/phường, quận/huyện, tỉnh/thành nơi tạm trú..." style={{ borderRadius: '6px' }} />
+                  <Form.Item name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
+                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '6px' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="tinh_tp_tam_tru" label="Tỉnh/Thành phố tạm trú" style={{ marginBottom: 0 }}>
+                    <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="xa_phuong_tam_tru" label="Xã/Phường tạm trú" style={{ marginBottom: 0 }}>
+                    <AddressWardSelect province={watchTinhTpTamTru} />
                   </Form.Item>
                 </Col>
               </Row>
@@ -3165,7 +3474,7 @@ const DangVienDuBi = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
               <span style={{ fontWeight: 800, fontSize: '18px', color: '#1a1a1a' }}>
-                Bảng Tổng Hợp Chi Tiết Toàn Bộ Hồ Sơ Đảng Viên Chính Thức (Dự Bị) ({filteredData.length} đồng chí)
+                Bảng Tổng Hợp Chi Tiết Toàn Bộ Hồ Sơ Đảng Viên Chính Thức (Dự Bị) ({activeTabKey === 'inprogress' ? inProgressData.length : notStartedData.length} đồng chí)
               </span>
             </div>
             <Button
@@ -3193,7 +3502,7 @@ const DangVienDuBi = () => {
 
         <Table
           columns={allInfoColumns}
-          dataSource={filteredData}
+          dataSource={activeTabKey === 'inprogress' ? inProgressData : notStartedData}
           loading={loading}
           rowKey="id"
           size="small"

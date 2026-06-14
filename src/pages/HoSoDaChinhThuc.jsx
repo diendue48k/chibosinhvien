@@ -18,6 +18,7 @@ import * as XLSX from 'xlsx';
 import ImportExcel from '../components/ImportExcel';
 import ProfileDrawer from '../components/ProfileDrawer';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -137,7 +138,14 @@ const checkIsDuBi = (member) => {
   if (officialDate && officialDate.isValid()) {
     return officialDate.isAfter(dayjs(), 'day');
   }
-  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+  if (member.so_quyet_dinh_dvct || member.so_qd) {
+    return false;
+  }
+  if (member.dang_vien_du_bi === true) return true;
+  if (member.dang_vien_du_bi === false) return false;
+  if (member.loai_dang_vien === "Dự bị" || member.loai_dang_vien === "dubi") return true;
+  if (member.loai_dang_vien === "Chính thức") return false;
+  return true;
 };
 
 const getOfficialYear = (item) => {
@@ -255,7 +263,8 @@ const HoSoDaChinhThuc = () => {
       // and their official date is not in the future
       const officialMembers = members.filter(member => {
         if (!member.ho_ten) return false;
-        return !checkIsDuBi(member) && (member.ho_so_status !== undefined && member.ho_so_status !== null && member.ho_so_status !== "");
+        if (member.trang_thai && member.trang_thai !== 'dang_sinh_hoat') return false;
+        return !checkIsDuBi(member);
       });
 
       setData(officialMembers);
@@ -263,6 +272,7 @@ const HoSoDaChinhThuc = () => {
       // Filter preparatory members who have completed Step 6 of their preparatory process
       const prepList = members.filter(member => {
         if (!member.ho_ten) return false;
+        if (member.trang_thai && member.trang_thai !== 'dang_sinh_hoat') return false;
         const isDuBi = checkIsDuBi(member);
         // Exclude if already processed (i.e. they already have ngay_chinh_thuc / so_quyet_dinh_dvct set)
         if (member.ngay_chinh_thuc || member.so_quyet_dinh_dvct) {
@@ -1078,7 +1088,11 @@ const HoSoDaChinhThuc = () => {
       
       const downloadImage = async (member) => {
         try {
-          const response = await fetch(member.anh_ca_nhan);
+          let fetchUrl = member.anh_ca_nhan;
+          if (fetchUrl && fetchUrl.startsWith('http') && !fetchUrl.startsWith(window.location.origin)) {
+            fetchUrl = `${API_BASE_URL}/api/proxy-image?url=${encodeURIComponent(fetchUrl)}`;
+          }
+          const response = await fetch(fetchUrl);
           if (!response.ok) throw new Error("Fetch error");
           const blob = await response.blob();
           

@@ -980,7 +980,11 @@ const HoSoDaKetNap = () => {
         return rec;
       });
 
-      setData(mergedRecords);
+      const activeRecords = mergedRecords.filter(member => {
+        return !member.trang_thai || member.trang_thai === 'dang_sinh_hoat';
+      });
+
+      setData(activeRecords);
     } catch (error) {
       message.error("Lỗi khi tải danh sách hồ sơ đã kết nạp");
       console.error(error);

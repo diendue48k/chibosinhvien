@@ -106,6 +106,35 @@ app.post('/api/send-email', async (req, res) => {
   }
 });
 
+app.get('/api/proxy-image', async (req, res) => {
+  const imageUrl = req.query.url;
+  if (!imageUrl) {
+    return res.status(400).send('Missing url parameter.');
+  }
+
+  try {
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      return res.status(response.status).send(`Failed to fetch image: ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType) {
+      res.setHeader('Content-Type', contentType);
+    }
+    
+    // Add CORS headers so frontend can read it
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Proxy image error:', err);
+    res.status(500).send('Proxy error: ' + err.message);
+  }
+});
+
 if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   app.listen(port, () => {
     console.log(`Server gửi Email đang chạy tại http://localhost:${port}`);

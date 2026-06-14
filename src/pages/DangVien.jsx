@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import PermissionWrapper from '../components/PermissionWrapper';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES, permissionService } from '../services/permissionService';
+import { API_BASE_URL } from '../config';
 
 const safeDayjs = (val) => {
   if (!val) return dayjs(null);
@@ -34,7 +35,14 @@ const checkIsDuBi = (member) => {
   if (officialDate && officialDate.isValid()) {
     return officialDate.isAfter(dayjs(), 'day');
   }
-  return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+  if (member.so_quyet_dinh_dvct || member.so_qd) {
+    return false;
+  }
+  if (member.dang_vien_du_bi === true) return true;
+  if (member.dang_vien_du_bi === false) return false;
+  if (member.loai_dang_vien === "Dự bị" || member.loai_dang_vien === "dubi") return true;
+  if (member.loai_dang_vien === "Chính thức") return false;
+  return true;
 };
 
 const getFullAddress = (record) => {
@@ -648,7 +656,11 @@ const DangVien = () => {
       
       const downloadImage = async (member) => {
         try {
-          const response = await fetch(member.anh_ca_nhan);
+          let fetchUrl = member.anh_ca_nhan;
+          if (fetchUrl && fetchUrl.startsWith('http') && !fetchUrl.startsWith(window.location.origin)) {
+            fetchUrl = `${API_BASE_URL}/api/proxy-image?url=${encodeURIComponent(fetchUrl)}`;
+          }
+          const response = await fetch(fetchUrl);
           if (!response.ok) throw new Error("Fetch error");
           const blob = await response.blob();
           

@@ -87,7 +87,14 @@ const Login = () => {
         if (officialDate && officialDate.isValid()) {
           return officialDate.isAfter(dayjs(), 'day');
         }
-        return member.dang_vien_du_bi !== false && member.loai_dang_vien !== "Chính thức";
+        if (member.so_quyet_dinh_dvct || member.so_qd) {
+          return false;
+        }
+        if (member.dang_vien_du_bi === true) return true;
+        if (member.dang_vien_du_bi === false) return false;
+        if (member.loai_dang_vien === "Dự bị" || member.loai_dang_vien === "dubi") return true;
+        if (member.loai_dang_vien === "Chính thức") return false;
+        return true;
       };
       
       const isDuBi = checkIsDuBi(memberData);
