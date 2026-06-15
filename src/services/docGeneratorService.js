@@ -396,6 +396,42 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
     }
   }
 
+  // Step 2b: Handle «key» / <<key>> (merge field) placeholders replacements & MERGEFIELD instruction stripping
+  const textElements2 = Array.from(doc.getElementsByTagName('w:t'));
+  for (const textElem of textElements2) {
+    let textContent = textElem.textContent || '';
+    const chevronRegex = /[«<<]\s*([^»>]+?)\s*[»>>]/g;
+    let match;
+    while ((match = chevronRegex.exec(textContent)) !== null) {
+      const fullMatch = match[0];
+      const key = match[1].trim();
+      let val = data[key];
+      if (val === undefined) {
+        val = data[key.toLowerCase()];
+      }
+      // Fallbacks for standard fields
+      if (val === undefined) {
+        if (key === 'Họ_tên' || key === 'ho_ten') val = data.ho_ten;
+        else if (key === 'Ngày_sinh' || key === 'ngay_sinh') val = data.ngay_sinh_formatted || data.ngay_sinh;
+        else if (key === 'Lớp' || key === 'lop') val = data.lop;
+        else if (key === 'Khoa' || key === 'khoa') val = data.khoa;
+        else if (key === 'Ngày_vào_Đảng' || key === 'ngay_vao_dang' || key === 'Ngày_vao_Đảng') val = data.ngay_vao_dang_formatted || data.ngay_vao_dang;
+      }
+      val = (val === null || val === undefined) ? '' : String(val);
+      textElem.textContent = textContent.replace(fullMatch, val);
+      textContent = textElem.textContent || '';
+      chevronRegex.lastIndex = 0;
+    }
+  }
+
+  const instrs = Array.from(doc.getElementsByTagName('w:instrText'));
+  for (const instr of instrs) {
+    if (instr.textContent.includes('MERGEFIELD')) {
+      instr.textContent = '';
+    }
+  }
+
+
   // Step 3: Handle hardcoded DOM templates for Transfer documents (Mẫu 1, 2, 3, 5) and Mẫu 11, 12, 13
   if (docType && (docType.startsWith('transfer_') || docType.includes('mau11') || docType.includes('mau12') || docType.includes('mau13') || docType.includes('chi_bo'))) {
     const allParagraphs = getElementsByLocalName(doc, 'p');
