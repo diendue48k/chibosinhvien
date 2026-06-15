@@ -31,8 +31,8 @@ const safeParse = (val) => {
 
 const formatVietnameseDate = (dStr) => {
   const dObj = safeParse(dStr);
-  if (!dObj) return 'ngày      tháng      năm ......';
-  return `${dObj.format('DD')} tháng ${dObj.format('MM')} năm ${dObj.format('YYYY')}`;
+  if (!dObj) return '      tháng      năm ......';
+  return `${dObj.format('D')} tháng ${dObj.format('M')} năm ${dObj.format('YYYY')}`;
 };
 
 // ============================================================
@@ -51,7 +51,7 @@ const prepareTemplateData = (data, docType) => {
   const formatFullDate = (dStr) => {
     const dObj = safeParse(dStr);
     if (!dObj) return 'ngày        tháng        năm         ';
-    return `ngày ${dObj.format('DD')} tháng ${dObj.format('MM')} năm ${dObj.format('YYYY')}`;
+    return `ngày ${dObj.format('D')} tháng ${dObj.format('M')} năm ${dObj.format('YYYY')}`;
   };
 
   const isTransfer = docType && docType.startsWith('transfer_');
@@ -415,7 +415,10 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         else if (key === 'Ngày_sinh' || key === 'ngay_sinh') val = data.ngay_sinh_formatted || data.ngay_sinh;
         else if (key === 'Lớp' || key === 'lop') val = data.lop;
         else if (key === 'Khoa' || key === 'khoa') val = data.khoa;
-        else if (key === 'Ngày_vào_Đảng' || key === 'ngay_vao_dang' || key === 'Ngày_vao_Đảng') val = data.ngay_vao_dang_formatted || data.ngay_vao_dang;
+        else if (key === 'Ngày_vào_Đảng' || key === 'ngay_vao_dang' || key === 'Ngày_vao_Đảng') {
+          const dObj = safeParse(data.ngay_vao_dang);
+          val = dObj ? `${dObj.format('D')} tháng ${dObj.format('M')} năm ${dObj.format('YYYY')}` : '....................';
+        }
       }
       val = (val === null || val === undefined) ? '' : String(val);
       textElem.textContent = textContent.replace(fullMatch, val);
@@ -446,7 +449,7 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         { find: '01/04/2004', replace: data.dvhd_ngay_sinh_formatted || '....................' },
         { find: '26/07/2022', replace: data.dvhd_ngay_vao_dang || '....................' },
         { find: '26/07/2023', replace: data.dvhd_ngay_chinh_thuc || '....................' },
-        { find: '26 tháng 07 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
+        { find: '26 tháng 07 năm 2026', replace: data.ngay_phan_cong },
         { find: 'Nguyễn Văn A', replace: data.ho_ten },
         { find: 'Đà Nẵng, ngày       tháng         năm 2026', replace: `Đà Nẵng, ngày       tháng         năm ${dayjs().format('YYYY')}` }
       );
@@ -454,7 +457,7 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
       mappings.push(
         { find: 'ngày    tháng    năm 2026', replace: `ngày    tháng    năm ${dayjs().format('YYYY')}` },
         { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten },
-        { find: 'ngày 30 tháng 5 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
+        { find: 'ngày 30 tháng 5 năm 2026', replace: safeParse(data.ngay_vao_dang) ? 'ngày ' + data.ngay_vao_dang_formatted_vietnamese : 'ngày      tháng      năm ......' },
         { find: '378', replace: String(data.tong_so_dv || '') },
         { find: '234', replace: String(data.tong_so_dv_chinh_thuc || '') },
         { find: '144', replace: String(data.tong_so_dv_du_bi || '') },
@@ -466,7 +469,7 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
       mappings.push(
         { find: 'ngày    tháng    năm 2026', replace: `ngày    tháng    năm ${dayjs().format('YYYY')}` },
         { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten },
-        { find: 'ngày 30 tháng 5 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
+        { find: 'ngày 30 tháng 5 năm 2026', replace: safeParse(data.ngay_vao_dang) ? 'ngày ' + data.ngay_vao_dang_formatted_vietnamese : 'ngày      tháng      năm ......' },
         { find: '378', replace: String(data.tong_so_dv || '') },
         { find: '234', replace: String(data.tong_so_dv_chinh_thuc || '') },
         { find: '144', replace: String(data.tong_so_dv_du_bi || '') },
@@ -482,7 +485,7 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
       mappings.push(
         { find: 'ngày    tháng    năm 2026', replace: `ngày    tháng    năm ${dayjs().format('YYYY')}` },
         { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten },
-        { find: 'ngày 30 tháng 5 năm 2025', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
+        { find: 'ngày 30 tháng 5 năm 2025', replace: safeParse(data.ngay_vao_dang) ? 'ngày ' + data.ngay_vao_dang_formatted_vietnamese : 'ngày      tháng      năm ......' },
         { find: 'Quản trị kinh doanh', replace: data.khoa || '....................' },
         { find: '51K25.2', replace: data.lop || '....................' },
         { find: '43-44-45 An Thượng', replace: data.chi_uy_noi_cu_tru || '....................' },
@@ -499,7 +502,7 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
         { find: 'Ngày vào Đảng: 26/07/2022', replace: `Ngày vào Đảng: ${data.dvhd_ngay_vao_dang || '....................'}` },
         { find: 'Ngày chính thức: 26/07/2022', replace: `Ngày chính thức: ${data.dvhd_ngay_chinh_thuc || '....................'}` },
         { find: '26/07/2022', replace: data.dvhd_ngay_vao_dang || '....................' },
-        { find: 'ngày 30 tháng 5 năm 2025', replace: data.ngay_vao_dang_formatted_vietnamese || '....................' },
+        { find: 'ngày 30 tháng 5 năm 2025', replace: safeParse(data.ngay_vao_dang) ? 'ngày ' + data.ngay_vao_dang_formatted_vietnamese : 'ngày      tháng      năm ......' },
         { find: 'Nguyễn Hữu Ái Quốc', replace: data.ho_ten || '....................' },
         { find: 'năm 2026', replace: `năm ${namKyMau11}` },
         { find: '2026', replace: namKyMau11 }
@@ -561,7 +564,7 @@ const mergeXMLWithDOM = (xmlString, data, docType) => {
       { find: '16/5/2004', replace: data.ngay_sinh_formatted },
       { find: '48K27', replace: data.lop },
       { find: 'Lý luận chính trị', replace: data.khoa },
-      { find: 'ngày 26 tháng 05 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
+      { find: 'ngày 26 tháng 05 năm 2026', replace: safeParse(data.ngay_vao_dang) ? 'ngày ' + data.ngay_vao_dang_formatted_vietnamese : 'ngày      tháng      năm ......' },
       { find: '26 tháng 05 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
       { find: '26 tháng 5 năm 2026', replace: data.ngay_vao_dang_formatted_vietnamese },
       { find: 'Đà Nẵng, ngày     tháng      năm 2026', replace: `Đà Nẵng, ngày     tháng      năm ${dayjs().format('YYYY')}` },
