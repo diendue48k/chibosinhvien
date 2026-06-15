@@ -17,6 +17,135 @@ import dayjs from 'dayjs';
 import AddressWardSelect from '../components/AddressWardSelect';
 import AddressProvinceSelect from '../components/AddressProvinceSelect';
 import AddressDistrictSelect from '../components/AddressDistrictSelect';
+import addressDataCu from '../data/addressDataCu.json';
+import addressDataMoi from '../data/addressDataMoi.json';
+
+const addProvincePrefix = (tinh) => {
+  if (!tinh) return tinh;
+  const clean = tinh.trim();
+  if (/^(Tỉnh|Thành phố|Thành Phố|TP\.|TP)/i.test(clean)) {
+    return clean;
+  }
+  const municipalities = ["Hà Nội", "Hồ Chí Minh", "TP HCM", "Hải Phòng", "Đà Nẵng", "Cần Thơ"];
+  if (municipalities.some(m => clean.toLowerCase() === m.toLowerCase())) {
+    return `Thành phố ${clean}`;
+  }
+  if (clean.toLowerCase() === "huế") {
+    return "Thành phố Huế";
+  }
+  return `Tỉnh ${clean}`;
+};
+
+const normalizeAddressForForm = (data) => {
+  if (!data) return {};
+  const res = { ...data };
+  
+  const cleanProvinceName = (val) => {
+    if (!val) return "";
+    let s = val.trim();
+    s = s.replace(/^(Tỉnh|Thành phố|Thành Phố|TP\.|TP)\s+/i, "");
+    s = s.replace(/\s+(Tỉnh|Thành phố|Thành Phố|TP\.|TP)$/i, "");
+    if (/^hồ\s+chí\s+minh$/i.test(s) || /^hcm$/i.test(s) || /^tp\s*hcm$/i.test(s) || /^tp\s*hồ\s+chí\s+minh$/i.test(s)) {
+      return "hcm";
+    }
+    if (/^thừa\s+thiên\s+huế$/i.test(s) || /^huế$/i.test(s)) {
+      return "huế";
+    }
+    return s.toLowerCase();
+  };
+
+  const cleanDistrictName = (val) => {
+    if (!val) return "";
+    return val.replace(/^(Quận|Huyện|Thị xã|Thị Xã|Thành phố|Thành Phố)\s+/i, "").trim().toLowerCase();
+  };
+
+  const cleanWardName = (val) => {
+    if (!val) return "";
+    return val.replace(/^(Phường|Xã|Thị trấn|Thị Trấn)\s+/i, "").trim().toLowerCase();
+  };
+
+  const findProvinceKey = (val) => {
+    if (!val) return val;
+    const target = cleanProvinceName(val);
+    const match = Object.keys(addressDataCu).find(k => cleanProvinceName(k) === target);
+    return match || val;
+  };
+
+  const findDistrictKey = (provKey, distVal) => {
+    if (!provKey || !distVal) return distVal;
+    const provData = addressDataCu[provKey];
+    if (!provData) return distVal;
+    const target = cleanDistrictName(distVal);
+    const match = Object.keys(provData).find(k => cleanDistrictName(k) === target);
+    return match || distVal;
+  };
+
+  const findWardKey = (provKey, distKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const provData = addressDataCu[provKey] || {};
+    let wardsList = [];
+    if (distKey && provData[distKey]) {
+      wardsList = provData[distKey];
+    } else {
+      Object.values(provData).forEach(list => {
+        if (Array.isArray(list)) wardsList.push(...list);
+      });
+    }
+    const target = cleanWardName(wardVal);
+    const match = wardsList.find(w => cleanWardName(w) === target);
+    return match || wardVal;
+  };
+
+  const findProvinceKeyMoi = (val) => {
+    if (!val) return val;
+    const target = cleanProvinceName(val);
+    const match = Object.keys(addressDataMoi).find(k => cleanProvinceName(k) === target);
+    return match || val;
+  };
+
+  const findWardKeyMoi = (provKey, wardVal) => {
+    if (!provKey || !wardVal) return wardVal;
+    const wardsList = addressDataMoi[provKey] || [];
+    const target = cleanWardName(wardVal);
+    const match = wardsList.find(w => cleanWardName(w) === target);
+    return match || wardVal;
+  };
+
+  if (res.tinh_tp_qq) {
+    res.tinh_tp_qq = findProvinceKeyMoi(res.tinh_tp_qq);
+    res.xa_phuong_qq = findWardKeyMoi(res.tinh_tp_qq, res.xa_phuong_qq);
+  }
+  
+  if (res.tinh_tp_tt) {
+    res.tinh_tp_tt = findProvinceKeyMoi(res.tinh_tp_tt);
+    res.xa_phuong_tt = findWardKeyMoi(res.tinh_tp_tt, res.xa_phuong_tt);
+  }
+
+  if (res.tinh_tp_tam_tru) {
+    res.tinh_tp_tam_tru = findProvinceKeyMoi(res.tinh_tp_tam_tru);
+    res.xa_phuong_tam_tru = findWardKeyMoi(res.tinh_tp_tam_tru, res.xa_phuong_tam_tru);
+  }
+
+  if (res.tinh_tp_qq_cu) {
+    res.tinh_tp_qq_cu = findProvinceKey(res.tinh_tp_qq_cu);
+    res.quan_huyen_qq_cu = findDistrictKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu);
+    res.xa_phuong_qq_cu = findWardKey(res.tinh_tp_qq_cu, res.quan_huyen_qq_cu, res.xa_phuong_qq_cu);
+  }
+
+  if (res.tinh_tp_tt_cu) {
+    res.tinh_tp_tt_cu = findProvinceKey(res.tinh_tp_tt_cu);
+    res.quan_huyen_tt_cu = findDistrictKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu);
+    res.xa_phuong_tt_cu = findWardKey(res.tinh_tp_tt_cu, res.quan_huyen_tt_cu, res.xa_phuong_tt_cu);
+  }
+
+  if (res.tinh_tp_tam_tru_cu) {
+    res.tinh_tp_tam_tru_cu = findProvinceKey(res.tinh_tp_tam_tru_cu);
+    res.quan_huyen_tam_tru_cu = findDistrictKey(res.tinh_tp_tam_tru_cu, res.quan_huyen_tam_tru_cu);
+    res.xa_phuong_tam_tru_cu = findWardKey(res.tinh_tp_tam_tru_cu, res.quan_huyen_tam_tru_cu, res.xa_phuong_tam_tru_cu);
+  }
+
+  return res;
+};
 
 const getFullAddress = (record) => {
   if (!record) return '';
@@ -400,44 +529,45 @@ const DocumentGenerator = () => {
   // Sync selectedMember to form fields
   useEffect(() => {
     if (selectedMember) {
+      const normalized = normalizeAddressForForm(selectedMember);
       form.setFieldsValue({
-        ho_ten: selectedMember.ho_ten,
-        mssv: selectedMember.mssv,
-        lop: selectedMember.lop || '',
-        khoa: selectedMember.khoa || '',
-        ngay_sinh: selectedMember.ngay_sinh ? dayjs(selectedMember.ngay_sinh) : null,
-        ngay_vao_dang: selectedMember.ngay_vao_dang ? dayjs(selectedMember.ngay_vao_dang) : null,
-        que_quan: selectedMember.que_quan || getFullHometown(selectedMember) || '',
-        dia_chi_thuong_tru: selectedMember.dia_chi_thuong_tru || getFullAddress(selectedMember) || '',
-        dia_chi_tam_tru: selectedMember.dia_chi_tam_tru || getFullTamTru(selectedMember) || '',
+        ho_ten: normalized.ho_ten,
+        mssv: normalized.mssv,
+        lop: normalized.lop || '',
+        khoa: normalized.khoa || '',
+        ngay_sinh: normalized.ngay_sinh ? dayjs(normalized.ngay_sinh) : null,
+        ngay_vao_dang: normalized.ngay_vao_dang ? dayjs(normalized.ngay_vao_dang) : null,
+        que_quan: normalized.que_quan || getFullHometown(normalized) || '',
+        dia_chi_thuong_tru: normalized.dia_chi_thuong_tru || getFullAddress(normalized) || '',
+        dia_chi_tam_tru: normalized.dia_chi_tam_tru || getFullTamTru(normalized) || '',
         
-        tinh_tp_qq: selectedMember.tinh_tp_qq || '',
-        quan_huyen_qq: selectedMember.quan_huyen_qq || '',
-        xa_phuong_qq: selectedMember.xa_phuong_qq || '',
+        tinh_tp_qq: normalized.tinh_tp_qq || '',
+        quan_huyen_qq: normalized.quan_huyen_qq || '',
+        xa_phuong_qq: normalized.xa_phuong_qq || '',
         
-        tinh_tp_qq_cu: selectedMember.tinh_tp_qq_cu || '',
-        quan_huyen_qq_cu: selectedMember.quan_huyen_qq_cu || '',
-        xa_phuong_qq_cu: selectedMember.xa_phuong_qq_cu || '',
+        tinh_tp_qq_cu: normalized.tinh_tp_qq_cu || '',
+        quan_huyen_qq_cu: normalized.quan_huyen_qq_cu || '',
+        xa_phuong_qq_cu: normalized.xa_phuong_qq_cu || '',
         
-        tinh_tp_tt: selectedMember.tinh_tp_tt || '',
-        quan_huyen_tt: selectedMember.quan_huyen_tt || '',
-        xa_phuong_tt: selectedMember.xa_phuong_tt || '',
-        chi_tiet_dc: selectedMember.chi_tiet_dc || '',
+        tinh_tp_tt: normalized.tinh_tp_tt || '',
+        quan_huyen_tt: normalized.quan_huyen_tt || '',
+        xa_phuong_tt: normalized.xa_phuong_tt || '',
+        chi_tiet_dc: normalized.chi_tiet_dc || '',
 
-        tinh_tp_tt_cu: selectedMember.tinh_tp_tt_cu || '',
-        quan_huyen_tt_cu: selectedMember.quan_huyen_tt_cu || '',
-        xa_phuong_tt_cu: selectedMember.xa_phuong_tt_cu || '',
-        chi_tiet_tt_cu: selectedMember.chi_tiet_tt_cu || '',
+        tinh_tp_tt_cu: normalized.tinh_tp_tt_cu || '',
+        quan_huyen_tt_cu: normalized.quan_huyen_tt_cu || '',
+        xa_phuong_tt_cu: normalized.xa_phuong_tt_cu || '',
+        chi_tiet_tt_cu: normalized.chi_tiet_tt_cu || '',
 
-        tinh_tp_tam_tru: selectedMember.tinh_tp_tam_tru || '',
-        quan_huyen_tam_tru: selectedMember.quan_huyen_tam_tru || '',
-        xa_phuong_tam_tru: selectedMember.xa_phuong_tam_tru || '',
-        chi_tiet_tam_tru: selectedMember.chi_tiet_tam_tru || (!selectedMember.tinh_tp_tam_tru ? selectedMember.dia_chi_tam_tru : '') || '',
+        tinh_tp_tam_tru: normalized.tinh_tp_tam_tru || '',
+        quan_huyen_tam_tru: normalized.quan_huyen_tam_tru || '',
+        xa_phuong_tam_tru: normalized.xa_phuong_tam_tru || '',
+        chi_tiet_tam_tru: normalized.chi_tiet_tam_tru || (!normalized.tinh_tp_tam_tru ? normalized.dia_chi_tam_tru : '') || '',
 
-        tinh_tp_tam_tru_cu: selectedMember.tinh_tp_tam_tru_cu || '',
-        quan_huyen_tam_tru_cu: selectedMember.quan_huyen_tam_tru_cu || '',
-        xa_phuong_tam_tru_cu: selectedMember.xa_phuong_tam_tru_cu || '',
-        chi_tiet_tam_tru_cu: selectedMember.chi_tiet_tam_tru_cu || '',
+        tinh_tp_tam_tru_cu: normalized.tinh_tp_tam_tru_cu || '',
+        quan_huyen_tam_tru_cu: normalized.quan_huyen_tam_tru_cu || '',
+        xa_phuong_tam_tru_cu: normalized.xa_phuong_tam_tru_cu || '',
+        chi_tiet_tam_tru_cu: normalized.chi_tiet_tam_tru_cu || '',
         dvhd: selectedMember.dvhd || selectedMember.dangvienhuongdan || '',
         dvhd_ngay_sinh: selectedMember.dvhd_ngay_sinh ? dayjs(selectedMember.dvhd_ngay_sinh) : null,
         dvhd_ngay_vao_dang: selectedMember.dvhd_ngay_vao_dang ? dayjs(selectedMember.dvhd_ngay_vao_dang) : null,
@@ -576,12 +706,13 @@ const DocumentGenerator = () => {
 
   useEffect(() => {
     if (selectedMember) {
+      const normalized = normalizeAddressForForm(selectedMember);
       form.setFieldsValue({
-        que_quan: selectedMember.que_quan || getFullHometown(selectedMember) || '',
-        dia_chi_thuong_tru: selectedMember.dia_chi_thuong_tru || getFullAddress(selectedMember) || '',
-        dia_chi_tam_tru: selectedMember.dia_chi_tam_tru || getFullTamTru(selectedMember) || '',
-        ngay_sinh: selectedMember.ngay_sinh ? dayjs(selectedMember.ngay_sinh) : null,
-        ngay_vao_dang: selectedMember.ngay_vao_dang ? dayjs(selectedMember.ngay_vao_dang) : null,
+        que_quan: normalized.que_quan || getFullHometown(normalized) || '',
+        dia_chi_thuong_tru: normalized.dia_chi_thuong_tru || getFullAddress(normalized) || '',
+        dia_chi_tam_tru: normalized.dia_chi_tam_tru || getFullTamTru(normalized) || '',
+        ngay_sinh: normalized.ngay_sinh ? dayjs(normalized.ngay_sinh) : null,
+        ngay_vao_dang: normalized.ngay_vao_dang ? dayjs(normalized.ngay_vao_dang) : null,
       });
     }
   }, [selectedMember, form]);
@@ -598,7 +729,7 @@ const DocumentGenerator = () => {
         if (chiTiet) parts.push(chiTiet);
         if (xa) parts.push(xa);
         if (huyen) parts.push(huyen);
-        if (tinh) parts.push(tinh);
+        if (tinh) parts.push(addProvincePrefix(tinh));
         return parts.join(', ');
       };
 

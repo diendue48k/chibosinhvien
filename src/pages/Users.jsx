@@ -27,12 +27,97 @@ const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { TabPane } = Tabs;
 
+const DB_FIELD_LABELS = {
+  ho_ten: "Họ và tên",
+  mssv: "MSSV",
+  cccd: "Số CCCD",
+  ngay_sinh: "Ngày sinh",
+  gioi_tinh: "Giới tính",
+  dan_toc: "Dân tộc",
+  ton_giao: "Tôn giáo",
+  lop: "Lớp",
+  khoa: "Khoa",
+  ngay_vao_dang: "Ngày vào Đảng",
+  ngay_chinh_thuc: "Ngày chính thức",
+  so_the_dang: "Số thẻ Đảng",
+  ngay_chuyen_vao: "Ngày chuyển sinh hoạt về",
+  noi_chuyen_di: "Nơi chuyển sinh hoạt đi",
+  ngaykiqd: "Ngày ký quyết định kết nạp",
+  soqd: "Số quyết định kết nạp",
+  dvhd: "Đảng viên hướng dẫn",
+  so_dien_thoai: "Số điện thoại",
+  sdt: "Số điện thoại",
+  facebook: "Facebook",
+  email: "Email cá nhân",
+  email_sv: "Email sinh viên",
+  dia_chi_tam_tru: "Địa chỉ tạm trú",
+  tinh_tp_tam_tru: "Tỉnh/TP tạm trú",
+  quan_huyen_tam_tru: "Quận/Huyện tạm trú",
+  xa_phuong_tam_tru: "Xã/Phường tạm trú",
+  chi_tiet_tam_tru: "Địa chỉ chi tiết tạm trú",
+  chi_tiet_dc: "Địa chỉ chi tiết thường trú",
+  xa_phuong_tt: "Xã/Phường thường trú",
+  quan_huyen_tt: "Quận/Huyện thường trú",
+  tinh_tp_tt: "Tỉnh/TP thường trú",
+  xa_phuong_qq: "Xã/Phường quê quán",
+  quan_huyen_qq: "Quận/Huyện quê quán",
+  tinh_tp_qq: "Tỉnh/TP quê quán",
+  que_quan: "Quê quán",
+  dia_chi_thuong_tru: "Địa chỉ thường trú",
+  anh_ca_nhan: "Ảnh cá nhân",
+  trang_thai: "Trạng thái",
+  nhom: "Nhóm sinh hoạt",
+  ho_so_status: "Trạng thái hồ sơ",
+  allow_self_edit: "Quyền tự chỉnh sửa",
+  loai_dang_vien: "Loại Đảng viên",
+  dang_vien_du_bi: "Đảng viên dự bị",
+  ngay_hop_lop: "Ngày họp lớp",
+  ngay_hop_chi_doan: "Ngày họp Chi đoàn",
+  ngay_hop_lcd: "Ngày họp Liên chi đoàn",
+  ngay_hop_doan_truong: "Ngày họp Đoàn trường",
+  so_quyet_dinh_dvct: "Số quyết định chính thức",
+  ngay_ky_quyet_dinh_dvct: "Ngày ký QĐ chính thức",
+  dvhd_ngay_sinh: "Ngày sinh người HD",
+  dvhd_ngay_vao_dang: "Ngày vào Đảng người HD",
+  dvhd_ngay_chinh_thuc: "Ngày chính thức người HD",
+  nam_vao_chi_bo_dvhd: "Năm vào Chi bộ người HD",
+  tinh_tp_qq_cu: "Tỉnh/TP quê quán cũ",
+  quan_huyen_qq_cu: "Quận/Huyện quê quán cũ",
+  xa_phuong_qq_cu: "Xã/Phường quê quán cũ",
+  tinh_tp_tt_cu: "Tỉnh/TP thường trú cũ",
+  quan_huyen_tt_cu: "Quận/Huyện thường trú cũ",
+  xa_phuong_tt_cu: "Xã/Phường thường trú cũ",
+  chi_tiet_tt_cu: "Địa chỉ chi tiết thường trú cũ",
+  tinh_tp_tam_tru_cu: "Tỉnh/TP tạm trú cũ",
+  quan_huyen_tam_tru_cu: "Quận/Huyện tạm trú cũ",
+  xa_phuong_tam_tru_cu: "Xã/Phường tạm trú cũ",
+  chi_tiet_tam_tru_cu: "Địa chỉ chi tiết tạm trú cũ"
+};
+
 const Users = () => {
   const { currentUser } = useAuth();
   const isAdmin = currentUser?.role === ROLES.ADMIN || currentUser?.role === ROLES.BITHU;
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [memberLookup, setMemberLookup] = useState({});
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [isLogModalVisible, setIsLogModalVisible] = useState(false);
+
+  const showLogDetails = (record) => {
+    setSelectedLog(record);
+    setIsLogModalVisible(true);
+  };
+
+  const resolveUserDisplayName = (val) => {
+    if (!val) return 'Hệ thống';
+    const name = memberLookup[val];
+    if (name) {
+      return `${name} (${val})`;
+    }
+    return val;
+  };
+
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [form] = Form.useForm();
@@ -687,10 +772,17 @@ const Users = () => {
     try {
       // Pull active party members directly from "dang_vien" collection
       const snapshot = await getDocs(collection(db, "dang_vien"));
-      const list = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(dv => !dv.trang_thai || dv.trang_thai === 'dang_sinh_hoat');
+      const rawList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
+      const lookup = {};
+      rawList.forEach(m => {
+        if (m.mssv) lookup[m.mssv] = m.ho_ten;
+        if (m.id) lookup[m.id] = m.ho_ten;
+        if (m.email) lookup[m.email] = m.ho_ten;
+      });
+      setMemberLookup(lookup);
+
+      const list = rawList.filter(dv => !dv.trang_thai || dv.trang_thai === 'dang_sinh_hoat');
       // Sort alphabetically by full name
       list.sort((a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || ''));
       setUsers(list);
@@ -1419,75 +1511,56 @@ const Users = () => {
       title: 'Người thực hiện',
       dataIndex: 'updated_by',
       key: 'updated_by',
-      width: '200px',
+      width: '220px',
       render: (val) => (
-        <Tag color="blue" style={{ fontWeight: 600, borderRadius: '4px' }}>
-          {val || 'Hệ thống'}
+        <Tag color="blue" style={{ fontWeight: 600, borderRadius: '4px', whiteSpace: 'normal', height: 'auto', padding: '2px 8px' }}>
+          {resolveUserDisplayName(val)}
         </Tag>
       )
     },
     {
       title: 'Chi tiết thay đổi',
       key: 'changes',
+      width: '320px',
       render: (_, record) => {
         const isCreate = record.action === 'create' || !record.changes || record.changes.length === 0;
         if (isCreate) {
           return (
-            <Tag color="green" style={{ fontWeight: 700, padding: '4px 8px' }}>
-              ✓ Khởi tạo hồ sơ Đảng viên mới
+            <Tag color="green" style={{ fontWeight: 600, borderRadius: '4px' }}>
+              ✓ Khởi tạo hồ sơ mới
             </Tag>
           );
         }
-        if (record.action === 'rollback') {
+        
+        const isRollback = record.action === 'rollback';
+        const uniqueFields = Array.from(new Set(record.changes.map(c => c.field)));
+        const displayTags = uniqueFields.slice(0, 3).map(field => {
+          const label = DB_FIELD_LABELS[field] || field;
           return (
-            <div>
-              <Tag color="volcano" style={{ fontWeight: 700, padding: '4px 8px', marginBottom: '6px' }}>
-                ↩ Hoàn tác dữ liệu hồ sơ
-              </Tag>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
-                {record.changes.map((change, idx) => (
-                  <div key={idx} style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 600, color: '#595959', minWidth: '120px' }}>{change.label || change.field}:</span>
-                    <span style={{ color: '#bfbfbf', textDecoration: 'line-through' }}>{String(change.oldVal) || '(Trống)'}</span>
-                    <span style={{ color: '#faad14', fontWeight: 'bold' }}>➔</span>
-                    <span style={{ 
-                      color: '#d46b08', 
-                      fontWeight: 700, 
-                      backgroundColor: '#fffbe6', 
-                      padding: '2px 8px', 
-                      borderRadius: '4px', 
-                      border: '1px solid #ffe58f',
-                      display: 'inline-block'
-                    }}>
-                      {String(change.newVal) || '(Trống)'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Tag key={field} color="orange" style={{ borderRadius: '4px', marginBottom: '2px' }}>
+              {label}
+            </Tag>
           );
-        }
+        });
+
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
-            {record.changes.map((change, idx) => (
-              <div key={idx} style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontWeight: 600, color: '#595959', minWidth: '120px' }}>{change.label || change.field}:</span>
-                <span style={{ color: '#bfbfbf', textDecoration: 'line-through' }}>{String(change.oldVal) || '(Trống)'}</span>
-                <span style={{ color: '#faad14', fontWeight: 'bold' }}>➔</span>
-                <span style={{ 
-                  color: '#d46b08', 
-                  fontWeight: 700, 
-                  backgroundColor: '#fffbe6', 
-                  padding: '2px 8px', 
-                  borderRadius: '4px', 
-                  border: '1px solid #ffe58f',
-                  display: 'inline-block'
-                }}>
-                  {String(change.newVal) || '(Trống)'}
-                </span>
-              </div>
-            ))}
-          </div>
+          <Space size={[0, 4]} wrap>
+            {isRollback && <Tag color="volcano" style={{ fontWeight: 600, borderRadius: '4px' }}>Hoàn tác</Tag>}
+            {displayTags}
+            {uniqueFields.length > 3 && (
+              <span style={{ fontSize: '12px', color: '#8c8c8c', marginLeft: '4px' }}>
+                +{uniqueFields.length - 3} trường khác
+              </span>
+            )}
+            <Button 
+              type="link" 
+              size="small" 
+              onClick={() => showLogDetails(record)}
+              style={{ padding: 0, height: 'auto', fontSize: '13px', marginLeft: '8px', fontWeight: 600 }}
+            >
+              Xem chi tiết
+            </Button>
+          </Space>
         );
       }
     },
@@ -2177,6 +2250,7 @@ const Users = () => {
                 pageSizeOptions: ['10', '20', '50', '100'],
                 showTotal: (total) => `Tổng số: ${total} sự kiện`
               }}
+              scroll={{ x: 1000 }}
               style={{ borderRadius: '8px', overflow: 'hidden' }}
             />
           </Card>
@@ -2231,6 +2305,7 @@ const Users = () => {
                 pageSizeOptions: ['10', '20', '50', '100'],
                 showTotal: (total) => `Tổng số: ${total} lượt đăng nhập`
               }}
+              scroll={{ x: 1000 }}
               style={{ borderRadius: '8px', overflow: 'hidden' }}
             />
           </Card>
@@ -2939,6 +3014,100 @@ const Users = () => {
             Tệp sao lưu chứa dữ liệu của các bảng: <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '3px' }}>{uploadedBackupData ? Object.keys(uploadedBackupData).join(', ') : ''}</code>
           </Paragraph>
         </div>
+      </Modal>
+
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #f0f0f0', paddingBottom: '12px' }}>
+            <HistoryOutlined style={{ color: '#c62828', fontSize: '20px' }} />
+            <span style={{ fontSize: '18px', fontWeight: 800, color: '#262626' }}>Chi tiết thay đổi dữ liệu</span>
+          </div>
+        }
+        open={isLogModalVisible}
+        onCancel={() => setIsLogModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsLogModalVisible(false)} size="large" style={{ borderRadius: '6px' }}>
+            Đóng
+          </Button>,
+          selectedLog && selectedLog.action !== 'rollback' && selectedLog.changes && selectedLog.changes.length > 0 && (
+            <Popconfirm
+              key="rollback"
+              title="Xác nhận hoàn tác?"
+              description="Thao tác này sẽ khôi phục các trường thông tin lý lịch về giá trị cũ."
+              onConfirm={() => {
+                handleRollbackHistory(selectedLog);
+                setIsLogModalVisible(false);
+              }}
+              okText="Đồng ý"
+              cancelText="Hủy"
+            >
+              <Button type="primary" danger icon={<ReloadOutlined />} size="large" style={{ borderRadius: '6px' }}>
+                Hoàn tác thay đổi
+              </Button>
+            </Popconfirm>
+          )
+        ]}
+        width={750}
+        bodyStyle={{ padding: '24px 32px' }}
+        style={{ borderRadius: '12px', overflow: 'hidden' }}
+      >
+        {selectedLog && (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px', backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px' }}>
+              <div>
+                <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Đảng viên bị chỉnh sửa</div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: '#262626' }}>{selectedLog.ho_ten}</div>
+                <div style={{ fontSize: '13px', color: '#595959' }}>MSSV: {selectedLog.mssv || '--'}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', color: '#8c8c8c' }}>Thời gian thực hiện</div>
+                <div style={{ fontWeight: 700, fontSize: '15px', color: '#262626' }}>
+                  {dayjs(selectedLog.updated_at).format('DD/MM/YYYY HH:mm:ss')}
+                </div>
+                <div style={{ fontSize: '13px', color: '#595959' }}>
+                  Người thực hiện: <span style={{ fontWeight: 600 }}>{resolveUserDisplayName(selectedLog.updated_by)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '15px', fontWeight: 700, color: '#262626', marginBottom: '12px' }}>
+              Bảng so sánh thay đổi chi tiết
+            </div>
+
+            {selectedLog.action === 'create' || !selectedLog.changes || selectedLog.changes.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', backgroundColor: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: '8px', color: '#52c41a', fontWeight: 600 }}>
+                ✓ Khởi tạo hồ sơ Đảng viên mới
+              </div>
+            ) : (
+              <div style={{ border: '1px solid #e8e8e8', borderRadius: '8px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #e8e8e8' }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#595959', width: '25%' }}>Trường dữ liệu</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#595959', width: '37.5%' }}>Giá trị cũ</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#595959', width: '37.5%' }}>Giá trị mới</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedLog.changes.map((change, idx) => (
+                      <tr key={idx} style={{ borderBottom: idx < selectedLog.changes.length - 1 ? '1px solid #e8e8e8' : 'none' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 600, color: '#262626', verticalAlign: 'top', wordBreak: 'break-all' }}>
+                          {DB_FIELD_LABELS[change.field] || change.label || change.field}
+                        </td>
+                        <td style={{ padding: '12px 16px', color: '#cf1322', backgroundColor: '#fff1f0', verticalAlign: 'top', textDecoration: 'line-through', wordBreak: 'break-word' }}>
+                          {String(change.oldVal) || '(Trống)'}
+                        </td>
+                        <td style={{ padding: '12px 16px', color: '#3f8600', backgroundColor: '#f6ffed', verticalAlign: 'top', fontWeight: 600, wordBreak: 'break-word' }}>
+                          {String(change.newVal) || '(Trống)'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
 
     </div>

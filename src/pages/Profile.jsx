@@ -24,12 +24,28 @@ import addressDataMoi from '../data/addressDataMoi.json';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+const addProvincePrefix = (tinh) => {
+  if (!tinh) return tinh;
+  const clean = tinh.trim();
+  if (/^(Tỉnh|Thành phố|Thành Phố|TP\.|TP)/i.test(clean)) {
+    return clean;
+  }
+  const municipalities = ["Hà Nội", "Hồ Chí Minh", "TP HCM", "Hải Phòng", "Đà Nẵng", "Cần Thơ"];
+  if (municipalities.some(m => clean.toLowerCase() === m.toLowerCase())) {
+    return `Thành phố ${clean}`;
+  }
+  if (clean.toLowerCase() === "huế") {
+    return "Thành phố Huế";
+  }
+  return `Tỉnh ${clean}`;
+};
+
 const getDisplayAddress = (tinh, huyen, xa, chiTiet) => {
   const parts = [];
   if (chiTiet) parts.push(chiTiet);
   if (xa) parts.push(xa);
   if (huyen) parts.push(huyen);
-  if (tinh) parts.push(tinh);
+  if (tinh) parts.push(addProvincePrefix(tinh));
   return parts.join(', ');
 };
 
@@ -166,32 +182,44 @@ const normalizeAddressForForm = (data) => {
   if (!data) return {};
   const res = { ...data };
   
+  const cleanProvinceName = (val) => {
+    if (!val) return "";
+    let s = val.trim();
+    s = s.replace(/^(Tỉnh|Thành phố|Thành Phố|TP\.|TP)\s+/i, "");
+    s = s.replace(/\s+(Tỉnh|Thành phố|Thành Phố|TP\.|TP)$/i, "");
+    if (/^hồ\s+chí\s+minh$/i.test(s) || /^hcm$/i.test(s) || /^tp\s*hcm$/i.test(s) || /^tp\s*hồ\s+chí\s+minh$/i.test(s)) {
+      return "hcm";
+    }
+    if (/^thừa\s+thiên\s+huế$/i.test(s) || /^huế$/i.test(s)) {
+      return "huế";
+    }
+    return s.toLowerCase();
+  };
+
+  const cleanDistrictName = (val) => {
+    if (!val) return "";
+    return val.replace(/^(Quận|Huyện|Thị xã|Thị Xã|Thành phố|Thành Phố)\s+/i, "").trim().toLowerCase();
+  };
+
+  const cleanWardName = (val) => {
+    if (!val) return "";
+    return val.replace(/^(Phường|Xã|Thị trấn|Thị Trấn)\s+/i, "").trim().toLowerCase();
+  };
+
   const findProvinceKey = (val) => {
     if (!val) return val;
-    if (addressDataCu[val]) return val;
-    if (addressDataCu[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
-    if (addressDataCu[`Thành phố ${val}`]) return `Thành phố ${val}`;
-    return val;
+    const target = cleanProvinceName(val);
+    const match = Object.keys(addressDataCu).find(k => cleanProvinceName(k) === target);
+    return match || val;
   };
 
   const findDistrictKey = (provKey, distVal) => {
     if (!provKey || !distVal) return distVal;
     const provData = addressDataCu[provKey];
     if (!provData) return distVal;
-    
-    if (provData[distVal]) return distVal;
-    
-    const prefixes = ["Quận", "Huyện", "Thị xã", "Thành phố"];
-    for (const prefix of prefixes) {
-      const candidate = `${prefix} ${distVal}`;
-      if (provData[candidate]) return candidate;
-    }
-    
-    const distLower = distVal.toLowerCase();
-    const match = Object.keys(provData).find(k => k.toLowerCase().includes(distLower) || distLower.includes(k.toLowerCase()));
-    if (match) return match;
-    
-    return distVal;
+    const target = cleanDistrictName(distVal);
+    const match = Object.keys(provData).find(k => cleanDistrictName(k) === target);
+    return match || distVal;
   };
 
   const findWardKey = (provKey, distKey, wardVal) => {
@@ -205,47 +233,24 @@ const normalizeAddressForForm = (data) => {
         if (Array.isArray(list)) wardsList.push(...list);
       });
     }
-    
-    if (wardsList.includes(wardVal)) return wardVal;
-    
-    const prefixes = ["Phường", "Xã", "Thị trấn"];
-    for (const prefix of prefixes) {
-      const candidate = `${prefix} ${wardVal}`;
-      if (wardsList.includes(candidate)) return candidate;
-    }
-    
-    const wardLower = wardVal.toLowerCase();
-    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
-    if (match) return match;
-    
-    return wardVal;
+    const target = cleanWardName(wardVal);
+    const match = wardsList.find(w => cleanWardName(w) === target);
+    return match || wardVal;
   };
 
   const findProvinceKeyMoi = (val) => {
     if (!val) return val;
-    if (addressDataMoi[val]) return val;
-    if (addressDataMoi[`Tỉnh ${val}`]) return `Tỉnh ${val}`;
-    if (addressDataMoi[`Thành phố ${val}`]) return `Thành phố ${val}`;
-    return val;
+    const target = cleanProvinceName(val);
+    const match = Object.keys(addressDataMoi).find(k => cleanProvinceName(k) === target);
+    return match || val;
   };
 
   const findWardKeyMoi = (provKey, wardVal) => {
     if (!provKey || !wardVal) return wardVal;
     const wardsList = addressDataMoi[provKey] || [];
-    
-    if (wardsList.includes(wardVal)) return wardVal;
-    
-    const prefixes = ["Phường", "Xã", "Thị trấn"];
-    for (const prefix of prefixes) {
-      const candidate = `${prefix} ${wardVal}`;
-      if (wardsList.includes(candidate)) return candidate;
-    }
-    
-    const wardLower = wardVal.toLowerCase();
-    const match = wardsList.find(w => w.toLowerCase().includes(wardLower) || wardLower.includes(w.toLowerCase()));
-    if (match) return match;
-    
-    return wardVal;
+    const target = cleanWardName(wardVal);
+    const match = wardsList.find(w => cleanWardName(w) === target);
+    return match || wardVal;
   };
 
   if (res.tinh_tp_qq) {
@@ -767,6 +772,15 @@ const Profile = () => {
       const values = await form.validateFields();
       setSaving(true);
 
+      const buildAddress = (tinh, huyen, xa, chiTiet) => {
+        const parts = [];
+        if (chiTiet) parts.push(chiTiet);
+        if (xa) parts.push(xa);
+        if (huyen) parts.push(huyen);
+        if (tinh) parts.push(addProvincePrefix(tinh));
+        return parts.join(', ');
+      };
+
       const queQuanMoi = buildAddress(values.tinh_tp_qq, undefined, values.xa_phuong_qq, null);
       const queQuanCu = buildAddress(values.tinh_tp_qq_cu, values.quan_huyen_qq_cu, values.xa_phuong_qq_cu, null);
       const queQuan = queQuanCu ? `${queQuanMoi} (Trước đây là ${queQuanCu})` : queQuanMoi;
@@ -851,6 +865,13 @@ const Profile = () => {
             oldVal: oldVal !== undefined && oldVal !== null ? oldVal : "",
             newVal: newVal !== undefined && newVal !== null ? newVal : ""
           });
+        }
+      });
+
+      // Firestore throws error if undefined is passed. Remove undefined properties.
+      Object.keys(formatted).forEach(key => {
+        if (formatted[key] === undefined) {
+          delete formatted[key];
         }
       });
 

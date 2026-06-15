@@ -52,30 +52,62 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const EXPORT_FIELDS = [
+  // 1. Thông tin cơ bản
   { key: 'ho_ten', label: 'Họ tên', group: 'basic' },
   { key: 'mssv', label: 'MSSV', group: 'basic' },
   { key: 'ngay_sinh', label: 'Ngày sinh', group: 'basic', isDate: true },
+  { key: 'gioi_tinh', label: 'Giới tính', group: 'basic' },
   { key: 'cccd', label: 'CCCD', group: 'basic' },
+  { key: 'dan_toc', label: 'Dân tộc', group: 'basic' },
+  { key: 'ton_giao', label: 'Tôn giáo', group: 'basic' },
+  
+  // 2. Học tập & Tổ chức
+  { key: 'lop', label: 'Lớp', group: 'org' },
+  { key: 'khoa', label: 'Khoa', group: 'org' },
   { key: 'nhom', label: 'Nhóm sinh hoạt', group: 'org' },
+  
+  // 3. Liên hệ & Địa chỉ
   { key: 'so_dien_thoai', label: 'SĐT', group: 'contact' },
   { key: 'email', label: 'Email cá nhân', group: 'contact' },
+  { key: 'email_sv', label: 'Email sinh viên', group: 'contact' },
   { key: 'facebook', label: 'Facebook', group: 'contact' },
-  { key: 'noi_thuong_tru', label: 'Chi tiết ĐC thường trú', group: 'address' },
-  { key: 'noi_tam_tru', label: 'Địa chỉ tạm trú', group: 'contact' },
-  { key: 'ngay_nop_ho_so', label: 'Ngày nhận hồ sơ', group: 'transfer', isDate: true },
-  { key: 'ngay_hoan_thien_gui_vpdu', label: 'Ngày nộp VPĐU', group: 'transfer', isDate: true },
-  { key: 'ngay_gui_dhdn', label: 'Ngày nộp ĐHĐN', group: 'transfer', isDate: true },
-  { key: 'buoc', label: 'Bước hiện tại', group: 'transfer', isSpecial: 'buoc' },
+  { key: 'dia_chi_tam_tru', label: 'Địa chỉ tạm trú', group: 'contact' },
+  { key: 'dia_chi_thuong_tru', label: 'Địa chỉ thường trú', group: 'address' },
+  { key: 'que_quan', label: 'Quê quán', group: 'address' },
+
+  // 4. Gia đình
   { key: 'ho_ten_nguoi_than', label: 'Họ tên người thân', group: 'family' },
-  { key: 'sdt_nguoi_than', label: 'SĐT người thân', group: 'family' }
+  { key: 'sdt_nguoi_than', label: 'SĐT người thân', group: 'family' },
+  
+  // 5. Thông tin Đảng tịch
+  { key: 'ngay_vao_dang', label: 'Ngày vào Đảng', group: 'party', isDate: true },
+  { key: 'soqd', label: 'Số quyết định kết nạp', group: 'party' },
+  { key: 'ngaykiqd', label: 'Ngày ký quyết định kết nạp', group: 'party', isDate: true },
+  { key: 'ngay_chinh_thuc', label: 'Ngày chính thức', group: 'party', isDate: true },
+  { key: 'so_quyet_dinh_dvct', label: 'Số quyết định chính thức', group: 'party' },
+  { key: 'ngay_ky_quyet_dinh_dvct', label: 'Ngày ký quyết định chính thức', group: 'party', isDate: true },
+  { key: 'so_the_dang', label: 'Số thẻ Đảng', group: 'party' },
+  { key: 'dang_vien_du_bi', label: 'Loại Đảng viên (Dự bị / Chính thức)', group: 'party', isSpecial: 'type' },
+  { key: 'dvhd', label: 'Đảng viên hướng dẫn', group: 'party' },
+  
+  // 6. Quy trình chuyển sinh hoạt
+  { key: 'loai_chuyen', label: 'Loại chuyển sinh hoạt', group: 'transfer', isSpecial: 'loai_chuyen' },
+  { key: 'noi_chuyen_den', label: 'Nơi chuyển đến', group: 'transfer' },
+  { key: 'ngay_chuyen_di', label: 'Ngày chuyển đi', group: 'transfer', isDate: true },
+  { key: 'ngay_nop_ho_so', label: 'Ngày nhận hồ sơ (Bước 1)', group: 'transfer', isDate: true },
+  { key: 'ngay_hoan_thien_gui_vpdu', label: 'Ngày nộp VPĐU (Bước 2)', group: 'transfer', isDate: true },
+  { key: 'ngay_gui_dhdn', label: 'Ngày nộp ĐHĐN (Bước 3)', group: 'transfer', isDate: true },
+  { key: 'buoc', label: 'Bước tiến trình hiện tại', group: 'transfer', isSpecial: 'buoc' },
+  { key: 'ghi_chu', label: 'Ghi chú quy trình', group: 'transfer' }
 ];
 
 const FIELD_GROUPS = {
   basic: { label: "Thông tin cơ bản", color: "blue" },
   org: { label: "Học tập & Tổ chức", color: "geekblue" },
   contact: { label: "Liên hệ & Tạm trú", color: "cyan" },
-  address: { label: "Địa chỉ thường trú", color: "purple" },
-  transfer: { label: "Tiến trình chuyển ra", color: "red" },
+  address: { label: "Thường trú & Quê quán", color: "purple" },
+  party: { label: "Thông tin Đảng tịch", color: "red" },
+  transfer: { label: "Tiến trình chuyển sinh hoạt", color: "volcano" },
   family: { label: "Gia đình", color: "orange" }
 };
 
@@ -432,13 +464,21 @@ const HoSoChuyenRa = ({ forceTab }) => {
       const merged = activeTransfers.map(transfer => {
         const member = allMembersList.find(m => m.id === transfer.dang_vien_id) || {};
         return {
-          ...member,
           ...transfer,
-          ho_ten: member.ho_ten || 'N/A',
-          mssv: member.mssv || 'N/A',
-          lop: member.lop || 'N/A',
-          khoa: member.khoa || 'N/A',
-          dang_vien_du_bi: member.dang_vien_du_bi || false,
+          ...member,
+          id: transfer.id,
+          dang_vien_id: transfer.dang_vien_id || member.id || '',
+          ho_ten: member.ho_ten || transfer.ho_ten || 'N/A',
+          mssv: member.mssv || transfer.mssv || 'N/A',
+          lop: member.lop || transfer.lop || 'N/A',
+          khoa: member.khoa || transfer.khoa || 'N/A',
+          so_dien_thoai: member.so_dien_thoai || member.sdt || transfer.so_dien_thoai || transfer.sdt || '',
+          email: member.email || member.email_sv || transfer.email || '',
+          email_sv: member.email_sv || member.email || transfer.email || '',
+          que_quan: member.que_quan || member.quequan || transfer.que_quan || '',
+          dia_chi_thuong_tru: member.dia_chi_thuong_tru || transfer.dia_chi_thuong_tru || transfer.noi_thuong_tru || '',
+          dang_vien_du_bi: member.dang_vien_du_bi !== undefined ? member.dang_vien_du_bi : 
+                           (member.loai_dang_vien === 'Dự bị' || member.loai_dang_vien === 'dubi' || transfer.dang_vien_du_bi || false),
           loai_chuyen: transfer.loai_chuyen || 'chuyen_ra'
         };
       });
@@ -1354,31 +1394,102 @@ const HoSoChuyenRa = ({ forceTab }) => {
       return;
     }
 
+    const formatDate = (val) => {
+      if (!val) return '';
+      try {
+        let d = null;
+        if (typeof val === 'object') {
+          if (val.toDate && typeof val.toDate === 'function') d = dayjs(val.toDate());
+          else if (val.seconds) d = dayjs(val.seconds * 1000);
+          else d = dayjs(val);
+        } else {
+          d = dayjs(val);
+        }
+        return d && d.isValid() ? d.format('DD/MM/YYYY') : '';
+      } catch (e) {
+        return '';
+      }
+    };
+
     const mappedData = dataToExport.map((item, index) => {
+      const isReserve = item.dang_vien_du_bi === true || 
+                        item.loai_dang_vien === 'Dự bị' || 
+                        item.loai_dang_vien === 'dubi';
+
+      let calculatedNgayChinhThuc = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || item.ngaychinhthuc || null;
+      if (!calculatedNgayChinhThuc && !isReserve) {
+        const ngayVao = item.ngay_vao_dang || item.ngayvaodang || item.ngay_ket_nap;
+        if (ngayVao) {
+          let d = null;
+          if (typeof ngayVao === 'object' && ngayVao.toDate) d = dayjs(ngayVao.toDate());
+          else if (typeof ngayVao === 'object' && ngayVao.seconds) d = dayjs(ngayVao.seconds * 1000);
+          else d = dayjs(ngayVao);
+          if (d && d.isValid()) {
+            calculatedNgayChinhThuc = d.add(1, 'year').format('YYYY-MM-DD');
+          }
+        }
+      }
+
+      const normItem = {
+        ...item,
+        ho_ten: item.ho_ten || item.hoten || 'N/A',
+        mssv: item.mssv || 'N/A',
+        ngay_sinh: item.ngay_sinh || item.ngaysinh || null,
+        gioi_tinh: item.gioi_tinh || item.gioitinh || '',
+        cccd: item.cccd || '',
+        dan_toc: item.dan_toc || '',
+        ton_giao: item.ton_giao || '',
+        
+        lop: item.lop || 'N/A',
+        khoa: item.khoa || 'N/A',
+        nhom: item.nhom || '',
+
+        so_dien_thoai: item.so_dien_thoai || item.sdt || '',
+        email: item.email || item.email_sv || '',
+        email_sv: item.email_sv || item.email || '',
+        facebook: item.facebook || item.link_fb || '',
+        dia_chi_tam_tru: item.dia_chi_tam_tru || getFullTamTru(item) || '',
+        dia_chi_thuong_tru: item.dia_chi_thuong_tru || getFullAddress(item) || '',
+        que_quan: item.que_quan || item.quequan || getFullHometown(item) || '',
+        
+        ho_ten_nguoi_than: item.ho_ten_nguoi_than || '',
+        sdt_nguoi_than: item.sdt_nguoi_than || '',
+
+        ngay_vao_dang: item.ngay_vao_dang || item.ngayvaodang || item.ngay_ket_nap || null,
+        soqd: item.soqd || item.so_qd || item.soqd_ket_nap || '',
+        ngaykiqd: item.ngaykiqd || item.ngay_ki_qd || item.ngay_qd_ket_nap || null,
+        ngay_chinh_thuc: calculatedNgayChinhThuc,
+        so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || item.soqd_chinh_thuc || item.so_qd_chinh_thuc || '',
+        ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || item.ngayqd_chinh_thuc || item.ngay_ky_qd_chinh_thuc || null,
+        so_the_dang: item.so_the_dang || '',
+        dang_vien_du_bi: isReserve,
+        dvhd: item.dvhd || item.dangvienhuongdan || item.dvhd_theo_doi || item.dvhd_ho_so || item.nguoi_huong_dan || item.nguoi_huong_dan_1 || '',
+        
+        loai_chuyen: item.loai_chuyen || 'chuyen_ra',
+        noi_chuyen_den: item.noi_chuyen_den || '',
+        ngay_chuyen_di: item.ngay_chuyen_di || item.ngay_chuyen_ra || item.ngay_chuyen_tam_thoi || null,
+        ngay_nop_ho_so: item.ngay_nop_ho_so || null,
+        ngay_hoan_thien_gui_vpdu: item.ngay_hoan_thien_gui_vpdu || null,
+        ngay_gui_dhdn: item.ngay_gui_dhdn || null,
+        buoc: item.buoc || 1,
+        ghi_chu: item.ghi_chu || item.ghi_chu_buoc_1 || item.ghi_chu_buoc_2 || item.ghi_chu_buoc_3 || '',
+      };
+
       const row = { 'STT': index + 1 };
       EXPORT_FIELDS.forEach(field => {
         if (selectedExportFields.includes(field.key)) {
           if (field.isDate) {
-            row[field.label] = item[field.key] ? (item[field.key]?.toDate ? dayjs(item[field.key].toDate()).format('DD/MM/YYYY') : (item[field.key]?.seconds ? dayjs(item[field.key].seconds * 1000).format('DD/MM/YYYY') : dayjs(item[field.key]).format('DD/MM/YYYY'))) : '';
+            row[field.label] = formatDate(normItem[field.key]);
+          } else if (field.isSpecial === 'type') {
+            row[field.label] = normItem.dang_vien_du_bi ? "Dự bị" : "Chính thức";
           } else if (field.isSpecial === 'buoc') {
-            row[field.label] = item.buoc === 1 ? 'Bước 1: Đã nộp hồ sơ' :
-                               item.buoc === 2 ? 'Bước 2: Gửi Văn phòng Đảng ủy' :
-                               item.buoc === 3 ? 'Bước 3: Gửi Đại học Đà Nẵng' : 'Chưa rõ';
+            row[field.label] = normItem.buoc === 1 ? 'Bước 1: Đã nộp hồ sơ' :
+                               normItem.buoc === 2 ? 'Bước 2: Gửi Văn phòng Đảng ủy' :
+                               normItem.buoc === 3 ? 'Bước 3: Gửi Đại học Đà Nẵng' : 'Chưa rõ';
+          } else if (field.isSpecial === 'loai_chuyen') {
+            row[field.label] = normItem.loai_chuyen === 'chuyen_tam_thoi' ? 'Chuyển tạm thời' : 'Chuyển ra ngoài';
           } else {
-            let val = item[field.key];
-            if (field.key === 'so_dien_thoai') {
-              val = item.so_dien_thoai || item.sdt;
-            } else if (field.key === 'email') {
-              val = item.email || item.email_sv;
-            } else if (field.key === 'noi_thuong_tru') {
-              val = item.noi_thuong_tru || [item.chi_tiet_dc || item.chi_tiet_dc_cu, item.xa_phuong_tt || item.xa_phuong_tt_cu, item.tinh_tp_tt || item.tinh_tp_tt_cu].filter(Boolean).join(', ');
-            } else if (field.key === 'noi_tam_tru') {
-              val = item.noi_tam_tru || item.dia_chi_tam_tru;
-            } else if (field.key === 'sdt_nguoi_than') {
-              val = item.sdt_nguoi_than || item.so_dien_thoai_nguoi_than;
-            } else if (field.key === 'ho_ten_nguoi_than') {
-              val = item.ho_ten_nguoi_than || item.ten_nguoi_than;
-            }
+            let val = normItem[field.key];
             row[field.label] = val || "";
           }
         }

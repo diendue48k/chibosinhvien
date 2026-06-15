@@ -196,11 +196,21 @@ const ChuyenSinhHoat = () => {
     setFilterNhom(null);
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '';
-    if (dateString.toDate) return dayjs(dateString.toDate()).format('DD/MM/YYYY');
-    if (dateString.seconds) return dayjs(dateString.seconds * 1000).format('DD/MM/YYYY');
-    return dayjs(dateString).format('DD/MM/YYYY');
+  const formatDate = (val) => {
+    if (!val) return '';
+    try {
+      let d = null;
+      if (typeof val === 'object') {
+        if (val.toDate && typeof val.toDate === 'function') d = dayjs(val.toDate());
+        else if (val.seconds) d = dayjs(val.seconds * 1000);
+        else d = dayjs(val);
+      } else {
+        d = dayjs(val);
+      }
+      return d && d.isValid() ? d.format('DD/MM/YYYY') : '';
+    } catch (e) {
+      return '';
+    }
   };
 
   const handleOpenExportModal = () => {
@@ -225,20 +235,85 @@ const ChuyenSinhHoat = () => {
     }
 
     const mappedData = dataToExport.map((item, index) => {
+      const isReserve = item.dang_vien_du_bi === true || 
+                        item.loai_dang_vien === 'Dự bị' || 
+                        item.loai_dang_vien === 'dubi';
+
+      let calculatedNgayChinhThuc = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || item.ngaychinhthuc || null;
+      if (!calculatedNgayChinhThuc && !isReserve) {
+        const ngayVao = item.ngay_vao_dang || item.ngayvaodang || item.ngay_ket_nap;
+        if (ngayVao) {
+          let d = null;
+          if (typeof ngayVao === 'object' && ngayVao.toDate) d = dayjs(ngayVao.toDate());
+          else if (typeof ngayVao === 'object' && ngayVao.seconds) d = dayjs(ngayVao.seconds * 1000);
+          else d = dayjs(ngayVao);
+          if (d && d.isValid()) {
+            calculatedNgayChinhThuc = d.add(1, 'year').format('YYYY-MM-DD');
+          }
+        }
+      }
+
+      const normItem = {
+        ...item,
+        ho_ten: item.ho_ten || item.hoten || 'N/A',
+        mssv: item.mssv || 'N/A',
+        ngay_sinh: item.ngay_sinh || item.ngaysinh || null,
+        gioi_tinh: item.gioi_tinh || item.gioitinh || '',
+        cccd: item.cccd || '',
+        dan_toc: item.dan_toc || '',
+        ton_giao: item.ton_giao || '',
+        
+        lop: item.lop || 'N/A',
+        khoa: item.khoa || 'N/A',
+        nhom: item.nhom || '',
+
+        so_dien_thoai: item.so_dien_thoai || item.sdt || '',
+        email: item.email || item.email_sv || '',
+        email_sv: item.email_sv || item.email || '',
+        facebook: item.facebook || item.link_fb || '',
+        dia_chi_tam_tru: item.dia_chi_tam_tru || '',
+        
+        chi_tiet_dc: item.chi_tiet_dc || item.chi_tiet_tt_cu || '',
+        xa_phuong_tt: item.xa_phuong_tt || item.xa_phuong_tt_cu || '',
+        tinh_tp_tt: item.tinh_tp_tt || item.tinh_tp_tt_cu || '',
+        xa_phuong_qq: item.xa_phuong_qq || item.xa_phuong_qq_cu || '',
+        tinh_tp_qq: item.tinh_tp_qq || item.tinh_tp_qq_cu || '',
+        que_quan: item.que_quan || item.quequan || '',
+        dia_chi_thuong_tru: item.dia_chi_thuong_tru || '',
+
+        ho_ten_nguoi_than: item.ho_ten_nguoi_than || '',
+        sdt_nguoi_than: item.sdt_nguoi_than || '',
+
+        ngay_vao_dang: item.ngay_vao_dang || item.ngayvaodang || item.ngay_ket_nap || null,
+        soqd: item.soqd || item.so_qd || item.soqd_ket_nap || '',
+        ngaykiqd: item.ngaykiqd || item.ngay_ki_qd || item.ngay_qd_ket_nap || null,
+        ngay_chinh_thuc: calculatedNgayChinhThuc,
+        so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || item.soqd_chinh_thuc || item.so_qd_chinh_thuc || '',
+        ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || item.ngayqd_chinh_thuc || item.ngay_ky_qd_chinh_thuc || null,
+        so_the_dang: item.so_the_dang || '',
+        dang_vien_du_bi: isReserve,
+        dvhd: item.dvhd || item.dangvienhuongdan || item.dvhd_theo_doi || item.dvhd_ho_so || item.nguoi_huong_dan || item.nguoi_huong_dan_1 || '',
+        
+        ngay_chuyen_ra: item.ngay_chuyen_ra || item.ngay_chuyen || null,
+        noi_chuyen_ra: item.noi_chuyen_ra || item.noi_chuyen || '',
+        ghi_chu_chuyen: item.ghi_chu_chuyen || item.ghi_chu || ''
+      };
+
       const row = { 'STT': index + 1 };
       EXPORT_FIELDS.forEach(field => {
         if (selectedExportFields.includes(field.key)) {
           if (field.isDate) {
-            row[field.label] = item[field.key] ? (item[field.key]?.toDate ? dayjs(item[field.key].toDate()).format('DD/MM/YYYY') : (item[field.key]?.seconds ? dayjs(item[field.key].seconds * 1000).format('DD/MM/YYYY') : dayjs(item[field.key]).format('DD/MM/YYYY'))) : '';
+            row[field.label] = formatDate(normItem[field.key]);
           } else if (field.isSpecial === 'type') {
-            row[field.label] = item.dang_vien_du_bi ? "Dự bị" : "Chính thức";
+            row[field.label] = normItem.dang_vien_du_bi ? "Dự bị" : "Chính thức";
           } else if (field.isSpecial === 'status') {
-            row[field.label] = item.trang_thai === 'dang_sinh_hoat' ? 'Đang sinh hoạt' :
-                               item.trang_thai === 'da_chuyen' ? 'Đã chuyển ra' :
-                               item.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
-                               item.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
+            row[field.label] = normItem.trang_thai === 'dang_sinh_hoat' ? 'Đang sinh hoạt' :
+                               normItem.trang_thai === 'da_chuyen' ? 'Đã chuyển ra' :
+                               normItem.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
+                               normItem.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
           } else {
-            row[field.label] = item[field.key] || "";
+            let val = normItem[field.key];
+            row[field.label] = val || "";
           }
         }
       });
