@@ -1,0 +1,93 @@
+============================================================
+FILE: 2. Mau 11_KND_nhan xet dang vien giup do_DHKT_2025.docx
+============================================================
+P0: ĐẢNG CỘNG SẢN VIỆT NAM
+P2: BẢN NHẬN XÉT
+P3: đảng viên dự bị
+P6: Ưu điểm:
+P7: - Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.
+P8: - Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.
+P9: - Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.
+P10: - Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.
+P11: - Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm của bản thân.
+P12: Khuyết điểm và những vấn đề cần lưu ý: 
+P13: - Không có khuyết điểm gì lớn.
+P14: Đối chiếu với tiêu chuẩn đảng viên và kết quả phấn đấu rèn luyện của đảng viên dự bị, tôi đề nghị Chi bộ xét, đề nghị công nhận đồng chí {{ho_ten}} trở thành đảng viên chính thức.
+P15: 	Tôi xin chịu trách nhiệm trước Đảng về lời nhận xét của mình.
+P16:                                           {{tinh_tp}}, ngày {{ngay_ky_d}} tháng {{ngay_ky_m}} năm {{ngay_ky_y}}  
+P17: ĐẢNG VIÊN ĐƯỢC PHÂN CÔNG GIÚP ĐỠ
+P22:        {{dvhd}}
+--- Table 0 ---
+  T0 R0 C0 P0: Kính gửi:
+  T0 R0 C1 P0: - Chi ủy Chi bộ {{chi_bo_sinh_hoat}}
+  T0 R0 C1 P1: - Đảng ủy {{dang_uy_truong}}
+--- Table 1 ---
+  T1 R0 C0 P0: Tôi là: {{dvhd}}		 
+  T1 R0 C1 P0: Ngày sinh: {{dvhd_ngay_sinh_formatted}}
+  T1 R1 C0 P0: Ngày vào Đảng: {{dvhd_ngay_vao_dang}}
+  T1 R1 C1 P0: Ngày chính thức: {{dvhd_ngay_chinh_thuc}}
+  T1 R2 C0 P0: Hiện đang sinh hoạt tại Chi bộ {{chi_bo_sinh_hoat}}
+  T1 R2 C0 P1: Ngày {{ngay_phan_cong_d}} tháng {{ngay_phan_cong_m}} năm {{ngay_phan_cong_y}} được Chi bộ phân công giúp đỡ đảng viên dự bị: {{ho_ten}} được kết nạp vào Đảng ngày {{ngay_vao_dang_d}} tháng {{ngay_vao_dang_m}} năm {{ngay_vao_dang_y}}, phấn đấu trở thành đảng viên chính thức; nay xin báo cáo Chi bộ những vấn đề chủ yếu của đảng viên dự bị như sau:
+  T1 R2 C1 P0: Hiện đang sinh hoạt tại Chi bộ {{chi_bo_sinh_hoat}}
+  T1 R2 C1 P1: Ngày {{ngay_phan_cong_d}} tháng {{ngay_phan_cong_m}} năm {{ngay_phan_cong_y}} được Chi bộ phân công giúp đỡ đảng viên dự bị: {{ho_ten}} được kết nạp vào Đảng ngày {{ngay_vao_dang_d}} tháng {{ngay_vao_dang_m}} năm {{ngay_vao_dang_y}}, phấn đấu trở thành đảng viên chính thức; nay xin báo cáo Chi bộ những vấn đề chủ yếu của đảng viên dự bị như sau:
+============================================================
+FILE: 7. Mau 12_KND_Tong hop nhan xet cuadoan the dv dang vien du bi.docx
+============================================================
+P2: TỔNG HỢP Ý KIẾN NHẬN XÉT
+P3: của các đoàn thể chính trị - xã hội nơi đảng viên dự bị sinh hoạt 
+P4: và chi uỷ nơi cư trú đối với đảng viên dự bị
+P6: Căn cứ ý kiến nhận xét của đại diện các đoàn thể chính trị - xã hội nơi đảng viên dự bị sinh hoạt và chi ủy nơi cư trú đối với đảng viên dự bị {{ho_ten}} được kết nạp vào Đảng ngày {{ngay_vao_dang_formatted_vietnamese}}
+P7: Tên đoàn thể chính trị - xã hội nơi đảng viên dự bị sinh hoạt: BCH Đoàn Trường Đại học Kinh tế, Liên Chi Đoàn Khoa {{khoa}}, chi Đoàn {{lop}} tổng số có {{tong_so_to_chuc_ctxh}} đồng chí.
+P8: Tên chi uỷ nơi cư trú: {{chi_uy_noi_cu_tru}}, có {{tong_so_chi_uy_noi_cu_tru}} đồng chí.
+P9: Chi uỷ Chi bộ Sinh viên tổng hợp các ý kiến nhận xét đó như sau:
+P10: Những ưu, khuyết điểm chính:
+P11: - Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.
+P12: -  Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.
+P13: - Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.
+P14: -  Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.
+P15: -  Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm.
+P16: 	Số đồng chí đại diện các đoàn thể chính trị - xã hội nơi sinh hoạt tán thành đề nghị chi bộ xét công nhận đảng viên dự bị {{ho_ten}} trở thành đảng viên chính thức là {{tong_so_to_chuc_ctxh}} đồng chí, trong tổng số {{tong_so_to_chuc_ctxh}} đồng chí được hỏi ý kiến (đạt 100%). Số không tán thành {{khong_tan_thanh_ctxh}} đồng chí (chiếm 0%).
+P17: Số đồng chí trong chi ủy nơi cư trú tán thành đề nghị chi bộ xét công nhận đảng viên dự bị {{ho_ten}} trở thành đảng viên chính thức là {{tong_so_chi_uy_noi_cu_tru}} đồng chí, trong tổng số {{tong_so_chi_uy_noi_cu_tru}} đồng chí được hỏi ý kiến (đạt 100%). Số không tán thành {{khong_tan_thanh_ctxh}} đồng chí (chiếm 0%).
+--- Table 0 ---
+  T0 R0 C0 P0: ĐẢNG BỘ BỘ PHẬN 
+  T0 R0 C0 P1: {{dang_uy_truong_caps}}
+  T0 R0 C0 P2: CHI BỘ {{chi_bo_sinh_hoat_caps}}
+  T0 R0 C1 P0: ĐẢNG CỘNG SẢN VIỆT NAM
+  T0 R0 C1 P2: {{tinh_tp}}, ngày {{ngay_ky_d}} tháng {{ngay_ky_m}} năm {{ngay_ky_y}}
+--- Table 1 ---
+  T1 R0 C1 P0: T/M CHI BỘ
+  T1 R0 C1 P1: BÍ THƯ
+  T1 R0 C1 P8: {{chu_tri_chi_bo}}
+============================================================
+FILE: 8. Mau 13_KND_Nghi quyet de nghi chinh thuc chi bo.docx
+============================================================
+P0: NGHỊ QUYẾT
+P1: đề nghị công nhận đảng viên chính thức
+P3: Căn cứ Điều 5, Điều lệ Đảng Cộng sản Việt Nam;
+P4: Ngày {{ngay_hop_chi_bo_d}} tháng {{ngay_hop_chi_bo_m}} năm {{ngay_hop_chi_bo_y}}, Chi bộ {{chi_bo_sinh_hoat}} đã họp để xét, đề nghị công nhận đảng viên dự bị {{ho_ten}} được kết nạp vào Đảng ngày {{ngay_vao_dang_d}} tháng {{ngay_vao_dang_m}} năm {{ngay_vao_dang_y}} trở thành đảng viên chính thức.
+P5: Tổng số đảng viên của Chi bộ: {{tong_so_dv}} đảng viên, trong đó chính thức {{tong_so_dv_chinh_thuc}} đồng chí, dự bị {{tong_so_dv_du_bi}} đồng chí
+P6: Có mặt: {{tong_so_dv}} đảng viên, trong đó chính thức {{tong_so_dv_chinh_thuc}} đồng chí, dự bị {{tong_so_dv_du_bi}} đồng chí.
+P7: Vắng mặt: {{vang_chi_bo}} đảng viên, trong đó chính thức {{vang_chinh_thuc_chi_bo}} đồng chí, dự bị {{vang_du_bi_chi_bo}} đồng chí.
+P8: Chủ trì hội nghị: Đồng chí {{chu_tri_chi_bo}}	 Chức vụ: {{chuc_vu_chu_tri_chi_bo}}
+P9: Thư ký hội nghị: Đồng chí {{thu_ky_chi_bo}}
+P10: Sau khi nghe báo cáo và thảo luận, Chi bộ thống nhất kết luận về đảng viên dự bị {{ho_ten}} như sau:
+P11: Những ưu, khuyết điểm chính:
+P12: 	- Có phẩm chất chính trị tốt lập trường tư tưởng vững vàng, tuyệt đối trung thành với đường lối của Đảng, tác phong đứng đắn, mẫu mực.
+P13: -  Có lối sống đạo đức trong sáng, giản dị, luôn có ý thức tu dưỡng và rèn luyện đạo đức, luôn là tấm gương sáng cho các thế hệ noi theo.
+P14: - Có năng lực công tác tốt, luôn tích cực tham gia các hoạt động của chi Đoàn, khoa, Đoàn trường.
+P15: -  Tính tình vui vẻ, hòa đồng, luôn giúp đỡ mọi người.
+P16: -  Luôn có thái độ cầu thị trong việc nhìn nhận, sửa chữa, khắc phục khuyết điểm của bản thân.
+P17: Đối chiếu với Quy định của Điều lệ Đảng về tiêu chuẩn đảng viên, số đảng viên chính thức tán thành công nhận đảng viên dự bị {{ho_ten}} thành đảng viên chính thức là {{tan_thanh_chi_bo}} đồng chí (đạt {{ti_le_chi_bo}}%) so với tổng số đảng viên chính thức. Số đảng viên chính thức không tán thành {{khong_tan_thanh_chi_bo}} đồng chí (chiếm {{ti_le_khong_tan_thanh_chi_bo}}%).
+P18: 	Chi bộ báo cáo và đề nghị Đảng uỷ Trường Đại học Kinh tế xét, công nhận đảng viên dự bị {{ho_ten}} trở thành đảng viên chính thức của Đảng Cộng Sản Việt Nam.
+P20: Nơi nhận:							          T/M CHI BỘ
+P21: - Đảng uỷ {{dang_uy_truong}}(để b/c)				                 BÍ THƯ
+P22: - Lưu Chi bộ.                                                                                       
+P26: {{chu_tri_chi_bo}}
+--- Table 0 ---
+  T0 R0 C0 P0: ĐẢNG BỘ BỘ PHẬN 
+  T0 R0 C0 P1: {{dang_uy_truong_caps}}
+  T0 R0 C0 P2: CHI BỘ {{chi_bo_sinh_hoat_caps}}
+  T0 R0 C0 P3: Số     -NQ/CB
+  T0 R0 C0 P4: *
+  T0 R0 C2 P0: ĐẢNG CỘNG SẢN VIỆT NAM
+  T0 R0 C2 P2: {{tinh_tp}}, ngày {{ngay_ky_d}} tháng {{ngay_ky_m}} năm {{ngay_ky_y}}

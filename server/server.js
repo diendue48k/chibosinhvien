@@ -15,28 +15,34 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// Lấy thông tin email từ biến môi trường (ưu tiên) hoặc cấu hình mặc định
+const EMAIL_USER = process.env.EMAIL_USER || 'chibosinhvien@due.udn.vn';
+const EMAIL_PASS = process.env.EMAIL_APP_PASSWORD || 'ChiboSV@due';
+const EMAIL_PROVIDER = process.env.EMAIL_PROVIDER || 'outlook';
 
 let transporterConfig = {};
-if (process.env.EMAIL_PROVIDER === 'outlook') {
+if (EMAIL_PROVIDER === 'outlook') {
   transporterConfig = {
     host: "smtp.office365.com",
     port: 587,
     secure: false,
+    requireTLS: true,
     tls: {
-      ciphers: 'SSLv3'
+      rejectUnauthorized: false
     },
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD
+      user: EMAIL_USER,
+      pass: EMAIL_PASS
     }
   };
 } else {
   transporterConfig = {
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD
+      user: EMAIL_USER,
+      pass: EMAIL_PASS
     }
   };
 }
@@ -59,9 +65,7 @@ app.post('/api/send-email', async (req, res) => {
     return res.status(400).json({ error: 'Thiếu thông tin gửi email (to/bcc, subject, html).' });
   }
 
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD || process.env.EMAIL_USER === 'your_email@gmail.com') {
-    return res.status(500).json({ error: 'Chưa cấu hình tài khoản gửi Email trong file .env!' });
-  }
+  // Email đã được cấu hình sẵn, không cần check
 
   try {
     const attachments = [];
@@ -89,7 +93,7 @@ app.post('/api/send-email', async (req, res) => {
     }
 
     const mailOptions = {
-      from: `"Chi bộ Sinh viên" <${process.env.EMAIL_USER}>`,
+      from: `"Chi bộ Sinh viên" <${EMAIL_USER}>`,
       subject,
       html: processedHtml,
       attachments
