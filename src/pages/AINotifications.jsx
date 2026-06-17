@@ -48,7 +48,7 @@ const AINotifications = () => {
       deadline: dayjs("2026-05-21T17:00:00"),
       created_by: "Đ/c Bí thư Chi bộ",
       recipient_type: "Đảng viên đang sinh hoạt",
-      recipients: ["chibosinhvien@due.edu.vn"],
+      recipients: ["chibosinhvien@due.udn.vn"],
       send_email: true
     });
   }, [form]);
@@ -419,7 +419,7 @@ const AINotifications = () => {
                       <div style={{ border: '1px solid #d9d9d9', borderRadius: '8px', overflow: 'hidden', backgroundColor: '#ffffff' }}>
                         {/* Email Client Header */}
                         <div style={{ background: '#f5f5f5', padding: '12px 16px', borderBottom: '1px solid #d9d9d9', fontSize: '13px' }}>
-                          <div><strong>Người gửi:</strong> Chi bộ Sinh viên &lt;chibosinhvien@due.edu.vn&gt;</div>
+                          <div><strong>Người gửi:</strong> Chi bộ Sinh viên &lt;chibosinhvien@due.udn.vn&gt;</div>
                           <div style={{ marginTop: '4px' }}><strong>Tiêu đề:</strong> <span style={{ fontWeight: 700, color: '#c62828' }}>{typingEmailSubject || generatedData.email.subject}</span></div>
                         </div>
                         {/* Email Body content */}
@@ -435,7 +435,7 @@ const AINotifications = () => {
                               {typingEmailBody || generatedData.email.body}
                             </div>
                             <div style={{ background: '#fafafa', padding: '12px', borderTop: '1px solid #f0f0f0', textAlign: 'center', fontSize: '11px', color: '#8c8c8c' }}>
-                              Website: chibosinhvien.vn | Email: chibosinhvien@due.edu.vn
+                              Website: chibosinhvien.vn | Email: chibosinhvien@due.udn.vn
                             </div>
                           </div>
                         </div>

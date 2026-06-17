@@ -1005,7 +1005,7 @@ const DangVienDuBi = () => {
                       <td class="footer-cell-right" width="55%" style="vertical-align: middle; padding-left: 15px; text-align: left; font-size: 12px; color: #333333; line-height: 1.5;">
                         <div style="margin-bottom: 4px;"><strong style="color: #b71c1c;">Fanpage:</strong> <a href="https://fb.com/chibosinhvienDUE" target="_blank" style="color: #096dd9;">fb.com/chibosinhvienDUE</a></div>
                         <div style="margin-bottom: 4px;"><strong style="color: #b71c1c;">Website:</strong> <a href="https://chibosinhvien.vn/" target="_blank" style="color: #096dd9;">chibosinhvien.vn/</a></div>
-                        <div style="margin-bottom: 6px;"><strong style="color: #b71c1c;">Email:</strong> <a href="mailto:chibosinhvien@due.edu.vn" style="color: #096dd9;">chibosinhvien@due.edu.vn</a></div>
+                        <div style="margin-bottom: 6px;"><strong style="color: #b71c1c;">Email:</strong> <a href="mailto:chibosinhvien@due.udn.vn" style="color: #096dd9;">chibosinhvien@due.udn.vn</a></div>
                       </td>
                     </tr>
                   </table>
@@ -1461,7 +1461,7 @@ const DangVienDuBi = () => {
                         <strong style="color: #b71c1c;">Website:</strong> <a href="https://chibosinhvien.vn/" target="_blank" style="color: #096dd9; text-decoration: underline;">chibosinhvien.vn/</a>
                       </div>
                       <div style="margin-bottom: 6px;">
-                        <strong style="color: #b71c1c;">Email:</strong> <a href="mailto:chibosinhvien@due.edu.vn" style="color: #096dd9; text-decoration: underline;">chibosinhvien@due.edu.vn</a>
+                        <strong style="color: #b71c1c;">Email:</strong> <a href="mailto:chibosinhvien@due.udn.vn" style="color: #096dd9; text-decoration: underline;">chibosinhvien@due.udn.vn</a>
                       </div>
                       <div style="margin-top: 4px; border-top: 1px dashed #e0e0e0; padding-top: 4px;">
                         <strong style="color: #b71c1c;">Liên hệ:</strong><br />

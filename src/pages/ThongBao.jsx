@@ -281,12 +281,12 @@ const ThongBao = () => {
                 <strong style="color: #b71c1c;">Website:</strong> <a href="https://chibosinhvien.vn/" target="_blank" style="color: #096dd9; text-decoration: underline;">chibosinhvien.vn/</a>
               </div>
               <div style="margin-bottom: 6px;">
-                <strong style="color: #b71c1c;">Email:</strong> <a href="mailto:chibosinhvien@due.edu.vn" style="color: #096dd9; text-decoration: underline;">chibosinhvien@due.edu.vn</a>
+                <strong style="color: #b71c1c;">Email:</strong> <a href="mailto:chibosinhvien@due.udn.vn" style="color: #096dd9; text-decoration: underline;">chibosinhvien@due.udn.vn</a>
               </div>
               <div style="margin-top: 4px; border-top: 1px dashed #e0e0e0; padding-top: 4px;">
                 <strong style="color: #b71c1c;">Liên hệ:</strong><br />
                 ${createdBy || 'Ban Chấp hành Chi bộ'}<br />
-                <a href="mailto:${senderEmail || 'chibosinhvien@due.edu.vn'}" style="color: #096dd9; text-decoration: underline;">${senderEmail || 'chibosinhvien@due.edu.vn'}</a> &nbsp;|&nbsp; <span style="color: #096dd9; text-decoration: underline;">${senderPhone || '0935.743.555'}</span>
+                <a href="mailto:${senderEmail || 'chibosinhvien@due.udn.vn'}" style="color: #096dd9; text-decoration: underline;">${senderEmail || 'chibosinhvien@due.udn.vn'}</a> &nbsp;|&nbsp; <span style="color: #096dd9; text-decoration: underline;">${senderPhone || '0935.743.555'}</span>
               </div>
             </td>
           </tr>
@@ -485,7 +485,7 @@ const ThongBao = () => {
       created_by: currentUser?.name || 'Chi ủy Chi bộ',
       recipient_type: 'ca_nhan',
       send_email: false,
-      sender_email: currentUser?.email || 'chibosinhvien@due.edu.vn',
+      sender_email: currentUser?.email || 'chibosinhvien@due.udn.vn',
       sender_phone: currentUser?.phone || currentUser?.sdt || '0935.743.555'
     });
     setIsFormModalVisible(true);
@@ -515,7 +515,7 @@ const ThongBao = () => {
       image_url: record.image_url || '',
       recipient_type: record.recipient_type,
       send_email: false,
-      sender_email: record.sender_email || currentUser?.email || 'chibosinhvien@due.edu.vn',
+      sender_email: record.sender_email || currentUser?.email || 'chibosinhvien@due.udn.vn',
       sender_phone: record.sender_phone || currentUser?.phone || currentUser?.sdt || '0935.743.555',
       // Pre-populate sub-selects based on saved recipients
       selected_members: record.recipient_type === 'ca_nhan' ? (record.recipients || []).map(r => r.id) : undefined,
@@ -1041,7 +1041,7 @@ const ThongBao = () => {
               <Row gutter={10}>
                 <Col span={12}>
                   <Form.Item name="sender_email" label={<b>Email liên hệ thắc mắc</b>} rules={[{ type: 'email', message: 'Email không hợp lệ!' }]} style={{ marginBottom: 12 }}>
-                    <Input placeholder="chibosinhvien@due.edu.vn" />
+                    <Input placeholder="chibosinhvien@due.udn.vn" />
                   </Form.Item>
                 </Col>
                 <Col span={12}>

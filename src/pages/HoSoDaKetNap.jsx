@@ -828,7 +828,7 @@ const HoSoDaKetNap = () => {
                         <strong style="color: #b71c1c;">Website:</strong> <a href="https://chibosinhvien.vn/" target="_blank" style="color: #096dd9; text-decoration: underline;">chibosinhvien.vn/</a>
                       </div>
                       <div style="margin-bottom: 6px;">
-                        <strong style="color: #b71c1c;">Email:</strong> <a href="mailto:chibosinhvien@due.edu.vn" style="color: #096dd9; text-decoration: underline;">chibosinhvien@due.edu.vn</a>
+                        <strong style="color: #b71c1c;">Email:</strong> <a href="mailto:chibosinhvien@due.udn.vn" style="color: #096dd9; text-decoration: underline;">chibosinhvien@due.udn.vn</a>
                       </div>
                       <div style="margin-top: 4px; border-top: 1px dashed #e0e0e0; padding-top: 4px;">
                         <strong style="color: #b71c1c;">Liên hệ:</strong><br />
@@ -848,7 +848,7 @@ const HoSoDaKetNap = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bcc: [...selectedRecipients, 'chibosinhvien@due.edu.vn'].join(', '),
+          bcc: [...selectedRecipients, 'chibosinhvien@due.udn.vn'].join(', '),
           subject: emailSubject,
           html: htmlBody
         })
@@ -2912,7 +2912,7 @@ const HoSoDaKetNap = () => {
                                         <strong style={{ color: '#b71c1c' }}>Website:</strong> <a href="https://chibosinhvien.vn/" target="_blank" rel="noopener noreferrer" style={{ color: '#096dd9', textDecoration: 'underline' }}>chibosinhvien.vn/</a>
                                       </div>
                                       <div style={{ marginBottom: '6px' }}>
-                                        <strong style={{ color: '#b71c1c' }}>Email:</strong> <a href="mailto:chibosinhvien@due.edu.vn" style={{ color: '#096dd9', textDecoration: 'underline' }}>chibosinhvien@due.edu.vn</a>
+                                        <strong style={{ color: '#b71c1c' }}>Email:</strong> <a href="mailto:chibosinhvien@due.udn.vn" style={{ color: '#096dd9', textDecoration: 'underline' }}>chibosinhvien@due.udn.vn</a>
                                       </div>
                                       <div style={{ marginTop: '4px', borderTop: '1px dashed #e0e0e0', paddingTop: '4px' }}>
                                         <strong style={{ color: '#b71c1c' }}>Liên hệ:</strong><br />
