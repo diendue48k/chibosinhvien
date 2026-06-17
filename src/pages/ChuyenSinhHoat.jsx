@@ -329,6 +329,33 @@ const ChuyenSinhHoat = () => {
     message.success(`Xuất Excel thành công ${dataToExport.length} dòng!`);
   };
 
+  const handleBulkRestore = async () => {
+    try {
+      setLoading(true);
+      await Promise.all(selectedRowKeys.map(async (id) => {
+        // Restore member to active status
+        await updateDoc(doc(db, "dang_vien", id), {
+          trang_thai: 'dang_sinh_hoat',
+          ngay_chuyen_ra: null,
+          noi_chuyen_ra: '',
+          ghi_chu_chuyen: ''
+        });
+        // Delete transfer records
+        try {
+          const q = query(collection(db, "chuyen_sinh_hoat"), where("dang_vien_id", "==", id));
+          const snapshot = await getDocs(q);
+          await Promise.all(snapshot.docs.map(d => deleteDoc(doc(db, "chuyen_sinh_hoat", d.id))));
+        } catch (err) {}
+      }));
+      message.success(`Đã khôi phục sinh hoạt ${selectedRowKeys.length} Đảng viên thành công.`);
+      setSelectedRowKeys([]);
+      fetchTransferred();
+    } catch (error) {
+      message.error("Đã xảy ra lỗi khi khôi phục sinh hoạt");
+      setLoading(false);
+    }
+  };
+
   const handleRowClick = (record) => {
     setSelectedRecord(record);
     setIsDrawerVisible(true);
@@ -440,6 +467,22 @@ const ChuyenSinhHoat = () => {
         
         <Space size="middle">
           {selectedRowKeys.length > 0 && (
+            <Popconfirm
+              title={`Khôi phục sinh hoạt ${selectedRowKeys.length} Đảng viên đã chọn?`}
+              description="Đảng viên sẽ được chuyển về trạng thái Đang sinh hoạt và xóa hồ sơ chuyển."
+              onConfirm={handleBulkRestore}
+              okText="Khôi phục"
+              cancelText="Hủy"
+              okButtonProps={{ style: { background: '#52c41a', borderColor: '#52c41a' } }}
+            >
+              <Button 
+                type="primary" 
+                icon={<CheckCircleOutlined />} 
+                style={{ borderRadius: '6px', background: '#52c41a', borderColor: '#52c41a' }}
+              >
+                Khôi phục sinh hoạt ({selectedRowKeys.length})
+              </Button>
+            </Popconfirm>
             <Popconfirm
               title={`Xóa vĩnh viễn ${selectedRowKeys.length} hồ sơ đã chọn?`}
               onConfirm={handleBulkDelete}
