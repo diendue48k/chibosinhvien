@@ -165,7 +165,7 @@ const generateDefaultEmailTemplate = (record, values) => {
     <p style="font-size: 15px; margin-bottom: 6px; font-family: inherit;">Kính gửi Đồng chí <strong style="color:#c62828">${record.ho_ten || ''}</strong>,</p>
     <p style="font-size: 14px; color:#555; text-align:justify; font-family: inherit;">Hồ sơ thủ tục chuyển sinh hoạt Đảng của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành và chuyển nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng như dưới đây:</p>
     <div style="background:#f6ffed; border:1px solid #b7eb8f; border-radius:8px; padding:14px 18px; margin:16px 0; font-family: inherit;">
-      <p style="margin:0 0 10px 0; font-weight:700; color:#52c41a; font-size:14px; font-family: inherit;">📍 Thông tin chuyển sinh hoạt Đảng chính thức</p>
+      <p style="margin:0 0 10px 0; font-weight:700; color:#52c41a; font-size:14px; font-family: inherit;">Thông tin chuyển sinh hoạt Đảng</p>
       <table style="width:100%; border-collapse:collapse; font-size:13px; font-family: inherit;">
         <tr><td style="padding:4px 0; color:#8c8c8c; width:120px; font-weight:600; font-family: inherit;">Ngày chuyển đi:</td><td style="font-weight:600; color:#333; font-family: inherit;">${ngayChuyenStr}</td></tr>
         <tr><td style="padding:4px 0; color:#8c8c8c; font-weight:600; font-family: inherit;">Nơi chuyển đến:</td><td style="font-weight:600; color:#333; font-family: inherit;">${noiChuyenStr}</td></tr>
