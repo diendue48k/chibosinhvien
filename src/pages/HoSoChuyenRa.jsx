@@ -327,7 +327,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
       setSubmittingEdit(true);
 
       const combinedNoiChuyenDen = [
-        values.noi_chuyen_den_chi_bo ? values.noi_chuyen_den_chi_bo.trim() : '',
+        values.noi_chuyen_den_chi_bo ? 'Chi bộ ' + values.noi_chuyen_den_chi_bo.trim() : '',
         values.noi_chuyen_den_dang_bo_co_so ? values.noi_chuyen_den_dang_bo_co_so.trim() : '',
         values.noi_chuyen_den_dang_bo_cap_tren ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
       ].filter(Boolean).join(', ');
@@ -943,7 +943,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
       const fullAddressStr = values.dia_chi || '';
 
       const combinedNoiChuyenDen = [
-        values.noi_chuyen_den_chi_bo ? values.noi_chuyen_den_chi_bo.trim() : '',
+        values.noi_chuyen_den_chi_bo ? 'Chi bộ ' + values.noi_chuyen_den_chi_bo.trim() : '',
         values.noi_chuyen_den_dang_bo_co_so ? values.noi_chuyen_den_dang_bo_co_so.trim() : '',
         values.noi_chuyen_den_dang_bo_cap_tren ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
       ].filter(Boolean).join(', ');
@@ -1167,7 +1167,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
       const isTamThoi = record.loai_chuyen === 'chuyen_tam_thoi';
 
       const noiChuyenStr = [
-        values.noi_chuyen_den_chi_bo ? values.noi_chuyen_den_chi_bo.trim() : '',
+        values.noi_chuyen_den_chi_bo ? 'Chi bộ ' + values.noi_chuyen_den_chi_bo.trim() : '',
         values.noi_chuyen_den_dang_bo_co_so ? values.noi_chuyen_den_dang_bo_co_so.trim() : '',
         values.noi_chuyen_den_dang_bo_cap_tren ? values.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
       ].filter(Boolean).join(', ');
@@ -3324,7 +3324,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
               onValuesChange={(changedValues, allValues) => {
                 if (!isEmailEditedManually && selectedProcessForCompletion) {
                   const combined = [
-                    allValues.noi_chuyen_den_chi_bo ? allValues.noi_chuyen_den_chi_bo.trim() : '',
+                    allValues.noi_chuyen_den_chi_bo ? 'Chi bộ ' + allValues.noi_chuyen_den_chi_bo.trim() : '',
                     allValues.noi_chuyen_den_dang_bo_co_so ? allValues.noi_chuyen_den_dang_bo_co_so.trim() : '',
                     allValues.noi_chuyen_den_dang_bo_cap_tren ? allValues.noi_chuyen_den_dang_bo_cap_tren.trim() : ''
                   ].filter(Boolean).join(', ');
