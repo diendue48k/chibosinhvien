@@ -467,33 +467,35 @@ const ChuyenSinhHoat = () => {
         
         <Space size="middle">
           {selectedRowKeys.length > 0 && (
-            <Popconfirm
-              title={`Khôi phục sinh hoạt ${selectedRowKeys.length} Đảng viên đã chọn?`}
-              description="Đảng viên sẽ được chuyển về trạng thái Đang sinh hoạt và xóa hồ sơ chuyển."
-              onConfirm={handleBulkRestore}
-              okText="Khôi phục"
-              cancelText="Hủy"
-              okButtonProps={{ style: { background: '#52c41a', borderColor: '#52c41a' } }}
-            >
-              <Button 
-                type="primary" 
-                icon={<CheckCircleOutlined />} 
-                style={{ borderRadius: '6px', background: '#52c41a', borderColor: '#52c41a' }}
+            <>
+              <Popconfirm
+                title={`Khôi phục sinh hoạt ${selectedRowKeys.length} Đảng viên đã chọn?`}
+                description="Đảng viên sẽ được chuyển về trạng thái Đang sinh hoạt và xóa hồ sơ chuyển."
+                onConfirm={handleBulkRestore}
+                okText="Khôi phục"
+                cancelText="Hủy"
+                okButtonProps={{ style: { background: '#52c41a', borderColor: '#52c41a' } }}
               >
-                Khôi phục sinh hoạt ({selectedRowKeys.length})
-              </Button>
-            </Popconfirm>
-            <Popconfirm
-              title={`Xóa vĩnh viễn ${selectedRowKeys.length} hồ sơ đã chọn?`}
-              onConfirm={handleBulkDelete}
-              okText="Xóa"
-              cancelText="Hủy"
-              okButtonProps={{ danger: true }}
-            >
-              <Button danger type="primary" icon={<DeleteOutlined />} style={{ borderRadius: '6px' }}>
-                Xóa ({selectedRowKeys.length})
-              </Button>
-            </Popconfirm>
+                <Button 
+                  type="primary" 
+                  icon={<CheckCircleOutlined />} 
+                  style={{ borderRadius: '6px', background: '#52c41a', borderColor: '#52c41a' }}
+                >
+                  Khôi phục sinh hoạt ({selectedRowKeys.length})
+                </Button>
+              </Popconfirm>
+              <Popconfirm
+                title={`Xóa vĩnh viễn ${selectedRowKeys.length} hồ sơ đã chọn?`}
+                onConfirm={handleBulkDelete}
+                okText="Xóa"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger type="primary" icon={<DeleteOutlined />} style={{ borderRadius: '6px' }}>
+                  Xóa ({selectedRowKeys.length})
+                </Button>
+              </Popconfirm>
+            </>
           )}
           
           <Button 
