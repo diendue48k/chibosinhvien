@@ -1386,7 +1386,7 @@ const DangKy213 = () => {
   const buildEmailHtml = (reg, member, diaDiem, thoiGian, lienHe) => {
     return `
       <div style="font-family: 'SVN-Gilroy', 'Inter', sans-serif; max-width: 650px; margin: 0 auto; color: #333; line-height: 1.6;">
-        <div style="background: linear-gradient(135deg,#c62828,#b71c1c); padding: 24px; text-align: center; border-radius: 10px 10px 0 0; font-family: inherit;">
+        <div style="background-color: #c62828; background: linear-gradient(135deg,#c62828,#b71c1c); padding: 24px; text-align: center; border-radius: 10px 10px 0 0; font-family: inherit;">
           <h2 style="color: white; margin: 0 0 4px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; font-family: inherit;">CHI BỘ SINH VIÊN</h2>
           <p style="color: #ffcdd2; margin: 0; font-size: 13px; font-family: inherit;">Trường Đại học Kinh tế - Đại học Đà Nẵng</p>
         </div>

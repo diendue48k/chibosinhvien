@@ -72,7 +72,7 @@ const buildEmailHtml = (session, candidates, origin) => {
 
   return `
     <div style="font-family:'Inter',-apple-system,sans-serif;max-width:640px;margin:0 auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
-      <div style="background:linear-gradient(135deg,#c62828 0%,#8e0000 100%);padding:28px 32px;">
+      <div style="background-color:#c62828;background:linear-gradient(135deg,#c62828 0%,#8e0000 100%);padding:28px 32px;">
         <div style="font-size:11px;color:rgba(255,255,255,0.7);font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;">
           CHI BỘ SINH VIÊN · ĐẢNG BỘ ĐH KINH TẾ
         </div>
@@ -110,7 +110,7 @@ const buildEmailHtml = (session, candidates, origin) => {
         </table>
         <div style="text-align:center;margin-top:28px;">
           <a href="${origin}/voting"
-            style="display:inline-block;background:linear-gradient(135deg,#c62828,#8e0000);color:#fff;font-weight:800;font-size:14px;text-decoration:none;padding:14px 36px;border-radius:6px;letter-spacing:0.5px;text-transform:uppercase;">
+            style="display:inline-block;background-color:#c62828;background:linear-gradient(135deg,#c62828,#8e0000);color:#fff;font-weight:800;font-size:14px;text-decoration:none;padding:14px 36px;border-radius:6px;letter-spacing:0.5px;text-transform:uppercase;">
             🗳️ THỰC HIỆN BIỂU QUYẾT NGAY
           </a>
         </div>

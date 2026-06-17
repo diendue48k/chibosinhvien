@@ -129,7 +129,7 @@ const generateDefaultEmailTemplate = (record, values) => {
     const ghiChuStr = values.ghi_chu || '';
 
     html = `<div style="font-family: 'SVN-Gilroy', 'Inter', sans-serif; max-width: 650px; margin: 0 auto; color: #333; line-height: 1.6;">
-  <div style="background: linear-gradient(135deg,#fa8c16,#d46b08); padding: 24px; text-align: center; border-radius: 10px 10px 0 0; font-family: inherit;">
+  <div style="background-color: #fa8c16; background: linear-gradient(135deg,#fa8c16,#d46b08); padding: 24px; text-align: center; border-radius: 10px 10px 0 0; font-family: inherit;">
     <h2 style="color: white; margin: 0 0 4px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; font-family: inherit;">CHI BỘ SINH VIÊN</h2>
     <p style="color: #ffe7ba; margin: 0; font-size: 13px; font-family: inherit;">Trường Đại học Kinh tế - Đại học Đà Nẵng</p>
   </div>
@@ -157,7 +157,7 @@ const generateDefaultEmailTemplate = (record, values) => {
     const ghiChuStr = values.ghi_chu || '';
 
     html = `<div style="font-family: 'SVN-Gilroy', 'Inter', sans-serif; max-width: 650px; margin: 0 auto; color: #333; line-height: 1.6;">
-  <div style="background: linear-gradient(135deg,#c62828,#b71c1c); padding: 24px; text-align: center; border-radius: 10px 10px 0 0; font-family: inherit;">
+  <div style="background-color: #c62828; background: linear-gradient(135deg,#c62828,#b71c1c); padding: 24px; text-align: center; border-radius: 10px 10px 0 0; font-family: inherit;">
     <h2 style="color: white; margin: 0 0 4px 0; font-size: 20px; font-weight: 700; letter-spacing: 0.5px; font-family: inherit;">CHI BỘ SINH VIÊN</h2>
     <p style="color: #ffcdd2; margin: 0; font-size: 13px; font-family: inherit;">Trường Đại học Kinh tế - Đại học Đà Nẵng</p>
   </div>
