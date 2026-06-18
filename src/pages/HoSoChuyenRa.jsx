@@ -1326,7 +1326,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
   const [bulkEmailModalVisible, setBulkEmailModalVisible] = useState(false);
   const [bulkEmailSubject, setBulkEmailSubject] = useState("THÔNG BÁO HOÀN TẤT THỦ TỤC CHUYỂN SINH HOẠT ĐẢNG");
   const [bulkEmailTemplate, setBulkEmailTemplate] = useState(
-    `Kính gửi Đồng chí {ho_ten},\n\nHồ sơ thủ tục chuyển sinh hoạt Đảng của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành và chuyển nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng như dưới đây:\n\n- Loại chuyển: {loai_chuyen}\n- Nơi chuyển đến: {noi_chuyen_den}\n\nĐồng chí vui lòng chú ý điện thoại để nhận thông báo từ Đảng ủy UBND về việc nhận lại hồ sơ Đảng viên (Hồ sơ gốc) và nộp cho Đơn vị mới. Cảm ơn đồng chí đã luôn đồng hành và gắn bó cùng Chi bộ Sinh viên trong suốt thời gian vừa qua.\n\nKính chúc đồng chí luôn hoàn thành tốt mọi nhiệm vụ được giao ở đơn vị mới.\nTrân trọng.`
+    `Kính gửi Đồng chí {ho_ten},\n\nHồ sơ thủ tục chuyển sinh hoạt Đảng của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành và chuyển nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng như dưới đây:\n\n- Ngày đi: {ngay_chuyen_ra}\n- Loại chuyển: {loai_chuyen}\n- Nơi chuyển đến: {noi_chuyen_den}\n\nĐồng chí vui lòng chú ý điện thoại để nhận thông báo từ Đảng ủy UBND về việc nhận lại hồ sơ Đảng viên (Hồ sơ gốc) và nộp cho Đơn vị mới. Cảm ơn đồng chí đã luôn đồng hành và gắn bó cùng Chi bộ Sinh viên trong suốt thời gian vừa qua.\n\nKính chúc đồng chí luôn hoàn thành tốt mọi nhiệm vụ được giao ở đơn vị mới.\nTrân trọng.`
   );
   const [bulkEmailProgress, setBulkEmailProgress] = useState(null);
   const [bulkEmailing, setBulkEmailing] = useState(false);
@@ -1397,10 +1397,13 @@ const HoSoChuyenRa = ({ forceTab }) => {
 
       const typeLabel = record.loai_chuyen === 'chuyen_tam_thoi' ? "Chuyển sinh hoạt tạm thời" : "Chuyển sinh hoạt chính thức";
       const destLabel = record.noi_chuyen_den || record.noi_chuyen_ra || "Chưa xác định";
+      const ngayChuyenRaw = record.ngay_chuyen || record.ngay_chuyen_ra || record.ngay_chuyen_tam_thoi || '';
+      const ngayChuyenStr = ngayChuyenRaw ? dayjs(ngayChuyenRaw).format('DD/MM/YYYY') : dayjs().format('DD/MM/YYYY');
 
       let body = bulkEmailTemplate
         .replace(/{ho_ten}/g, record.ho_ten || "")
         .replace(/{mssv}/g, record.mssv || "")
+        .replace(/{ngay_chuyen_ra}/g, ngayChuyenStr)
         .replace(/{loai_chuyen}/g, typeLabel)
         .replace(/{noi_chuyen_den}/g, destLabel);
 
@@ -2308,7 +2311,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
               confirmLoading={bulkEmailing}
               okText="Bắt đầu gửi"
               cancelText="Hủy"
-              width={650}
+              width={750}
             >
               <div style={{ padding: '8px 0' }}>
                 <div style={{ marginBottom: 12 }}>
@@ -2321,7 +2324,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
                   />
                 </div>
                 <div style={{ marginBottom: 12 }}>
-                  <Text type="secondary">Nội dung mẫu (Dùng các từ khóa đại diện {`{ho_ten}`}, {`{mssv}`}, {`{buoc_hien_tai}`}):</Text>
+                  <Text type="secondary">Nội dung mẫu (Dùng các từ khóa đại diện: <strong>{`{ho_ten}`}</strong>, <strong>{`{mssv}`}</strong>, <strong>{`{ngay_chuyen_ra}`}</strong>, <strong>{`{loai_chuyen}`}</strong>, <strong>{`{noi_chuyen_den}`}</strong>):</Text>
                   <Input.TextArea 
                     value={bulkEmailTemplate} 
                     onChange={e => setBulkEmailTemplate(e.target.value)} 
@@ -2329,6 +2332,48 @@ const HoSoChuyenRa = ({ forceTab }) => {
                     style={{ marginTop: 4 }}
                   />
                 </div>
+
+                {/* Email Live Preview Box */}
+                {selectedRowKeys.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: 8, fontSize: '13px' }}>
+                      👁️ Xem trước email thực tế (của đồng chí đầu tiên được chọn):
+                    </div>
+                    {(() => {
+                      const firstRecord = activeProcesses.find(p => selectedRowKeys.includes(p.id)) || {};
+                      const typeLabel = firstRecord.loai_chuyen === 'chuyen_tam_thoi' ? "Chuyển sinh hoạt tạm thời" : "Chuyển sinh hoạt chính thức";
+                      const destLabel = firstRecord.noi_chuyen_den || firstRecord.noi_chuyen_ra || "Chưa xác định";
+                      const ngayChuyenRaw = firstRecord.ngay_chuyen || firstRecord.ngay_chuyen_ra || firstRecord.ngay_chuyen_tam_thoi || '';
+                      const ngayChuyenStr = ngayChuyenRaw ? dayjs(ngayChuyenRaw).format('DD/MM/YYYY') : dayjs().format('DD/MM/YYYY');
+
+                      const previewBody = bulkEmailTemplate
+                        .replace(/{ho_ten}/g, firstRecord.ho_ten || "[Họ tên Đảng viên]")
+                        .replace(/{mssv}/g, firstRecord.mssv || "[MSSV]")
+                        .replace(/{ngay_chuyen_ra}/g, ngayChuyenStr)
+                        .replace(/{loai_chuyen}/g, typeLabel)
+                        .replace(/{noi_chuyen_den}/g, destLabel)
+                        .replace(/\n/g, '<br />');
+
+                      return (
+                        <div style={{ 
+                          border: '1px solid #e2e8f0', 
+                          borderRadius: '8px', 
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                        }}>
+                          <div style={{ backgroundColor: '#c62828', padding: '12px 16px', color: '#fff', textAlign: 'center' }}>
+                            <h4 style={{ margin: 0, fontSize: '15px', color: '#fff' }}>CHI BỘ SINH VIÊN</h4>
+                            <p style={{ margin: '2px 0 0 0', fontSize: '11px', opacity: 0.9 }}>Trường Đại học Kinh tế - Đại học Đà Nẵng</p>
+                          </div>
+                          <div style={{ padding: '16px', backgroundColor: '#fff', fontSize: '13px', lineHeight: 1.5, color: '#333' }} dangerouslySetInnerHTML={{ __html: previewBody }} />
+                          <div style={{ backgroundColor: '#f8fafc', padding: '8px 16px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '11px', color: '#94a3b8' }}>
+                            Email tự động từ Hệ thống quản lý Chi bộ Sinh viên - Trường ĐH Kinh tế ĐHĐN.
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
 
                 {bulkEmailProgress && (
                   <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 6, marginTop: 16 }}>
