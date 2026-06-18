@@ -4,7 +4,8 @@ import {
   PlusOutlined, ArrowRightOutlined, CheckOutlined, DeleteOutlined, 
   SearchOutlined, FilterOutlined, CloseOutlined, CalendarOutlined, 
   DownloadOutlined, UploadOutlined, FileTextOutlined, FileZipOutlined, 
-  StarOutlined, ExportOutlined, InfoCircleOutlined, EditOutlined 
+  StarOutlined, ExportOutlined, InfoCircleOutlined, EditOutlined,
+  MailOutlined, CheckCircleOutlined 
 } from '@ant-design/icons';
 import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -1321,6 +1322,175 @@ const HoSoChuyenRa = ({ forceTab }) => {
     }
   };
 
+  // === DYNAMIC BULK ACTIONS ===
+  const [bulkEmailModalVisible, setBulkEmailModalVisible] = useState(false);
+  const [bulkEmailSubject, setBulkEmailSubject] = useState("Thông báo cập nhật tiến trình chuyển sinh hoạt Đảng");
+  const [bulkEmailTemplate, setBulkEmailTemplate] = useState(
+    `Thân gửi đồng chí {ho_ten} (MSSV: {mssv}),\n\nChi bộ Sinh viên thông báo về tiến trình chuyển sinh hoạt Đảng của đồng chí hiện đang ở {buoc_hien_tai}.\nĐề nghị đồng chí thường xuyên theo dõi các thông báo tiếp theo để hoàn thành đúng thời hạn.\n\nTrân trọng.`
+  );
+  const [bulkEmailProgress, setBulkEmailProgress] = useState(null);
+  const [bulkEmailing, setBulkEmailing] = useState(false);
+
+  const handleBulkStepUpdate = async (targetStep) => {
+    setLoading(true);
+    try {
+      let count = 0;
+      const selectedProcesses = activeProcesses.filter(p => selectedRowKeys.includes(p.id));
+      for (const record of selectedProcesses) {
+        const nextBuoc = targetStep;
+        
+        const newHistory = [...(record.history || []), {
+          step: nextBuoc,
+          time: new Date().toISOString(),
+          note: "Cập nhật hàng loạt bởi Admin",
+          updated_by: currentUser?.email || currentUser?.username || "Admin (Hàng loạt)"
+        }];
+
+        const dateStr = new Date().toISOString().split('T')[0];
+        const updateFields = {
+          buoc: nextBuoc,
+          history: newHistory,
+          updated_at: new Date().toISOString()
+        };
+
+        if (nextBuoc === 2) {
+          updateFields.ngay_hoan_thien_gui_vpdu = dateStr;
+          updateFields.ghi_chu_buoc_2 = "Cập nhật hàng loạt bởi Admin";
+        } else if (nextBuoc === 3) {
+          updateFields.ngay_gui_dhdn = dateStr;
+          updateFields.ghi_chu_buoc_3 = "Cập nhật hàng loạt bởi Admin";
+        }
+
+        await updateDoc(doc(db, "chuyen_sinh_hoat", record.id), updateFields);
+        count++;
+      }
+      message.success(`Đã cập nhật hàng loạt ${count} hồ sơ sang Bước ${targetStep}!`);
+      setSelectedRowKeys([]);
+      await fetchActiveMembersAndProcesses();
+    } catch (error) {
+      console.error(error);
+      message.error("Lỗi khi cập nhật bước hồ sơ hàng loạt: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendBulkEmails = async () => {
+    const selectedProcesses = activeProcesses.filter(p => selectedRowKeys.includes(p.id));
+    if (selectedProcesses.length === 0) return;
+
+    setBulkEmailing(true);
+    setBulkEmailProgress({ current: 0, total: selectedProcesses.length, success: 0, error: 0 });
+
+    let current = 0;
+    let success = 0;
+    let error = 0;
+
+    for (const record of selectedProcesses) {
+      current++;
+      const targetEmail = record.email || record.email_sv;
+      if (!targetEmail) {
+        error++;
+        setBulkEmailProgress({ current, total: selectedProcesses.length, success, error });
+        continue;
+      }
+
+      const buocLabel = `Bước ${record.buoc || 1}: ` + (
+        record.buoc === 1 ? "Nhận hồ sơ" : record.buoc === 2 ? "VPĐU Trường" : "Đại học Đà Nẵng"
+      );
+
+      let body = bulkEmailTemplate
+        .replace(/{ho_ten}/g, record.ho_ten || "")
+        .replace(/{mssv}/g, record.mssv || "")
+        .replace(/{buoc_hien_tai}/g, buocLabel);
+
+      try {
+        const formattedBodyText = body.replace(/\n/g, '<br />');
+        const htmlBody = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <title>${bulkEmailSubject}</title>
+              <style>
+                body {
+                  font-family: 'Inter', sans-serif;
+                  line-height: 1.6;
+                  color: #333333;
+                  background-color: #f4f5f7;
+                  padding: 20px;
+                }
+                .container {
+                  max-width: 600px;
+                  margin: 0 auto;
+                  background: #ffffff;
+                  border-radius: 8px;
+                  overflow: hidden;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+                  border: 1px solid #e1e4e8;
+                }
+                .header {
+                  background-color: #c62828;
+                  padding: 24px;
+                  text-align: center;
+                  color: #ffffff;
+                }
+                .content {
+                  padding: 30px;
+                }
+                .footer {
+                  background-color: #f8f9fa;
+                  padding: 16px;
+                  text-align: center;
+                  font-size: 11px;
+                  color: #8c8c8c;
+                  border-top: 1px solid #e1e4e8;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h2 style="margin: 0; font-size: 20px;">CHI BỘ SINH VIÊN</h2>
+                  <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">Hệ thống Quản lý Tiến trình Chuyển sinh hoạt</p>
+                </div>
+                <div class="content">
+                  ${formattedBodyText}
+                </div>
+                <div class="footer">
+                  Email tự động từ Hệ thống quản lý Chi bộ Sinh viên - Trường ĐH Kinh tế ĐHĐN.
+                </div>
+              </div>
+            </body>
+          </html>
+        `;
+
+        const response = await fetch(`${API_BASE_URL}/api/send-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to: targetEmail, subject: bulkEmailSubject, html: htmlBody })
+        });
+
+        if (response.ok) {
+          success++;
+        } else {
+          error++;
+        }
+      } catch (err) {
+        console.error(err);
+        error++;
+      }
+
+      setBulkEmailProgress({ current, total: selectedProcesses.length, success, error });
+    }
+
+    message.success(`Đã hoàn tất gửi email hàng loạt! Thành công: ${success}, Thất bại: ${error}`);
+    setBulkEmailing(false);
+    setBulkEmailModalVisible(false);
+    setSelectedRowKeys([]);
+    await fetchActiveMembersAndProcesses();
+  };
+
   const handleRowClick = (record) => {
     const memberId = record.dang_vien_id || record.id;
     const memberObj = activeMembers.find(m => m.id === memberId) || record;
@@ -2045,6 +2215,131 @@ const HoSoChuyenRa = ({ forceTab }) => {
               scroll={{ x: 'max-content' }}
               style={{ cursor: 'pointer' }}
             />
+            </Card>
+
+            {/* Floating Bulk Actions Panel */}
+            {selectedRowKeys.length > 0 && activeTabKey === '1' && (
+              <div style={{
+                position: 'fixed',
+                bottom: 24,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 1000,
+                background: 'rgba(198, 40, 40, 0.95)',
+                boxShadow: '0 8px 32px rgba(198, 40, 40, 0.3)',
+                borderRadius: '12px',
+                padding: '12px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#fff'
+              }}>
+                <span style={{ fontWeight: 800 }}>Đã chọn {selectedRowKeys.length} hồ sơ</span>
+                <Divider type="vertical" style={{ borderColor: 'rgba(255,255,255,0.3)', height: 20 }} />
+                <Space>
+                  <Button 
+                    type="text" 
+                    icon={<MailOutlined />} 
+                    style={{ color: '#fff', fontWeight: 700 }}
+                    onClick={() => {
+                      setBulkEmailModalVisible(true);
+                      setBulkEmailProgress(null);
+                      setBulkEmailing(false);
+                    }}
+                  >
+                    Gửi email hàng loạt
+                  </Button>
+                  
+                  <Dropdown
+                    menu={{
+                      items: [
+                        { key: '1', label: 'B1: Đã nộp hồ sơ', onClick: () => handleBulkStepUpdate(1) },
+                        { key: '2', label: 'B2: Gửi VPĐU Trường', onClick: () => handleBulkStepUpdate(2) },
+                        { key: '3', label: 'B3: Gửi ĐHĐN', onClick: () => handleBulkStepUpdate(3) }
+                      ]
+                    }}
+                    trigger={['click']}
+                  >
+                    <Button type="text" icon={<CheckCircleOutlined />} style={{ color: '#fff', fontWeight: 700 }}>
+                      Chuyển bước hàng loạt
+                    </Button>
+                  </Dropdown>
+
+                  <Popconfirm
+                    title="Xác nhận hủy hàng loạt?"
+                    description="Hủy quy trình chuyển sinh hoạt của toàn bộ hồ sơ đang chọn?"
+                    okText="Hủy hồ sơ"
+                    cancelText="Đóng"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={async () => {
+                      try {
+                        setLoading(true);
+                        let count = 0;
+                        for (const id of selectedRowKeys) {
+                          await deleteDoc(doc(db, "chuyen_sinh_hoat", id));
+                          count++;
+                        }
+                        message.success(`Đã hủy thành công ${count} hồ sơ!`);
+                        setSelectedRowKeys([]);
+                        await fetchActiveMembersAndProcesses();
+                      } catch (err) {
+                        message.error("Lỗi khi hủy hàng loạt: " + err.message);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                  >
+                    <Button type="text" danger icon={<DeleteOutlined />} style={{ color: '#ffccc7', fontWeight: 700 }}>
+                      Hủy quy trình ({selectedRowKeys.length})
+                    </Button>
+                  </Popconfirm>
+                </Space>
+              </div>
+            )}
+
+            {/* Bulk Email Modal */}
+            <Modal
+              title="Gửi Email Hàng Loạt cho Đảng viên được chọn"
+              open={bulkEmailModalVisible}
+              onCancel={() => setBulkEmailModalVisible(false)}
+              onOk={handleSendBulkEmails}
+              confirmLoading={bulkEmailing}
+              okText="Bắt đầu gửi"
+              cancelText="Hủy"
+              width={650}
+            >
+              <div style={{ padding: '8px 0' }}>
+                <div style={{ marginBottom: 12 }}>
+                  <Text type="secondary">Tiêu đề email:</Text>
+                  <Input 
+                    value={bulkEmailSubject} 
+                    onChange={e => setBulkEmailSubject(e.target.value)} 
+                    placeholder="Nhập tiêu đề email..."
+                    style={{ marginTop: 4 }}
+                  />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <Text type="secondary">Nội dung mẫu (Dùng các từ khóa đại diện {`{ho_ten}`}, {`{mssv}`}, {`{buoc_hien_tai}`}):</Text>
+                  <Input.TextArea 
+                    value={bulkEmailTemplate} 
+                    onChange={e => setBulkEmailTemplate(e.target.value)} 
+                    rows={6}
+                    style={{ marginTop: 4 }}
+                  />
+                </div>
+
+                {bulkEmailProgress && (
+                  <div style={{ background: '#f5f5f5', padding: 12, borderRadius: 6, marginTop: 16 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Tiến độ gửi:</div>
+                    <div>Đang xử lý: {bulkEmailProgress.current} / {bulkEmailProgress.total}</div>
+                    <div style={{ color: '#52c41a' }}>Thành công: {bulkEmailProgress.success}</div>
+                    <div style={{ color: '#f5222d' }}>Thất bại: {bulkEmailProgress.error}</div>
+                  </div>
+                )}
+              </div>
+            </Modal>
             </Card>
             </Tabs.TabPane>
 
