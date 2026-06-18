@@ -2340,7 +2340,6 @@ const HoSoChuyenRa = ({ forceTab }) => {
                 )}
               </div>
             </Modal>
-            </Card>
             </Tabs.TabPane>
 
             <Tabs.TabPane tab={<span style={{ fontWeight: 600 }}>2. Danh sách đăng ký chuyển sinh hoạt Đảng</span>} key="danh-sach-dang-ky">
