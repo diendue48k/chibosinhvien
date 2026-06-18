@@ -1324,9 +1324,9 @@ const HoSoChuyenRa = ({ forceTab }) => {
 
   // === DYNAMIC BULK ACTIONS ===
   const [bulkEmailModalVisible, setBulkEmailModalVisible] = useState(false);
-  const [bulkEmailSubject, setBulkEmailSubject] = useState("Thông báo cập nhật tiến trình chuyển sinh hoạt Đảng");
+  const [bulkEmailSubject, setBulkEmailSubject] = useState("THÔNG BÁO HOÀN TẤT THỦ TỤC CHUYỂN SINH HOẠT ĐẢNG");
   const [bulkEmailTemplate, setBulkEmailTemplate] = useState(
-    `Thân gửi đồng chí {ho_ten} (MSSV: {mssv}),\n\nChi bộ Sinh viên thông báo về tiến trình chuyển sinh hoạt Đảng của đồng chí hiện đang ở {buoc_hien_tai}.\nĐề nghị đồng chí thường xuyên theo dõi các thông báo tiếp theo để hoàn thành đúng thời hạn.\n\nTrân trọng.`
+    `Kính gửi Đồng chí {ho_ten},\n\nHồ sơ thủ tục chuyển sinh hoạt Đảng của đồng chí đã được Chi bộ Sinh viên thực hiện xử lý hoàn thành và chuyển nộp lên cấp trên thành công. Chi bộ xin gửi thông tin chi tiết quyết định chuyển sinh hoạt Đảng như dưới đây:\n\n- Loại chuyển: {loai_chuyen}\n- Nơi chuyển đến: {noi_chuyen_den}\n\nĐồng chí vui lòng chú ý điện thoại để nhận thông báo từ Đảng ủy UBND về việc nhận lại hồ sơ Đảng viên (Hồ sơ gốc) và nộp cho Đơn vị mới. Cảm ơn đồng chí đã luôn đồng hành và gắn bó cùng Chi bộ Sinh viên trong suốt thời gian vừa qua.\n\nKính chúc đồng chí luôn hoàn thành tốt mọi nhiệm vụ được giao ở đơn vị mới.\nTrân trọng.`
   );
   const [bulkEmailProgress, setBulkEmailProgress] = useState(null);
   const [bulkEmailing, setBulkEmailing] = useState(false);
@@ -1395,14 +1395,14 @@ const HoSoChuyenRa = ({ forceTab }) => {
         continue;
       }
 
-      const buocLabel = `Bước ${record.buoc || 1}: ` + (
-        record.buoc === 1 ? "Nhận hồ sơ" : record.buoc === 2 ? "VPĐU Trường" : "Đại học Đà Nẵng"
-      );
+      const typeLabel = record.loai_chuyen === 'chuyen_tam_thoi' ? "Chuyển sinh hoạt tạm thời" : "Chuyển sinh hoạt chính thức";
+      const destLabel = record.noi_chuyen_den || record.noi_chuyen_ra || "Chưa xác định";
 
       let body = bulkEmailTemplate
         .replace(/{ho_ten}/g, record.ho_ten || "")
         .replace(/{mssv}/g, record.mssv || "")
-        .replace(/{buoc_hien_tai}/g, buocLabel);
+        .replace(/{loai_chuyen}/g, typeLabel)
+        .replace(/{noi_chuyen_den}/g, destLabel);
 
       try {
         const formattedBodyText = body.replace(/\n/g, '<br />');
