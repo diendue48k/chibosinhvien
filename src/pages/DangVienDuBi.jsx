@@ -1664,10 +1664,11 @@ const DangVienDuBi = () => {
       
       if (!editingRecord) return;
 
+      const vaoDang = safeDayjs(editingRecord.ngay_vao_dang);
       const formatted = {
         loai_dang_vien: "Chính thức",
         dang_vien_du_bi: false,
-        ngay_cong_nhan_dvct: editingRecord.ngay_vao_dang ? dayjs(editingRecord.ngay_vao_dang).add(1, 'year').format('YYYY-MM-DD') : null,
+        ngay_cong_nhan_dvct: vaoDang.isValid() ? vaoDang.add(1, 'year').format('YYYY-MM-DD') : null,
         ngay_ky_quyet_dinh_dvct: values.ngay_ky_quyet_dinh_dvct.format('YYYY-MM-DD'),
         so_quyet_dinh_dvct: values.so_quyet_dinh_dvct,
         updated_at: new Date().toISOString()

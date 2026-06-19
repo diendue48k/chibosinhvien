@@ -263,12 +263,11 @@ const HoSoDaChinhThuc = () => {
       const snapshot = await getDocs(q);
       const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-      // Filter those who are official members (loai_dang_vien === "Chính thức" or dang_vien_du_bi === false)
-      // and their official date is not in the future
+      // Filter those who are official members and transitioned (have both decision number and signing date)
       const officialMembers = members.filter(member => {
         if (!member.ho_ten) return false;
         if (member.trang_thai && member.trang_thai !== 'dang_sinh_hoat') return false;
-        return !checkIsDuBi(member);
+        return !checkIsDuBi(member) && member.so_quyet_dinh_dvct && member.ngay_ky_quyet_dinh_dvct;
       });
 
       setData(officialMembers);
@@ -738,10 +737,16 @@ const HoSoDaChinhThuc = () => {
         key: 'ngay_chinh_thuc',
         width: 130,
         render: (text, record) => {
-          const d = record.ngay_cong_nhan_dvct || record.ngay_chinh_thuc || text;
-          if (d) return dayjs(d).format('DD/MM/YYYY');
+          const raw = record.ngay_cong_nhan_dvct || record.ngay_chinh_thuc || text;
+          if (raw && raw !== "Invalid Date") {
+            const d = safeDayjs(raw);
+            if (d && d.isValid()) return d.format('DD/MM/YYYY');
+          }
           if (record.ngay_vao_dang) {
-            return dayjs(record.ngay_vao_dang).add(1, 'year').format('DD/MM/YYYY');
+            const vao = safeDayjs(record.ngay_vao_dang);
+            if (vao && vao.isValid()) {
+              return vao.add(1, 'year').format('DD/MM/YYYY');
+            }
           }
           return '--';
         },
@@ -914,7 +919,8 @@ const HoSoDaChinhThuc = () => {
             ngayKyRaw,
             status,
             statusText,
-            memberId: member ? member.id : null
+            memberId: member ? member.id : null,
+            ngayVaoDang: member ? member.ngay_vao_dang : null
           });
         }
 
@@ -941,11 +947,15 @@ const HoSoDaChinhThuc = () => {
 
     try {
       const promises = validRows.map(async (row) => {
+        const vaoDang = safeDayjs(row.ngayVaoDang);
+        const ngayCongNhan = vaoDang && vaoDang.isValid() ? vaoDang.add(1, 'year').format('YYYY-MM-DD') : null;
+
         const updateData = {
           so_quyet_dinh_dvct: row.soQd || null,
           so_qd: row.soQd || null,
-          ngay_chinh_thuc: row.ngayKy || null,
-          ngay_cong_nhan_dvct: row.ngayKy || null,
+          ngay_ky_quyet_dinh_dvct: row.ngayKy || null,
+          ngay_chinh_thuc: ngayCongNhan,
+          ngay_cong_nhan_dvct: ngayCongNhan,
           loai_dang_vien: "Chính thức",
           dang_vien_du_bi: false,
           updated_at: new Date().toISOString()
@@ -960,8 +970,9 @@ const HoSoDaChinhThuc = () => {
           if (!dshSnap.empty) {
             await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", dshSnap.docs[0].id), {
               so_qd: row.soQd || '',
-              ngay_chinh_thuc: row.ngayKy || null,
-              ngay_cong_nhan_dvct: row.ngayKy || null
+              ngay_ki_qd: row.ngayKy || null,
+              ngay_chinh_thuc: ngayCongNhan,
+              ngay_cong_nhan_dvct: ngayCongNhan
             });
           }
         }
@@ -1015,6 +1026,17 @@ const HoSoDaChinhThuc = () => {
     }
 
     const mappedData = dataToExport.map(item => {
+      let ngayChinhThuc = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || null;
+      if (ngayChinhThuc === "Invalid Date") {
+        ngayChinhThuc = null;
+      }
+      if (!ngayChinhThuc && item.ngay_vao_dang) {
+        const vao = safeDayjs(item.ngay_vao_dang);
+        if (vao && vao.isValid()) {
+          ngayChinhThuc = vao.add(1, 'year').format('YYYY-MM-DD');
+        }
+      }
+
       const normItem = {
         ...item,
         ho_ten: item.ho_ten || '',
@@ -1036,7 +1058,7 @@ const HoSoDaChinhThuc = () => {
         so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || '',
         ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || null,
         so_the_dang: item.so_the_dang || '',
-        ngay_chinh_thuc: item.ngay_chinh_thuc || null,
+        ngay_chinh_thuc: ngayChinhThuc,
         dang_vien_du_bi: false,
         trang_thai: item.trang_thai || 'dang_sinh_hoat',
       };
@@ -1045,7 +1067,13 @@ const HoSoDaChinhThuc = () => {
       EXPORT_FIELDS.forEach(field => {
         if (selectedExportFields.includes(field.key)) {
           if (field.isDate) {
-            row[field.label] = normItem[field.key] ? dayjs(normItem[field.key]).format('DD/MM/YYYY') : '';
+            const rawVal = normItem[field.key];
+            if (rawVal && rawVal !== "Invalid Date") {
+              const d = safeDayjs(rawVal);
+              row[field.label] = d && d.isValid() ? d.format('DD/MM/YYYY') : '';
+            } else {
+              row[field.label] = '';
+            }
           } else if (field.isSpecial === 'type') {
             row[field.label] = normItem.dang_vien_du_bi ? "Dự bị" : "Chính thức";
           } else if (field.isSpecial === 'status') {
@@ -1200,13 +1228,17 @@ const HoSoDaChinhThuc = () => {
     const selected = prepMembers.find(m => m.id === memberId);
     if (selected) {
       const ngayVaoDang = safeDayjs(selected.ngay_vao_dang);
-      const ngayChinhThuc = ngayVaoDang ? ngayVaoDang.add(1, 'year') : null;
+      let ngayChinhThuc = safeDayjs(selected.ngay_chinh_thuc || selected.ngay_cong_nhan_dvct);
+      if (!ngayChinhThuc || !ngayChinhThuc.isValid()) {
+        ngayChinhThuc = ngayVaoDang.isValid() ? ngayVaoDang.add(1, 'year') : null;
+      }
       
       form.setFieldsValue({
         ...selected,
         ngay_sinh: safeDayjs(selected.ngay_sinh),
         ngay_vao_dang: ngayVaoDang,
         ngay_chinh_thuc: ngayChinhThuc,
+        ngay_ky_quyet_dinh_dvct: safeDayjs(selected.ngay_ky_quyet_dinh_dvct),
         so_quyet_dinh_dvct: selected.so_quyet_dinh_dvct || '',
       });
     }
@@ -1223,13 +1255,17 @@ const HoSoDaChinhThuc = () => {
     setSelectedPrepId(null);
     
     const ngayVaoDang = safeDayjs(record.ngay_vao_dang);
-    const ngayChinhThuc = safeDayjs(record.ngay_chinh_thuc || record.ngay_cong_nhan_dvct);
+    let ngayChinhThuc = safeDayjs(record.ngay_chinh_thuc || record.ngay_cong_nhan_dvct);
+    if (!ngayChinhThuc || !ngayChinhThuc.isValid()) {
+      ngayChinhThuc = ngayVaoDang.isValid() ? ngayVaoDang.add(1, 'year') : null;
+    }
     
     form.setFieldsValue({
       ...record,
       ngay_sinh: safeDayjs(record.ngay_sinh),
       ngay_vao_dang: ngayVaoDang,
       ngay_chinh_thuc: ngayChinhThuc,
+      ngay_ky_quyet_dinh_dvct: safeDayjs(record.ngay_ky_quyet_dinh_dvct),
       so_quyet_dinh_dvct: record.so_quyet_dinh_dvct || record.so_qd || '',
     });
     
@@ -1307,6 +1343,7 @@ const HoSoDaChinhThuc = () => {
         ngay_vao_dang: values.ngay_vao_dang ? values.ngay_vao_dang.format('YYYY-MM-DD') : null,
         ngay_chinh_thuc: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : null,
         ngay_cong_nhan_dvct: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : null, // Sync both fields
+        ngay_ky_quyet_dinh_dvct: values.ngay_ky_quyet_dinh_dvct ? values.ngay_ky_quyet_dinh_dvct.format('YYYY-MM-DD') : null,
         so_quyet_dinh_dvct: values.so_quyet_dinh_dvct || null,
         so_qd: values.so_quyet_dinh_dvct || null, // Sync both fields
         loai_dang_vien: "Chính thức",
@@ -1333,7 +1370,7 @@ const HoSoDaChinhThuc = () => {
               ngay_sinh: formatted.ngay_sinh,
               ngay_vao_dang: formatted.ngay_vao_dang,
               so_qd: formatted.so_qd || '',
-              ngay_ki_qd: formatted.ngaykiqd || null
+              ngay_ki_qd: formatted.ngay_ky_quyet_dinh_dvct || null
             });
           }
         }
@@ -1375,7 +1412,7 @@ const HoSoDaChinhThuc = () => {
               ngay_sinh: formatted.ngay_sinh,
               ngay_vao_dang: formatted.ngay_vao_dang,
               so_qd: formatted.so_qd || '',
-              ngay_ki_qd: formatted.ngaykiqd || null
+              ngay_ki_qd: formatted.ngay_ky_quyet_dinh_dvct || null
             });
           }
         }
@@ -1783,6 +1820,13 @@ const HoSoDaChinhThuc = () => {
                 <Input disabled={!selectedRecord && !selectedPrepId} placeholder="VD: 123-QĐ/ĐHĐN" />
               </Form.Item>
             </Col>
+            <Col span={12}>
+              <Form.Item name="ngay_ky_quyet_dinh_dvct" label="Ngày ký quyết định chính thức" rules={[{ required: true, message: 'Vui lòng chọn ngày ký quyết định!' }]}>
+                <DatePicker disabled={!selectedRecord && !selectedPrepId} format="DD/MM/YYYY" style={{ width: '100%' }} disabledDate={disabledFutureDate} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="dvhd" label="Đảng viên hướng dẫn">
                 <Input disabled={!selectedRecord && !selectedPrepId} />

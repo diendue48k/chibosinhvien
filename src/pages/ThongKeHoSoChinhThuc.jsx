@@ -189,7 +189,7 @@ const ThongKeHoSoChinhThuc = () => {
         return false;
       }
       
-      const isOfficial = !checkIsDuBi(item);
+      const isOfficial = !checkIsDuBi(item) && item.so_quyet_dinh_dvct && item.ngay_ky_quyet_dinh_dvct;
       let dateStr = null;
       if (isOfficial) {
         dateStr = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct;
@@ -241,7 +241,7 @@ const ThongKeHoSoChinhThuc = () => {
     };
 
     const checkIsOfficial = (member) => {
-      return !checkIsDuBi(member);
+      return !checkIsDuBi(member) && member.so_quyet_dinh_dvct && member.ngay_ky_quyet_dinh_dvct;
     };
 
     const checkIsNotStarted = (member) => {
