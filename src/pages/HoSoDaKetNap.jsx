@@ -1812,7 +1812,8 @@ const HoSoDaKetNap = () => {
                                  normItem.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
                                  normItem.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
             } else {
-              row[field.label] = normItem[field.key] || "";
+              const valStr = String(normItem[field.key] || "");
+              row[field.label] = valStr.length > 32760 ? valStr.substring(0, 32760) : valStr;
             }
           }
         });
