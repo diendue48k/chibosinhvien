@@ -49,10 +49,12 @@ const Login = () => {
       const memberDoc = snapshot.docs[0];
       const memberData = { id: memberDoc.id, ...memberDoc.data() };
 
-      // Strictly check that they must be "Đang sinh hoạt" (Active)
+      // Strictly check that they must be "Đang sinh hoạt" (Active), except for admins and chi_uy
+      const memberRole = memberData.role || ROLES.DANGVIEN;
+      const isAdminOrChiUy = memberRole === ROLES.ADMIN || memberRole === ROLES.CHIUY;
       const isActive = !memberData.trang_thai || memberData.trang_thai === 'dang_sinh_hoat';
-      if (!isActive) {
-        throw new Error('Tài khoản này thuộc Đảng viên đã chuyển sinh hoạt Đảng ra khỏi Chi bộ!');
+      if (!isActive && !isAdminOrChiUy) {
+        throw new Error('Đồng chí đã chuyển sinh hoạt Đảng ra khỏi Chi bộ Sinh viên nên không thể sử dụng các chức năng hệ thống.');
       }
 
       // Verify CCCD (password)
@@ -64,9 +66,6 @@ const Login = () => {
       if (cccdInput !== correctCccd) {
         throw new Error('Số Căn cước công dân (CCCD) không chính xác!');
       }
-
-      // Login dynamically — use the role stored in Firestore, fallback to DANGVIEN
-      const memberRole = memberData.role || ROLES.DANGVIEN;
 
       // Check if probationary and within 2 months of the 12-month deadline
       const safeDayjs = (val) => {
