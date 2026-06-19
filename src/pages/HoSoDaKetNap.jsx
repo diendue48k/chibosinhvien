@@ -1743,73 +1743,93 @@ const HoSoDaKetNap = () => {
   };
 
   const exportExcel = () => {
-    let dataToExport = [];
-    if (exportRange === 'selected') {
-      dataToExport = filteredData.filter(item => selectedRowKeys.includes(item.id));
-    } else if (exportRange === 'all') {
-      dataToExport = data;
-    } else {
-      dataToExport = filteredData;
-    }
+    try {
+      let dataToExport = [];
+      if (exportRange === 'selected') {
+        dataToExport = filteredData.filter(item => selectedRowKeys.includes(item.id));
+      } else if (exportRange === 'all') {
+        dataToExport = data;
+      } else {
+        dataToExport = filteredData;
+      }
 
-    if (dataToExport.length === 0) {
-      message.warning("Không có dữ liệu để xuất!");
-      return;
-    }
+      if (dataToExport.length === 0) {
+        message.warning("Không có dữ liệu để xuất!");
+        return;
+      }
 
-    const mappedData = dataToExport.map(item => {
-      // Normalize ho_so_ket_nap fields to standard dang_vien fields with robust fallbacks
-      const normItem = {
-        ...item,
-        ho_ten: item.ho_ten || item.hoten || '',
-        so_dien_thoai: item.so_dien_thoai || item.sdt || '',
-        ngay_sinh: item.ngay_sinh || item.ngaysinh || null,
-        que_quan: item.que_quan || item.quequan || getFullHometown(item),
-        dia_chi_thuong_tru: item.dia_chi_thuong_tru || getFullAddress(item),
-        dia_chi_tam_tru: item.dia_chi_tam_tru || getFullTamTru(item),
-        ngay_vao_dang: item.ngay_vao_dang || item.ngayvaodang || null,
-        dvhd: item.dvhd || item.dangvienhuongdan || '',
-        so_the_dang: item.so_the_dang || item.soqd || '',
-        ngay_chinh_thuc: item.ngay_chinh_thuc || item.ngaykiqd || null,
-        dang_vien_du_bi: item.dang_vien_du_bi !== undefined ? item.dang_vien_du_bi : true,
-        trang_thai: item.trang_thai || 'dang_sinh_hoat',
-        facebook: item.facebook || item.link_fb || '',
-        email: item.email || item.email_sv || '',
-        email_sv: item.email_sv || item.email || '',
-        tinh_tp_qq: item.tinh_tp_qq || item.tinh_tp_qq_cu || '',
-        xa_phuong_qq: item.xa_phuong_qq || item.xa_phuong_qq_cu || '',
-        tinh_tp_tt: item.tinh_tp_tt || item.tinh_tp_tt_cu || '',
-        xa_phuong_tt: item.xa_phuong_tt || item.xa_phuong_tt_cu || '',
-        chi_tiet_dc: item.chi_tiet_dc || item.chi_tiet_tt_cu || '',
+      const safeFormatDate = (dateVal) => {
+        if (!dateVal) return '';
+        try {
+          if (typeof dateVal === 'object') {
+            if (dateVal.toDate && typeof dateVal.toDate === 'function') return dayjs(dateVal.toDate()).format('DD/MM/YYYY');
+            if (dateVal.seconds) return dayjs(dateVal.seconds * 1000).format('DD/MM/YYYY');
+            return dayjs(dateVal).isValid() ? dayjs(dateVal).format('DD/MM/YYYY') : '';
+          }
+          const d = dayjs(dateVal);
+          return d.isValid() ? d.format('DD/MM/YYYY') : '';
+        } catch (e) {
+          return '';
+        }
       };
 
-      const row = {};
-      EXPORT_FIELDS.forEach(field => {
-        if (selectedExportFields.includes(field.key)) {
-          if (field.isDate) {
-            row[field.label] = normItem[field.key] ? dayjs(normItem[field.key]).format('DD/MM/YYYY') : '';
-          } else if (field.isSpecial === 'type') {
-            row[field.label] = normItem.dang_vien_du_bi ? "Dự bị" : "Chính thức";
-          } else if (field.isSpecial === 'status') {
-            row[field.label] = normItem.trang_thai === 'dang_sinh_hoat' ? 'Đang sinh hoạt' :
-                               normItem.trang_thai === 'da_chuyen' ? 'Đã chuyển ra' :
-                               normItem.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
-                               normItem.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
-          } else {
-            row[field.label] = normItem[field.key] || "";
-          }
-        }
-      });
-      return row;
-    });
+      const mappedData = dataToExport.map(item => {
+        // Normalize ho_so_ket_nap fields to standard dang_vien fields with robust fallbacks
+        const normItem = {
+          ...item,
+          ho_ten: item.ho_ten || item.hoten || '',
+          so_dien_thoai: item.so_dien_thoai || item.sdt || '',
+          ngay_sinh: item.ngay_sinh || item.ngaysinh || null,
+          que_quan: item.que_quan || item.quequan || getFullHometown(item),
+          dia_chi_thuong_tru: item.dia_chi_thuong_tru || getFullAddress(item),
+          dia_chi_tam_tru: item.dia_chi_tam_tru || getFullTamTru(item),
+          ngay_vao_dang: item.ngay_vao_dang || item.ngayvaodang || null,
+          dvhd: item.dvhd || item.dangvienhuongdan || '',
+          so_the_dang: item.so_the_dang || item.soqd || '',
+          ngay_chinh_thuc: item.ngay_chinh_thuc || item.ngaykiqd || null,
+          dang_vien_du_bi: item.dang_vien_du_bi !== undefined ? item.dang_vien_du_bi : true,
+          trang_thai: item.trang_thai || 'dang_sinh_hoat',
+          facebook: item.facebook || item.link_fb || '',
+          email: item.email || item.email_sv || '',
+          email_sv: item.email_sv || item.email || '',
+          tinh_tp_qq: item.tinh_tp_qq || item.tinh_tp_qq_cu || '',
+          xa_phuong_qq: item.xa_phuong_qq || item.xa_phuong_qq_cu || '',
+          tinh_tp_tt: item.tinh_tp_tt || item.tinh_tp_tt_cu || '',
+          xa_phuong_tt: item.xa_phuong_tt || item.xa_phuong_tt_cu || '',
+          chi_tiet_dc: item.chi_tiet_dc || item.chi_tiet_tt_cu || '',
+        };
 
-    const ws = XLSX.utils.json_to_sheet(mappedData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "DaKetNap");
-    XLSX.writeFile(wb, "DanhSachDangVienDaKetNap_TuyChinh.xlsx");
-    
-    setIsExportModalVisible(false);
-    message.success(`Xuất Excel thành công ${dataToExport.length} dòng!`);
+        const row = {};
+        EXPORT_FIELDS.forEach(field => {
+          if (selectedExportFields.includes(field.key)) {
+            if (field.isDate) {
+              row[field.label] = safeFormatDate(normItem[field.key]);
+            } else if (field.isSpecial === 'type') {
+              row[field.label] = normItem.dang_vien_du_bi ? "Dự bị" : "Chính thức";
+            } else if (field.isSpecial === 'status') {
+              row[field.label] = normItem.trang_thai === 'dang_sinh_hoat' ? 'Đang sinh hoạt' :
+                                 normItem.trang_thai === 'da_chuyen' ? 'Đã chuyển ra' :
+                                 normItem.trang_thai === 'cho_ket_nap' ? 'Chờ kết nạp' :
+                                 normItem.trang_thai === 'dang_xet_chinh_thuc' ? 'Đang xét chính thức' : 'Đang sinh hoạt';
+            } else {
+              row[field.label] = normItem[field.key] || "";
+            }
+          }
+        });
+        return row;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(mappedData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "DaKetNap");
+      XLSX.writeFile(wb, "DanhSachDangVienDaKetNap_TuyChinh.xlsx");
+      
+      setIsExportModalVisible(false);
+      message.success(`Xuất Excel thành công ${dataToExport.length} dòng!`);
+    } catch (e) {
+      console.error(e);
+      message.error("Lỗi khi xuất file Excel: " + e.message);
+    }
   };
 
   const columns = [
