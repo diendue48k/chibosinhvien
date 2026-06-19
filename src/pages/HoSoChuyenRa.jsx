@@ -3052,7 +3052,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
           setRejectLoading(true);
           try {
             await updateDoc(doc(db, "dangky_chuyen_sinh_hoat", rejectingRecord.id), {
-              trang_thai: rejectActionType === 'tu_choi' ? 'tu_choi' : 'cho_duyet',
+              trang_thai: rejectActionType === 'tu_choi' ? 'tu_choi' : 'dieu_chinh',
               ghi_chu_duyet: rejectReason
             });
             message.success(rejectActionType === 'tu_choi' ? 'Đã từ chối hồ sơ' : 'Đã lưu yêu cầu điều chỉnh');
@@ -3617,6 +3617,9 @@ const HoSoChuyenRa = ({ forceTab }) => {
               </Row>
             </>
           )}
+          <Form.Item name="_registrationId" noStyle>
+            <Input type="hidden" />
+          </Form.Item>
         </Form>
       </Modal>
 
