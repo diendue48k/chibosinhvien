@@ -423,6 +423,26 @@ const DangVienDuBi = () => {
   const [bulkEmailProgress, setBulkEmailProgress] = useState(null);
   const [, setBulkEmailing] = useState(false);
 
+  const handleOpenEditDrawer = (record) => {
+    setEditingRecord(record);
+    const normalized = normalizeAddressForForm(record);
+    form.setFieldsValue({
+      ...normalized,
+      so_dien_thoai: record.so_dien_thoai || record.sdt || '',
+      tinh_tp_tam_tru: normalized.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
+      dvhd_theo_doi: record.dvhd_theo_doi || record.dvhd || undefined,
+      dvhd_ho_so: record.dvhd_ho_so || record.dvhd || undefined,
+      ngay_sinh: record.ngay_sinh ? dayjs(record.ngay_sinh) : null,
+      ngay_vao_dang: record.ngay_vao_dang ? dayjs(record.ngay_vao_dang) : null,
+      ngay_cong_nhan_dvct: record.ngay_cong_nhan_dvct ? dayjs(record.ngay_cong_nhan_dvct) : null,
+      ngay_ky_quyet_dinh_dvct: record.ngay_ky_quyet_dinh_dvct ? dayjs(record.ngay_ky_quyet_dinh_dvct) : null,
+      ngay_cap_gcn: record.ngay_cap_gcn ? dayjs(record.ngay_cap_gcn) : null,
+      so_gcn: record.so_gcn || undefined,
+      noi_cap_gcn: record.noi_cap_gcn || undefined
+    });
+    setDrawerVisible(true);
+  };
+
   const fetchDangVienDuBi = async () => {
     setLoading(true);
     try {
@@ -1198,25 +1218,7 @@ const DangVienDuBi = () => {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <a 
             style={{ fontWeight: 500, color: '#1890ff' }} 
-            onClick={() => {
-              setEditingRecord(record);
-              const normalized = normalizeAddressForForm(record);
-              form.setFieldsValue({
-                ...normalized,
-                so_dien_thoai: record.so_dien_thoai || record.sdt || '',
-                tinh_tp_tam_tru: normalized.tinh_tp_tam_tru || 'Thành phố Đà Nẵng',
-                dvhd_theo_doi: record.dvhd_theo_doi || record.dvhd || undefined,
-                dvhd_ho_so: record.dvhd_ho_so || record.dvhd || undefined,
-                ngay_sinh: record.ngay_sinh ? dayjs(record.ngay_sinh) : null,
-                ngay_vao_dang: record.ngay_vao_dang ? dayjs(record.ngay_vao_dang) : null,
-                ngay_cong_nhan_dvct: record.ngay_cong_nhan_dvct ? dayjs(record.ngay_cong_nhan_dvct) : null,
-                ngay_ky_quyet_dinh_dvct: record.ngay_ky_quyet_dinh_dvct ? dayjs(record.ngay_ky_quyet_dinh_dvct) : null,
-                ngay_cap_gcn: record.ngay_cap_gcn ? dayjs(record.ngay_cap_gcn) : null,
-                so_gcn: record.so_gcn || undefined,
-                noi_cap_gcn: record.noi_cap_gcn || undefined
-              });
-              setDrawerVisible(true);
-            }}
+            onClick={() => handleOpenEditDrawer(record)}
           >
             {record.ho_ten}
           </a>
@@ -2502,6 +2504,22 @@ const DangVienDuBi = () => {
             pageSizeOptions: ['5', '10', '20', '50', '100', '1000'],
             showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} Đảng viên dự bị`
           }}
+          onRow={(record) => ({
+            onClick: (e) => {
+              if (
+                e.target.tagName !== 'INPUT' && 
+                e.target.tagName !== 'BUTTON' && 
+                !e.target.closest('.ant-select') && 
+                !e.target.closest('.ant-btn') && 
+                !e.target.closest('a') && 
+                e.target.type !== 'checkbox' &&
+                !e.target.closest('.ant-table-selection-column')
+              ) {
+                handleOpenEditDrawer(record);
+              }
+            },
+            style: { cursor: 'pointer' }
+          })}
         />
       </Card>
 

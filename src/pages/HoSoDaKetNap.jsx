@@ -2107,6 +2107,23 @@ const HoSoDaKetNap = () => {
           pageSizeOptions: ['5', '10', '20', '50', '1000'],
           showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} hồ sơ đã kết nạp`
         }}
+        onRow={(record) => ({
+          onClick: (e) => {
+            if (
+              e.target.tagName !== 'INPUT' && 
+              e.target.tagName !== 'BUTTON' && 
+              !e.target.closest('.ant-select') && 
+              !e.target.closest('.ant-btn') && 
+              !e.target.closest('a') && 
+              !e.target.closest('span.ant-typography') && 
+              e.target.type !== 'checkbox' &&
+              !e.target.closest('.ant-table-selection-column')
+            ) {
+              handleEdit(record);
+            }
+          },
+          style: { cursor: 'pointer' }
+        })}
       />
 
       {/* Drawer Details Form */}
