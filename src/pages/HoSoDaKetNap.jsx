@@ -980,11 +980,7 @@ const HoSoDaKetNap = () => {
         return rec;
       });
 
-      const activeRecords = mergedRecords.filter(member => {
-        return !member.trang_thai || member.trang_thai === 'dang_sinh_hoat';
-      });
-
-      setData(activeRecords);
+      setData(mergedRecords);
     } catch (error) {
       message.error("Lỗi khi tải danh sách hồ sơ đã kết nạp");
       console.error(error);
@@ -1842,9 +1838,12 @@ const HoSoDaKetNap = () => {
       key: 'hoten',
       sorter: (a, b) => (a.hoten || '').localeCompare(b.hoten || ''),
       render: (text, record) => (
-        <Text style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 500 }} onClick={() => handleEdit(record)}>
-          {text}
-        </Text>
+        <Space>
+          <Text style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 500 }} onClick={() => handleEdit(record)}>
+            {text}
+          </Text>
+          {record.trang_thai === 'da_chuyen' && <Tag color="default">Đã chuyển đi</Tag>}
+        </Space>
       )
     },
     { title: 'Lớp', dataIndex: 'lop', key: 'lop', sorter: (a, b) => (a.lop || '').localeCompare(b.lop || '') },
