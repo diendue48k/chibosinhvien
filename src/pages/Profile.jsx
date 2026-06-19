@@ -43,9 +43,30 @@ const addProvincePrefix = (tinh) => {
 const getDisplayAddress = (tinh, huyen, xa, chiTiet) => {
   const parts = [];
   if (chiTiet) parts.push(chiTiet);
-  if (xa) parts.push(xa);
-  if (huyen) parts.push(huyen);
-  if (tinh) parts.push(addProvincePrefix(tinh));
+  
+  const chiTietLower = chiTiet ? chiTiet.toLowerCase() : '';
+  
+  if (xa) {
+    const xaClean = xa.replace(/^(Phường|Xã|Thị trấn|Thị Trấn)\s+/i, '').trim().toLowerCase();
+    if (!chiTietLower.includes(xaClean)) {
+      parts.push(xa);
+    }
+  }
+  
+  if (huyen) {
+    const huyenClean = huyen.replace(/^(Quận|Huyện|Thị xã|Thị Xã|Thành phố|Thành Phố)\s+/i, '').trim().toLowerCase();
+    if (!chiTietLower.includes(huyenClean)) {
+      parts.push(huyen);
+    }
+  }
+  
+  if (tinh) {
+    const tinhClean = tinh.replace(/^(Tỉnh|Thành phố|Thành Phố|TP\.|TP)\s+/i, '').trim().toLowerCase();
+    if (!chiTietLower.includes(tinhClean)) {
+      parts.push(addProvincePrefix(tinh));
+    }
+  }
+  
   return parts.join(', ');
 };
 
