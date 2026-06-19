@@ -459,7 +459,23 @@ const HoSoChuyenRa = ({ forceTab }) => {
       const dkSnapshot = await getDocs(collection(db, "dangky_chuyen_sinh_hoat"));
       const pendingRegs = dkSnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(t => t.trang_thai === 'cho_duyet');
+        .filter(t => {
+          if (t.trang_thai !== 'cho_duyet') return false;
+          
+          // Check if associated member has already transitioned out (trang_thai === 'da_chuyen')
+          const member = allMembersList.find(m => m.id === t.dang_vien_id || (m.mssv && t.mssv && String(m.mssv).trim() === String(t.mssv).trim()));
+          if (member && member.trang_thai === 'da_chuyen') {
+            return false;
+          }
+          
+          // Check if they already have an active transfer process in Tab 1
+          const hasActiveTransfer = activeTransfers.some(tr => tr.dang_vien_id === t.dang_vien_id || (tr.mssv && t.mssv && String(tr.mssv).trim() === String(t.mssv).trim()));
+          if (hasActiveTransfer) {
+            return false;
+          }
+          
+          return true;
+        });
       setPendingRegistrations(pendingRegs);
 
       const merged = activeTransfers.map(transfer => {
