@@ -14,9 +14,9 @@ import {
   DatabaseOutlined, WarningOutlined, CalendarOutlined,
   DownloadOutlined, UploadOutlined, PlusOutlined,
   HomeOutlined, CloseCircleOutlined, AuditOutlined, LockOutlined,
-  UnorderedListOutlined, CloudUploadOutlined, UserSwitchOutlined
+  UnorderedListOutlined, CloudUploadOutlined, UserSwitchOutlined, ScanOutlined
 } from '@ant-design/icons';
-import { collection, getDocs, updateDoc, doc, deleteDoc, getDoc, setDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, deleteDoc, getDoc, setDoc, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ROLES, permissionService, DEFAULT_KHOA, DEFAULT_NHOM } from '../services/permissionService';
 import { useAuth } from '../contexts/AuthContext';
@@ -139,6 +139,8 @@ const Users = () => {
   const [matrixSearchText, setMatrixSearchText] = useState('');
   const [isEditingPeriodOpen, setIsEditingPeriodOpen] = useState(false);
   const [togglingPeriod, setTogglingPeriod] = useState(false);
+  const [isFaceIdRegistrationOpen, setIsFaceIdRegistrationOpen] = useState(true);
+  const [togglingFaceId, setTogglingFaceId] = useState(false);
   const [historyLogs, setHistoryLogs] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [rollingBackId, setRollingBackId] = useState(null);
@@ -917,6 +919,43 @@ const Users = () => {
     }
   };
 
+  const fetchFaceIdConfigStatus = async () => {
+    try {
+      const docRef = doc(db, "system_config", "face_id");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setIsFaceIdRegistrationOpen(docSnap.data().registrationOpen !== false);
+      } else {
+        setIsFaceIdRegistrationOpen(true);
+      }
+    } catch (e) {
+      console.error("Lỗi khi tải trạng thái thiết lập Face ID:", e);
+    }
+  };
+
+  const handleToggleFaceIdRegistration = async (checked) => {
+    setTogglingFaceId(true);
+    try {
+      const docRef = doc(db, "system_config", "face_id");
+      await setDoc(docRef, {
+        registrationOpen: checked,
+        updatedAt: new Date().toISOString(),
+        updatedBy: currentUser?.name || currentUser?.username || currentUser?.email || 'Admin'
+      }, { merge: true });
+      setIsFaceIdRegistrationOpen(checked);
+      if (checked) {
+        message.success("Đã MỞ cổng đăng ký/cập nhật Face ID cho tất cả Đảng viên!");
+      } else {
+        message.warning("Đã KHÓA cổng đăng ký/cập nhật Face ID cho tất cả Đảng viên!");
+      }
+    } catch (e) {
+      console.error("Lỗi khi cập nhật trạng thái Face ID:", e);
+      message.error("Lỗi khi cập nhật trạng thái");
+    } finally {
+      setTogglingFaceId(false);
+    }
+  };
+
   const fetchBchContacts = async () => {
     setLoadingBch(true);
     try {
@@ -1313,6 +1352,7 @@ const Users = () => {
     fetchUsers();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchEditingPeriodStatus();
+    fetchFaceIdConfigStatus();
   }, []);
 
   useEffect(() => {
@@ -1325,6 +1365,8 @@ const Users = () => {
     } else if (activeMainTab === 'editing_period') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchEditingPeriodStatus();
+    } else if (activeMainTab === 'face_id_config') {
+      fetchFaceIdConfigStatus();
     } else if (activeMainTab === 'bch_contacts') {
       fetchBchContacts();
     } else if (activeMainTab === 'backup_restore' || activeMainTab === 'categories' || activeMainTab === 'danger_zone') {
@@ -1754,6 +1796,7 @@ const Users = () => {
       systemConfigItems.push({ key: 'permission_matrix', label: 'Ma trận phân quyền', icon: <SafetyCertificateOutlined /> });
     }
     systemConfigItems.push({ key: 'editing_period', label: 'Đợt cập nhật lý lịch', icon: <CalendarOutlined /> });
+    systemConfigItems.push({ key: 'face_id_config', label: 'Cài đặt Face ID', icon: <ScanOutlined /> });
     if (isAdmin) {
       systemConfigItems.push({ key: 'bch_contacts', label: 'Cấu hình Chi ủy', icon: <TeamOutlined /> });
     }
@@ -2356,6 +2399,57 @@ const Users = () => {
                     checkedChildren="MỞ"
                     unCheckedChildren="ĐÓNG"
                     style={{ backgroundColor: isEditingPeriodOpen ? '#52c41a' : '#d9d9d9' }}
+                  />
+                </div>
+              </div>
+            </Card>
+          </Card>
+        </TabPane>
+
+        <TabPane tab={<span><ScanOutlined /> Cài đặt Face ID</span>} key="face_id_config">
+          <Card bordered={false} style={{ borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.03)' }}>
+            <Card
+              bordered={false}
+              style={{
+                background: 'linear-gradient(135deg, #f0f5ff 0%, #ffffff 100%)',
+                border: '1.5px solid #adc6ff',
+                borderRadius: '12px',
+                boxShadow: '0 4px 15px rgba(24, 144, 255, 0.08)',
+                padding: '16px'
+              }}
+              title={
+                <span style={{ fontWeight: 800, color: '#1d39c4', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ScanOutlined style={{ color: '#1d39c4' }} /> Cấu hình Cổng Thiết lập sinh trắc học khuôn mặt (Face ID)
+                </span>
+              }
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <Paragraph style={{ margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
+                    Với vai trò <Tag color="blue" style={{ fontWeight: 'bold' }}>{currentUser?.role === ROLES.KIEMTRA ? 'Ban điều hành nhóm Kiểm tra giám sát' : 'Chi ủy Chi bộ Sinh viên'}</Tag>, đồng chí có thẩm quyền mở hoặc khóa cổng đăng ký/thiết lập sinh trắc học khuôn mặt (Face ID) tự động dành cho Đảng viên sinh viên.
+                  </Paragraph>
+                  <div style={{ marginTop: '8px', fontSize: '13px', color: '#555', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>Trạng thái hiện tại:</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <span className={isFaceIdRegistrationOpen ? "pulse-dot-green" : "pulse-dot-red"} style={{ marginTop: '1px' }} />
+                      {isFaceIdRegistrationOpen ? (
+                        <span style={{ color: '#52c41a', fontWeight: 'bold' }}>Đang MỞ (Cho phép Đảng viên tự thiết lập Face ID)</span>
+                      ) : (
+                        <span style={{ color: '#f5222d', fontWeight: 'bold' }}>Đang KHÓA (Không cho phép Đảng viên tự thiết lập Face ID)</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '13px' }}>Cài đặt Face ID:</span>
+                  <Switch
+                    checked={isFaceIdRegistrationOpen}
+                    loading={togglingFaceId}
+                    onChange={handleToggleFaceIdRegistration}
+                    checkedChildren="MỞ"
+                    unCheckedChildren="KHÓA"
+                    style={{ backgroundColor: isFaceIdRegistrationOpen ? '#52c41a' : '#d9d9d9' }}
                   />
                 </div>
               </div>
