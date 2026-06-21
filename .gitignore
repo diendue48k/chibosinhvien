@@ -31,5 +31,4 @@ server/.env
 # Temporary output directories
 temp_docx_extract/
 test_output/
-
-
+scratch/

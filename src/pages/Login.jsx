@@ -77,6 +77,10 @@ const Login = () => {
       
       const checkIsDuBi = (member) => {
         if (!member) return true;
+        if (member.dang_vien_du_bi === true) return true;
+        if (member.dang_vien_du_bi === false) return false;
+        if (member.loai_dang_vien === "Dự bị" || member.loai_dang_vien === "dubi") return true;
+        if (member.loai_dang_vien === "Chính thức") return false;
         const getOfficialDate = () => {
           const date = member.ngay_cong_nhan_dvct || member.ngay_chinh_thuc;
           if (!date) return null;
@@ -86,13 +90,9 @@ const Login = () => {
         if (officialDate && officialDate.isValid()) {
           return officialDate.isAfter(dayjs(), 'day');
         }
-        if (member.so_quyet_dinh_dvct || member.so_qd) {
+        if (member.so_quyet_dinh_dvct) {
           return false;
         }
-        if (member.dang_vien_du_bi === true) return true;
-        if (member.dang_vien_du_bi === false) return false;
-        if (member.loai_dang_vien === "Dự bị" || member.loai_dang_vien === "dubi") return true;
-        if (member.loai_dang_vien === "Chính thức") return false;
         return true;
       };
       

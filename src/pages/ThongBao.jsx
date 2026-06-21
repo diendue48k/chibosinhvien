@@ -412,7 +412,9 @@ const ThongBao = () => {
     setLoading(true);
     try {
       const snap = await getDocs(collection(db, 'notifications'));
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const list = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(n => !n.target_user_id);
       list.sort((a, b) => safeDayjs(b.created_at).valueOf() - safeDayjs(a.created_at).valueOf());
       setNotifications(list);
     } catch (e) { message.error('Lỗi khi tải thông báo'); }

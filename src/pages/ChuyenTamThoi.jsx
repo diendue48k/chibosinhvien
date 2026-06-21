@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Table, Button, Input, Space, Typography, message, Select, Tag, Modal, Form, DatePicker, Radio, Row, Col, Card, Divider } from 'antd';
-import { SearchOutlined, CheckCircleOutlined, FilterOutlined, CloseOutlined, SwapOutlined, DownloadOutlined } from '@ant-design/icons';
-import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { Table, Button, Input, Space, Typography, message, Select, Tag, Modal, Form, DatePicker, Radio, Row, Col, Card, Divider, Popconfirm } from 'antd';
+import { SearchOutlined, CheckCircleOutlined, FilterOutlined, CloseOutlined, SwapOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import dayjs from 'dayjs';
 import PermissionWrapper from '../components/PermissionWrapper';
@@ -184,6 +184,31 @@ const ChuyenTamThoi = () => {
       setLoading(false);
     }
   };
+
+  const handleBulkReset = async () => {
+    try {
+      setLoading(true);
+      await Promise.all(selectedRowKeys.map(async (id) => {
+        const record = data.find(r => r.id === id);
+        if (record && record.dang_vien_id) {
+          await updateDoc(doc(db, "dang_vien", record.dang_vien_id), {
+            trang_thai_tam_thoi: null,
+            updated_at: new Date().toISOString()
+          });
+        }
+        await deleteDoc(doc(db, "chuyen_tam_thoi", id));
+      }));
+      message.success(`Đã khôi phục trạng thái sinh hoạt cho ${selectedRowKeys.length} Đảng viên thành công.`);
+      setSelectedRowKeys([]);
+      fetchHistory();
+    } catch (error) {
+      message.error("Lỗi khi reset hàng loạt");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleOpenExportModal = () => {
     setSelectedExportFields(EXPORT_FIELDS.map(f => f.key));
     setExportRange('filtered');
@@ -293,26 +318,26 @@ const ChuyenTamThoi = () => {
       render: (_, __, index) => index + 1
     },
     {
-      title: 'MSSV',
-      dataIndex: 'mssv',
-      key: 'mssv',
-      sorter: (a, b) => (a.mssv || '').localeCompare(b.mssv || '')
+      title: 'Họ tên & MSSV',
+      key: 'ho_ten_mssv',
+      sorter: (a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || ''),
+      render: (_, r) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text style={{ color: '#1890ff', fontWeight: 500 }}>{r.ho_ten || '--'}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>{r.mssv || '--'}</Text>
+        </div>
+      )
     },
     {
-      title: 'Họ tên',
-      dataIndex: 'ho_ten',
-      key: 'ho_ten',
-      sorter: (a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || '')
-    },
-    {
-      title: 'Lớp',
-      dataIndex: 'lop',
-      key: 'lop',
-    },
-    {
-      title: 'Khoa',
-      dataIndex: 'khoa',
-      key: 'khoa',
+      title: 'Lớp & Khoa',
+      key: 'lop_khoa',
+      sorter: (a, b) => (a.lop || '').localeCompare(b.lop || ''),
+      render: (_, r) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontWeight: 500 }}>{r.lop || '--'}</span>
+          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{r.khoa || '--'}</span>
+        </div>
+      )
     },
     {
       title: 'Ngày chuyển tạm thời',
@@ -349,24 +374,70 @@ const ChuyenTamThoi = () => {
     {
       title: 'Hành động',
       key: 'action',
-      width: 150,
-      render: (_, r) => r.trang_thai === 'dang_di' && (
-        <PermissionWrapper module="members" action="transfer">
-          <Button
-            type="primary"
-            size="small"
-            icon={<CheckCircleOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedRecord(r);
-              setIsReturnVisible(true);
-              returnForm.setFieldsValue({ ngay_chuyen_ve: dayjs() });
-            }}
-            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            Xác nhận trở lại
-          </Button>
-        </PermissionWrapper>
+      width: 250,
+      render: (_, r) => (
+        <Space size="small">
+          {r.trang_thai === 'dang_di' && (
+            <PermissionWrapper module="members" action="transfer">
+              <Button
+                type="primary"
+                size="small"
+                icon={<CheckCircleOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedRecord(r);
+                  setIsReturnVisible(true);
+                  returnForm.setFieldsValue({ ngay_chuyen_ve: dayjs() });
+                }}
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                Xác nhận trở lại
+              </Button>
+            </PermissionWrapper>
+          )}
+          <PermissionWrapper module="members" action="transfer">
+            <Popconfirm
+              title="Bạn có chắc chắn muốn reset?"
+              description="Hồ sơ chuyển tạm thời này sẽ bị xóa và khôi phục trạng thái sinh hoạt bình thường cho Đảng viên."
+              onConfirm={async (e) => {
+                // We don't need e.stopPropagation() here because Popconfirm onConfirm doesn't pass native event,
+                // but just in case, we will stop propagation or handle it
+                try {
+                  setLoading(true);
+                  if (r.dang_vien_id) {
+                    await updateDoc(doc(db, "dang_vien", r.dang_vien_id), {
+                      trang_thai_tam_thoi: null,
+                      updated_at: new Date().toISOString()
+                    });
+                  }
+                  await deleteDoc(doc(db, "chuyen_tam_thoi", r.id));
+                  message.success(`Đã reset trạng thái sinh hoạt cho đồng chí ${r.ho_ten}.`);
+                  fetchHistory();
+                } catch (error) {
+                  message.error("Lỗi khi reset");
+                  console.error(error);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              onCancel={(e) => e && e.stopPropagation()}
+              okText="Reset"
+              cancelText="Hủy"
+              okButtonProps={{ danger: true }}
+            >
+              <Button
+                danger
+                type="text"
+                size="small"
+                icon={<DeleteOutlined />}
+                onClick={(e) => e.stopPropagation()}
+                style={{ borderRadius: '4px' }}
+              >
+                Reset
+              </Button>
+            </Popconfirm>
+          </PermissionWrapper>
+        </Space>
       )
     }
   ];
@@ -383,13 +454,37 @@ const ChuyenTamThoi = () => {
           </Title>
         </div>
         
-        <Button 
-          icon={<DownloadOutlined />} 
-          onClick={handleOpenExportModal}
-          style={{ borderRadius: '6px', fontWeight: 500 }}
-        >
-          Xuất Excel
-        </Button>
+        <Space size="middle">
+          {selectedRowKeys.length > 0 && (
+            <PermissionWrapper module="members" action="transfer">
+              <Popconfirm
+                title={`Reset trạng thái sinh hoạt cho ${selectedRowKeys.length} Đảng viên đã chọn?`}
+                description="Các hồ sơ chuyển tạm thời đã chọn sẽ bị xóa và khôi phục trạng thái sinh hoạt bình thường."
+                onConfirm={handleBulkReset}
+                okText="Reset"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+              >
+                <Button 
+                  danger
+                  type="primary" 
+                  icon={<DeleteOutlined />} 
+                  style={{ borderRadius: '6px' }}
+                >
+                  Reset trạng thái ({selectedRowKeys.length})
+                </Button>
+              </Popconfirm>
+            </PermissionWrapper>
+          )}
+
+          <Button 
+            icon={<DownloadOutlined />} 
+            onClick={handleOpenExportModal}
+            style={{ borderRadius: '6px', fontWeight: 500 }}
+          >
+            Xuất Excel
+          </Button>
+        </Space>
       </div>
 
       <Paragraph style={{ color: '#666', fontSize: '13px', marginBottom: '20px' }}>

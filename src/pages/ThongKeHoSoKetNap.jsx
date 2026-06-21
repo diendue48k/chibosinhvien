@@ -66,9 +66,9 @@ const getCohort = (item) => {
 const ThongKeHoSoKetNap = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterFaculty, setFilterFaculty] = useState(null);
-  const [filterCohort, setFilterCohort] = useState(null);
-  const [filterYear, setFilterYear] = useState('2026');
+  const [filterFaculty, setFilterFaculty] = useState([]);
+  const [filterCohort, setFilterCohort] = useState([]);
+  const [filterYear, setFilterYear] = useState(['2026']);
   const [displayMode, setDisplayMode] = useState('charts'); // 'charts' | 'tables'
   const [timeTrendType, setTimeTrendType] = useState('month'); // 'year' | 'month'
 
@@ -138,21 +138,21 @@ const ThongKeHoSoKetNap = () => {
   const filteredData = useMemo(() => {
     return data.filter(item => {
       // Filter by Faculty
-      if (filterFaculty && standardizeKhoa(item.khoa) !== filterFaculty) {
+      if (filterFaculty && filterFaculty.length > 0 && !filterFaculty.includes(standardizeKhoa(item.khoa))) {
         return false;
       }
       
       // Filter by Cohort
-      if (filterCohort && getCohort(item) !== filterCohort) {
+      if (filterCohort && filterCohort.length > 0 && !filterCohort.includes(getCohort(item))) {
         return false;
       }
       
       // Filter by Year
-      if (filterYear) {
+      if (filterYear && filterYear.length > 0) {
         const itemYear = item.ngayvaodang 
           ? dayjs(item.ngayvaodang).format('YYYY') 
           : (item.ngaynhanhoso ? dayjs(item.ngaynhanhoso).format('YYYY') : dayjs(item.created_at).format('YYYY'));
-        if (itemYear !== filterYear) {
+        if (!filterYear.includes(itemYear)) {
           return false;
         }
       }
@@ -249,8 +249,8 @@ const ThongKeHoSoKetNap = () => {
           
           yearTrendCounts[yr] = (yearTrendCounts[yr] || 0) + 1;
           
-          if (filterYear) {
-            if (yr === filterYear) {
+          if (filterYear && filterYear.length > 0) {
+            if (filterYear.includes(yr)) {
               monthTrendCounts[mth]++;
             }
           } else {
@@ -504,6 +504,8 @@ const ThongKeHoSoKetNap = () => {
     { title: 'Tổng cộng', dataIndex: 'Tổng cộng', key: 'total', render: val => <strong>{val} hồ sơ</strong> }
   ];
 
+  const filterYearLabel = filterYear && filterYear.length > 0 ? `(${filterYear.join(', ')})` : '';
+
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 50px', background: '#ffffff', borderRadius: 16 }}>
@@ -638,46 +640,49 @@ const ThongKeHoSoKetNap = () => {
               </span>
               
               <Select 
+                mode="multiple"
+                maxTagCount="responsive"
                 value={filterFaculty} 
                 onChange={setFilterFaculty} 
-                style={{ width: 180 }} 
+                style={{ minWidth: 200, maxWidth: 300 }} 
                 placeholder="Tất cả các khoa"
                 allowClear
               >
-                <Option value={null}>Tất cả các khoa</Option>
                 {facultiesList.map(f => <Option key={f} value={f}>{f}</Option>)}
               </Select>
 
               <Select 
+                mode="multiple"
+                maxTagCount="responsive"
                 value={filterCohort} 
                 onChange={setFilterCohort} 
-                style={{ width: 150 }} 
+                style={{ minWidth: 180, maxWidth: 250 }} 
                 placeholder="Tất cả các khóa"
                 allowClear
               >
-                <Option value={null}>Tất cả các khóa</Option>
                 {cohortsList.map(c => <Option key={c} value={c}>{c}</Option>)}
               </Select>
 
               <Select 
+                mode="multiple"
+                maxTagCount="responsive"
                 value={filterYear} 
                 onChange={setFilterYear} 
-                style={{ width: 150 }} 
+                style={{ minWidth: 180, maxWidth: 250 }} 
                 placeholder="Tất cả các năm"
                 allowClear
               >
-                <Option value={null}>Tất cả các năm</Option>
                 {yearsList.map(y => <Option key={y} value={y}>{y}</Option>)}
               </Select>
 
-              {(filterFaculty || filterCohort || filterYear) && (
+              {[filterFaculty, filterCohort, filterYear].some(arr => arr && arr.length > 0) && (
                 <Button 
                   type="text" 
                   danger 
                   onClick={() => {
-                    setFilterFaculty(null);
-                    setFilterCohort(null);
-                    setFilterYear(null);
+                    setFilterFaculty([]);
+                    setFilterCohort([]);
+                    setFilterYear([]);
                   }}
                   style={{ fontWeight: 700 }}
                 >
@@ -884,7 +889,7 @@ const ThongKeHoSoKetNap = () => {
                       buttonStyle="solid"
                     >
                       <Radio.Button value="year">Theo Năm</Radio.Button>
-                      <Radio.Button value="month">Theo Tháng {filterYear ? `(${filterYear})` : ''}</Radio.Button>
+                      <Radio.Button value="month">Theo Tháng {filterYearLabel}</Radio.Button>
                     </Radio.Group>
                   </div>
                   <div style={{ height: 260 }}>
@@ -935,7 +940,7 @@ const ThongKeHoSoKetNap = () => {
                       buttonStyle="solid"
                     >
                       <Radio.Button value="year">Theo Năm</Radio.Button>
-                      <Radio.Button value="month">Theo Tháng {filterYear ? `(${filterYear})` : ''}</Radio.Button>
+                      <Radio.Button value="month">Theo Tháng {filterYearLabel}</Radio.Button>
                     </Radio.Group>
                   </div>
                   <Table 

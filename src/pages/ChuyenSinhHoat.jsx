@@ -397,29 +397,26 @@ const ChuyenSinhHoat = () => {
       render: (_, __, index) => index + 1
     },
     { 
-      title: 'MSSV', 
-      dataIndex: 'mssv', 
-      key: 'mssv',
-      sorter: (a, b) => (a.mssv || '').localeCompare(b.mssv || '')
-    },
-    { 
-      title: 'Họ tên', 
-      dataIndex: 'ho_ten', 
-      key: 'ho_ten',
+      title: 'Họ tên & MSSV', 
+      key: 'ho_ten_mssv',
       sorter: (a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || ''),
-      render: (text) => <Text style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 500 }}>{text}</Text>
+      render: (_, r) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text style={{ color: '#1890ff', cursor: 'pointer', fontWeight: 500 }}>{r.ho_ten || '--'}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>{r.mssv || '--'}</Text>
+        </div>
+      )
     },
     { 
-      title: 'Lớp', 
-      dataIndex: 'lop', 
-      key: 'lop',
-      sorter: (a, b) => (a.lop || '').localeCompare(b.lop || '')
-    },
-    { 
-      title: 'Khoa', 
-      dataIndex: 'khoa', 
-      key: 'khoa',
-      sorter: (a, b) => (a.khoa || '').localeCompare(b.khoa || '')
+      title: 'Lớp & Khoa', 
+      key: 'lop_khoa',
+      sorter: (a, b) => (a.lop || '').localeCompare(b.lop || ''),
+      render: (_, r) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontWeight: 500 }}>{r.lop || '--'}</span>
+          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{r.khoa || '--'}</span>
+        </div>
+      )
     },
     { 
       title: 'Nhóm sinh hoạt', 
@@ -439,17 +436,6 @@ const ChuyenSinhHoat = () => {
       dataIndex: 'noi_chuyen_ra', 
       key: 'noi_chuyen_ra',
       sorter: (a, b) => (a.noi_chuyen_ra || '').localeCompare(b.noi_chuyen_ra || '')
-    },
-    { 
-      title: 'Loại', 
-      dataIndex: 'dang_vien_du_bi', 
-      key: 'dang_vien_du_bi',
-      sorter: (a, b) => (a.dang_vien_du_bi ? 1 : 0) - (b.dang_vien_du_bi ? 1 : 0),
-      render: (isDuBi) => (
-        <Tag color={isDuBi ? 'orange' : 'green'} style={{ borderRadius: '4px', fontWeight: 500 }}>
-          {isDuBi ? 'Dự bị' : 'Chính thức'}
-        </Tag>
-      )
     }
   ];
 

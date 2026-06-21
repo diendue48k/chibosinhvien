@@ -59,16 +59,26 @@ const conductColor = (s) => s >= 80 ? '#52c41a' : s >= 65 ? '#faad14' : '#ff4d4f
 // ============================================================
 const buildEmailHtml = (session, candidates, origin) => {
   const typeLabel = session.type === 'ADMISSION' ? 'Kết nạp Đảng viên' : 'Công nhận Đảng viên chính thức';
-  const candRows = candidates.map((c, i) => `
-    <tr style="border-bottom:1px solid #f0f0f0; background:${i % 2 === 0 ? '#fff' : '#fafafa'};">
-      <td style="padding:10px 12px;font-weight:700;color:#c62828;">${i + 1}</td>
-      <td style="padding:10px 12px;font-weight:700;">${c.name}</td>
-      <td style="padding:10px 12px;">${c.faculty}</td>
-      <td style="padding:10px 12px;">${c.class}</td>
-      <td style="padding:10px 12px;text-align:center;"><strong>${c.academicScore}/10</strong></td>
-      <td style="padding:10px 12px;text-align:center;"><strong>${c.conductScore}/100</strong></td>
-    </tr>
-  `).join('');
+  const candRows = candidates.map((c, i) => {
+    const isTwoSemesters = c.academicScore1 !== undefined || c.academicScore2 !== undefined;
+    const academicStr = isTwoSemesters 
+      ? `Gần nhất: ${c.academicScore2 ?? 0} | Trước đó: ${c.academicScore1 ?? 0}`
+      : `${c.academicScore ?? 0}`;
+    const conductStr = isTwoSemesters 
+      ? `Gần nhất: ${c.conductScore2 ?? 0} | Trước đó: ${c.conductScore1 ?? 0}`
+      : `${c.conductScore ?? 0}`;
+      
+    return `
+      <tr style="border-bottom:1px solid #f0f0f0; background:${i % 2 === 0 ? '#fff' : '#fafafa'};">
+        <td style="padding:10px 12px;font-weight:700;color:#c62828;">${i + 1}</td>
+        <td style="padding:10px 12px;font-weight:700;">${c.name}</td>
+        <td style="padding:10px 12px;">${c.faculty}</td>
+        <td style="padding:10px 12px;">${c.class}</td>
+        <td style="padding:10px 12px;text-align:center;"><strong>${academicStr}</strong></td>
+        <td style="padding:10px 12px;text-align:center;"><strong>${conductStr}</strong></td>
+      </tr>
+    `;
+  }).join('');
 
   return `
     <div style="font-family:'Inter',-apple-system,sans-serif;max-width:640px;margin:0 auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;box-shadow:0 4px 10px rgba(0,0,0,0.05);">
@@ -275,6 +285,13 @@ const Voting = () => {
   const [createForm] = Form.useForm();
   const fileInputRef = useRef(null);
 
+  // ── All Members for dropdown auto-population
+  const [allMembers, setAllMembers] = useState([]);
+  const [activePartyMembersList, setActivePartyMembersList] = useState([]);
+  const [admissionInProgressList, setAdmissionInProgressList] = useState([]);
+  const selectedType = Form.useWatch('type', createForm);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+
   // ── Database Pull Selector State
   const [pullModalOpen, setPullModalOpen] = useState(false);
   const [pullSourceType, setPullSourceType] = useState('');
@@ -290,20 +307,23 @@ const Voting = () => {
   const handleDownloadTemplate = () => {
     try {
       const wsData = [
-        ["Họ và tên", "Lớp", "Khoa", "ĐTB Học tập", "Điểm Rèn luyện", "Quá trình công tác & rèn luyện"],
-        ["Nguyễn Văn A", "51QT01", "Quản trị KD", 8.5, 90, "Lớp trưởng, Ủy viên BCH Liên chi đoàn khoa, Sinh viên 5 tốt cấp Trường năm học 2024-2025."],
-        ["Trần Thị B", "51TC02", "Tài chính - Ngân hàng", 9.2, 95, "Ủy viên BCH Hội Sinh viên trường, đạt giải Nhất NCKH cấp Trường."],
-        ["Lê Văn C", "51KT03", "Kế toán", 7.8, 85, "Thành viên tích cực CLB Tình nguyện, tích cực tham gia các hoạt động Đoàn Hội."]
+        ["Họ và tên", "MSSV", "Lớp", "Khoa", "ĐTB học tập kì ngay trước đó", "ĐTB học tập kì gần nhất", "ĐRL kì ngay trước đó", "ĐRL kì gần nhất", "Quá trình công tác & rèn luyện"],
+        ["Nguyễn Văn A", "2212345", "51QT01", "Quản trị KD", 8.5, 8.7, 90, 95, "Lớp trưởng, Ủy viên BCH Liên chi đoàn khoa, Sinh viên 5 tốt cấp Trường năm học 2024-2025."],
+        ["Trần Thị B", "2212346", "51TC02", "Tài chính - Ngân hàng", 9.2, 9.1, 95, 92, "Ủy viên BCH Hội Sinh viên trường, đạt giải Nhất NCKH cấp Trường."],
+        ["Lê Văn C", "2212347", "51KT03", "Kế toán", 7.8, 8.0, 85, 88, "Thành viên tích cực CLB Tình nguyện, tích cực tham gia các hoạt động Đoàn Hội."]
       ];
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       
       // Set column widths for better styling
       ws['!cols'] = [
         { wch: 20 }, // Họ và tên
+        { wch: 12 }, // MSSV
         { wch: 10 }, // Lớp
         { wch: 20 }, // Khoa
-        { wch: 15 }, // ĐTB Học tập
-        { wch: 15 }, // Điểm Rèn luyện
+        { wch: 25 }, // ĐTB học tập kì ngay trước đó
+        { wch: 25 }, // ĐTB học tập kì gần nhất
+        { wch: 25 }, // ĐRL kì ngay trước đó
+        { wch: 25 }, // ĐRL kì gần nhất
         { wch: 55 }  // Quá trình công tác
       ];
 
@@ -343,8 +363,15 @@ const Voting = () => {
 
         // Map columns dynamically
         const nameIdx = headers.findIndex(h => /họ\s*và\s*tên|họ\s*tên|tên/i.test(h));
+        const mssvIdx = headers.findIndex(h => /mssv|mã\s*sv|mã\s*số/i.test(h));
         const classIdx = headers.findIndex(h => /lớp/i.test(h));
         const facultyIdx = headers.findIndex(h => /khoa/i.test(h));
+        const academic1Idx = headers.findIndex(h => /(kỳ\s*1|k1|trước|trước\s*đó)/i.test(h) && /học\s*tập|đtb|điểm\s*tb|gpa/i.test(h));
+        const academic2Idx = headers.findIndex(h => /(kỳ\s*2|k2|gần\s*nhất)/i.test(h) && /học\s*tập|đtb|điểm\s*tb|gpa/i.test(h));
+        const conduct1Idx = headers.findIndex(h => /(kỳ\s*1|k1|trước|trước\s*đó)/i.test(h) && /rèn\s*luyện|đrl/i.test(h));
+        const conduct2Idx = headers.findIndex(h => /(kỳ\s*2|k2|gần\s*nhất)/i.test(h) && /rèn\s*luyện|đrl/i.test(h));
+
+        // Fallbacks
         const academicIdx = headers.findIndex(h => /học\s*tập|đtb|điểm\s*tb|gpa/i.test(h));
         const conductIdx = headers.findIndex(h => /rèn\s*luyện|đrl/i.test(h));
         const processIdx = headers.findIndex(h => /quá\s*trình|công\s*tác|ghi\s*chú|mô\s*tả/i.test(h));
@@ -364,23 +391,50 @@ const Voting = () => {
             return;
           }
 
+          const mssvVal = mssvIdx !== -1 ? (row[mssvIdx]?.toString().trim() || '') : '';
           const classVal = classIdx !== -1 ? (row[classIdx]?.toString().trim() || '') : '';
           const facultyVal = facultyIdx !== -1 ? (row[facultyIdx]?.toString().trim() || '') : '';
 
           // Parse scores, clamp them, and format them
-          let academicVal = 0;
-          if (academicIdx !== -1) {
+          let academicVal1 = 8.0;
+          if (academic1Idx !== -1) {
+            const rawScore = parseFloat(row[academic1Idx]);
+            if (!isNaN(rawScore)) {
+              academicVal1 = Math.max(0, Math.min(10, parseFloat(rawScore.toFixed(2))));
+            }
+          } else if (academicIdx !== -1) {
             const rawScore = parseFloat(row[academicIdx]);
             if (!isNaN(rawScore)) {
-              academicVal = Math.max(0, Math.min(10, parseFloat(rawScore.toFixed(2))));
+              academicVal1 = Math.max(0, Math.min(10, parseFloat(rawScore.toFixed(2))));
             }
           }
 
-          let conductVal = 0;
-          if (conductIdx !== -1) {
+          let academicVal2 = academicVal1;
+          if (academic2Idx !== -1) {
+            const rawScore = parseFloat(row[academic2Idx]);
+            if (!isNaN(rawScore)) {
+              academicVal2 = Math.max(0, Math.min(10, parseFloat(rawScore.toFixed(2))));
+            }
+          }
+
+          let conductVal1 = 85;
+          if (conduct1Idx !== -1) {
+            const rawScore = parseInt(row[conduct1Idx], 10);
+            if (!isNaN(rawScore)) {
+              conductVal1 = Math.max(0, Math.min(100, rawScore));
+            }
+          } else if (conductIdx !== -1) {
             const rawScore = parseInt(row[conductIdx], 10);
             if (!isNaN(rawScore)) {
-              conductVal = Math.max(0, Math.min(100, rawScore));
+              conductVal1 = Math.max(0, Math.min(100, rawScore));
+            }
+          }
+
+          let conductVal2 = conductVal1;
+          if (conduct2Idx !== -1) {
+            const rawScore = parseInt(row[conduct2Idx], 10);
+            if (!isNaN(rawScore)) {
+              conductVal2 = Math.max(0, Math.min(100, rawScore));
             }
           }
 
@@ -388,10 +442,13 @@ const Voting = () => {
 
           importedCandidates.push({
             name: nameVal,
+            mssv: mssvVal,
             class: classVal,
             faculty: facultyVal,
-            academicScore: academicVal,
-            conductScore: conductVal,
+            academicScore1: academicVal1,
+            academicScore2: academicVal2,
+            conductScore1: conductVal1,
+            conductScore2: conductVal2,
             processDescription: processVal
           });
         });
@@ -440,9 +497,10 @@ const Voting = () => {
             mssv: data.mssv || data.MSSV || data.masv || data.ma_sv || data.MaSV || '',
             ho_ten: data.ho_ten || data.hoten || '',
             lop: data.lop || data.Lop || '',
-            khoa: data.khoa || data.Khoa || ''
+            khoa: data.khoa || data.Khoa || '',
+            trang_thai: data.trang_thai || 'dang_sinh_hoat'
           };
-        });
+        }).filter(item => !item.trang_thai || item.trang_thai === 'dang_sinh_hoat');
         setPullDataList(list);
       } else if (source === 'ho_so_ket_nap') {
         const snap = await getDocs(collection(db, 'ho_so_ket_nap'));
@@ -540,10 +598,13 @@ const Voting = () => {
 
       return {
         name: nameVal,
+        mssv: row.mssv || '',
         class: classVal,
         faculty: facultyVal,
-        academicScore: academicVal,
-        conductScore: conductVal,
+        academicScore1: academicVal,
+        academicScore2: academicVal,
+        conductScore1: conductVal,
+        conductScore2: conductVal,
         processDescription: descVal,
         anh_ca_nhan: picVal
       };
@@ -557,6 +618,110 @@ const Voting = () => {
     message.success(`Đã tự động điền thành công ${mapped.length} ứng viên vào danh sách.`);
     setPullModalOpen(false);
   };
+
+  // ============================================================
+  // FETCH ALL MEMBERS FOR AUTO-POPULATION
+  // ============================================================
+  const fetchAllMembers = async () => {
+    setLoadingMembers(true);
+    try {
+      const [dvSnap, hsKnSnap, hsCtSnap] = await Promise.all([
+        getDocs(collection(db, 'dang_vien')),
+        getDocs(collection(db, 'ho_so_ket_nap')),
+        getDocs(collection(db, 'ho_so_chinh_thuc'))
+      ]);
+
+      const dvList = dvSnap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          source: 'dang_vien',
+          mssv: data.mssv || data.MSSV || data.masv || data.ma_sv || data.MaSV || '',
+          ho_ten: data.ho_ten || data.hoten || '',
+          lop: data.lop || data.Lop || '',
+          khoa: data.khoa || data.Khoa || '',
+          anh_ca_nhan: data.anh_ca_nhan || '',
+          processDescription: data.nhom ? `Nhóm sinh hoạt: ${data.nhom}` : '',
+          trang_thai: data.trang_thai || 'dang_sinh_hoat'
+        };
+      });
+
+      const hsKnList = hsKnSnap.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          source: 'ho_so_ket_nap',
+          mssv: data.mssv || data.MSSV || data.masv || data.ma_sv || data.MaSV || '',
+          ho_ten: data.ho_ten || data.hoten || '',
+          lop: data.lop || data.Lop || '',
+          khoa: data.khoa || data.Khoa || '',
+          anh_ca_nhan: data.anh_ca_nhan || '',
+          processDescription: data.dangvienhuongdan ? `Đảng viên hướng dẫn: ${data.dangvienhuongdan}` : ''
+        };
+      }).filter(item => !item.trangthai || Number(item.trangthai) < 8);
+
+      const hsCtList = hsCtSnap.docs.map(doc => {
+        const data = doc.data();
+        const mssvVal = data.mssv || data.MSSV || '';
+        const nameVal = data.ho_ten || data.hoten || '';
+        const lopVal = data.lop || data.Lop || '';
+        const khoaVal = data.khoa || data.Khoa || '';
+        return {
+          id: doc.id,
+          source: 'ho_so_chinh_thuc',
+          mssv: mssvVal,
+          ho_ten: nameVal,
+          lop: lopVal,
+          khoa: khoaVal,
+          anh_ca_nhan: data.anh_ca_nhan || '',
+          processDescription: data.da_hoc_lop ? `Đã học lớp bồi dưỡng: ${data.da_hoc_lop}` : ''
+        };
+      }).filter(hs => hs.trang_thai === 'dang_lam_thu_tuc' || hs.trang_thai !== 'chinh_thuc');
+
+      const mergedMap = new Map();
+      const addToList = (item) => {
+        if (!item.mssv) return;
+        const key = item.mssv.toString().trim();
+        if (!mergedMap.has(key)) {
+          mergedMap.set(key, item);
+        } else {
+          const existing = mergedMap.get(key);
+          mergedMap.set(key, {
+            ...existing,
+            anh_ca_nhan: existing.anh_ca_nhan || item.anh_ca_nhan,
+            processDescription: existing.processDescription || item.processDescription,
+            lop: existing.lop || item.lop,
+            khoa: existing.khoa || item.khoa,
+            ho_ten: existing.ho_ten || item.ho_ten
+          });
+        }
+      };
+
+      dvList.forEach(addToList);
+      hsCtList.forEach(addToList);
+      hsKnList.forEach(addToList);
+
+      const sortedList = Array.from(mergedMap.values()).sort((a, b) => 
+        (a.mssv || '').localeCompare(b.mssv || '')
+      );
+      setAllMembers(sortedList);
+
+      const activeDvs = dvList.filter(item => !item.trang_thai || item.trang_thai === 'dang_sinh_hoat');
+      setActivePartyMembersList(activeDvs.sort((a, b) => (a.mssv || '').localeCompare(b.mssv || '')));
+      setAdmissionInProgressList(hsKnList.sort((a, b) => (a.mssv || '').localeCompare(b.mssv || '')));
+    } catch (e) {
+      console.error(e);
+      message.error("Lỗi khi tải danh sách Đảng viên/hồ sơ: " + e.message);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  useEffect(() => {
+    if (createModalOpen) {
+      fetchAllMembers();
+    }
+  }, [createModalOpen]);
 
   // ============================================================
   // LOAD SESSIONS
@@ -700,10 +865,13 @@ const Voting = () => {
           addDoc(collection(db, 'voting_candidates'), {
             sessionId: sessionDoc.id,
             name: c.name || '',
+            mssv: c.mssv || '',
             class: c.class || '',
             faculty: c.faculty || '',
-            academicScore: c.academicScore ?? 0,
-            conductScore: c.conductScore ?? 0,
+            academicScore1: c.academicScore1 ?? 0,
+            academicScore2: c.academicScore2 ?? 0,
+            conductScore1: c.conductScore1 ?? 0,
+            conductScore2: c.conductScore2 ?? 0,
             processDescription: c.processDescription || '',
             anh_ca_nhan: c.anh_ca_nhan || '',
           })
@@ -941,7 +1109,9 @@ const Voting = () => {
                 }} 
               />
               <div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.3px' }}>{cand.name}</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#1a1a1a', letterSpacing: '-0.3px' }}>
+                  {cand.name} {cand.mssv && <span style={{ fontSize: 14, fontWeight: 600, color: '#8c8c8c', marginLeft: 6 }}>({cand.mssv})</span>}
+                </div>
                 <Space size={6} style={{ marginTop: 6 }}>
                   <Tag style={{ borderRadius: 4, fontWeight: 600 }}>{cand.class}</Tag>
                   <Tag color="blue" style={{ borderRadius: 4, fontWeight: 600 }}>{cand.faculty}</Tag>
@@ -953,17 +1123,43 @@ const Voting = () => {
               <Col span={12}>
                 <div style={{ padding: '12px 16px', background: '#f6ffed', borderRadius: 10, border: '1.5px solid #d9f7be' }}>
                   <div style={{ fontSize: 11, color: '#389e0d', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Điểm học tập</div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: academicColor(cand.academicScore) }}>
-                    {cand.academicScore} <span style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c' }}>/ 10</span>
-                  </div>
+                  {cand.academicScore1 !== undefined || cand.academicScore2 !== undefined ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: '#595959' }}>Kỳ gần nhất:</span>
+                        <strong style={{ color: academicColor(cand.academicScore2 ?? 0) }}>{(cand.academicScore2 ?? 0).toFixed(2)}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: '#595959' }}>Kỳ ngay trước đó:</span>
+                        <strong style={{ color: academicColor(cand.academicScore1 ?? 0) }}>{(cand.academicScore1 ?? 0).toFixed(2)}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 24, fontWeight: 900, color: academicColor(cand.academicScore ?? 0) }}>
+                      {cand.academicScore ?? 0} <span style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c' }}>/ 10</span>
+                    </div>
+                  )}
                 </div>
               </Col>
               <Col span={12}>
                 <div style={{ padding: '12px 16px', background: '#e6f7ff', borderRadius: 10, border: '1.5px solid #bae7ff' }}>
                   <div style={{ fontSize: 11, color: '#096dd9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Điểm rèn luyện</div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: conductColor(cand.conductScore) }}>
-                    {cand.conductScore} <span style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c' }}>/ 100</span>
-                  </div>
+                  {cand.conductScore1 !== undefined || cand.conductScore2 !== undefined ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: '#595959' }}>Kỳ gần nhất:</span>
+                        <strong style={{ color: conductColor(cand.conductScore2 ?? 0) }}>{cand.conductScore2 ?? 0}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                        <span style={{ color: '#595959' }}>Kỳ ngay trước đó:</span>
+                        <strong style={{ color: conductColor(cand.conductScore1 ?? 0) }}>{cand.conductScore1 ?? 0}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 24, fontWeight: 900, color: conductColor(cand.conductScore ?? 0) }}>
+                      {cand.conductScore ?? 0} <span style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c' }}>/ 100</span>
+                    </div>
+                  )}
                 </div>
               </Col>
             </Row>
@@ -1065,7 +1261,9 @@ const Voting = () => {
             <Avatar size={48} src={getAvatarUrl(r.candidate.anh_ca_nhan)} icon={<UserOutlined />}
               style={{ border: `1.5px solid ${r.passed ? '#52c41a' : '#ff4d4f'}`, flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: 17, fontWeight: 900, color: '#1a1a1a' }}>{r.candidate.name}</div>
+              <div style={{ fontSize: 17, fontWeight: 900, color: '#1a1a1a' }}>
+                {r.candidate.name} {r.candidate.mssv && <span style={{ fontSize: 13, fontWeight: 600, color: '#8c8c8c', marginLeft: 4 }}>({r.candidate.mssv})</span>}
+              </div>
               <Space size={4} style={{ marginTop: 4 }}>
                 <Tag style={{ borderRadius: 4 }}>{r.candidate.class}</Tag>
                 <Tag color="blue" style={{ borderRadius: 4 }}>{r.candidate.faculty}</Tag>
@@ -1597,15 +1795,21 @@ const Voting = () => {
             </div>
             
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => handleOpenPullModal('ho_so_ket_nap')} style={{ fontSize: 12, borderColor: '#1890ff', color: '#1890ff' }}>
-                Chọn từ HS Kết nạp Đảng
-              </Button>
-              <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => handleOpenPullModal('ho_so_chinh_thuc')} style={{ fontSize: 12, borderColor: '#722ed1', color: '#722ed1' }}>
-                Chọn từ HS Chính thức
-              </Button>
-              <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => handleOpenPullModal('dang_vien')} style={{ fontSize: 12, borderColor: '#eb2f96', color: '#eb2f96' }}>
-                Chọn từ Danh sách Đảng viên
-              </Button>
+              {selectedType === 'ADMISSION' && (
+                <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => handleOpenPullModal('ho_so_ket_nap')} style={{ fontSize: 12, borderColor: '#1890ff', color: '#1890ff' }}>
+                  Chọn từ HS Kết nạp Đảng
+                </Button>
+              )}
+              {selectedType === 'OFFICIAL' && (
+                <Button type="dashed" size="small" icon={<PlusOutlined />} onClick={() => handleOpenPullModal('dang_vien')} style={{ fontSize: 12, borderColor: '#eb2f96', color: '#eb2f96' }}>
+                  Chọn từ Danh sách Đảng viên (Đang sinh hoạt)
+                </Button>
+              )}
+              {!selectedType && (
+                <span style={{ fontSize: '13px', color: '#8c8c8c', fontStyle: 'italic' }}>
+                  Vui lòng chọn Loại biểu quyết để sử dụng chức năng chọn nhanh ứng viên.
+                </span>
+              )}
             </div>
           </div>
 
@@ -1634,6 +1838,57 @@ const Voting = () => {
                     )}>
                     <Row gutter={12}>
                       <Col span={12}>
+                        <Form.Item name={[name, 'mssv_select']} label="Chọn nhanh từ danh sách Đảng viên/Hồ sơ">
+                          <Select
+                            showSearch
+                            allowClear
+                            placeholder="Gõ MSSV hoặc Tên..."
+                            optionFilterProp="children"
+                            loading={loadingMembers}
+                            filterOption={(input, option) => {
+                              return (option?.label || '').toLowerCase().includes(input.toLowerCase());
+                            }}
+                            onChange={(value) => {
+                              if (!value) {
+                                return;
+                              }
+                              const found = allMembers.find(m => m.mssv === value);
+                              if (found) {
+                                const currentCands = createForm.getFieldValue('candidates') || [];
+                                currentCands[name] = {
+                                  ...currentCands[name],
+                                  mssv: found.mssv,
+                                  name: found.ho_ten,
+                                  class: found.lop,
+                                  faculty: found.khoa,
+                                  anh_ca_nhan: found.anh_ca_nhan || '',
+                                  processDescription: found.processDescription || ''
+                                };
+                                createForm.setFieldsValue({ candidates: currentCands });
+                              }
+                            }}
+                            options={(
+                              selectedType === 'OFFICIAL' 
+                                ? activePartyMembersList 
+                                : selectedType === 'ADMISSION' 
+                                ? admissionInProgressList 
+                                : allMembers
+                            ).map(m => ({
+                              value: m.mssv,
+                              label: `${m.mssv} - ${m.ho_ten} (${m.lop || 'N/A'})`,
+                            }))}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item name={[name, 'mssv']} label="MSSV">
+                          <Input placeholder="Nhập MSSV nếu chưa có..." />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={12}>
+                      <Col span={12}>
                         <Form.Item name={[name, 'name']} label="Họ và tên" rules={[{ required: true, message: 'Nhập tên!' }]}>
                           <Input placeholder="Nguyễn Văn A" />
                         </Form.Item>
@@ -1659,19 +1914,35 @@ const Voting = () => {
                     </Row>
 
                     <Row gutter={12}>
-                      <Col span={6}>
-                        <Form.Item name={[name, 'academicScore']} label="ĐTB học tập" rules={[{ required: true, message: 'Nhập điểm!' }]}>
-                          <InputNumber min={0} max={10} step={0.1} style={{ width: '100%' }} placeholder="8.5" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={6}>
-                        <Form.Item name={[name, 'conductScore']} label="Điểm rèn luyện" rules={[{ required: true, message: 'Nhập điểm!' }]}>
-                          <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="90" />
-                        </Form.Item>
+                      <Col span={12}>
+                        <Row gutter={8}>
+                          <Col span={12}>
+                            <Form.Item name={[name, 'academicScore2']} label="ĐTB học tập kì gần nhất" rules={[{ required: true, message: 'Nhập ĐTB kì gần nhất!' }]}>
+                              <InputNumber min={0} max={10} step={0.1} style={{ width: '100%' }} placeholder="8.7" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name={[name, 'academicScore1']} label="ĐTB học tập kì ngay trước đó" rules={[{ required: true, message: 'Nhập ĐTB kì ngay trước đó!' }]}>
+                              <InputNumber min={0} max={10} step={0.1} style={{ width: '100%' }} placeholder="8.5" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                        <Row gutter={8}>
+                          <Col span={12}>
+                            <Form.Item name={[name, 'conductScore2']} label="ĐRL kì gần nhất" rules={[{ required: true, message: 'Nhập ĐRL kì gần nhất!' }]}>
+                              <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="95" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name={[name, 'conductScore1']} label="ĐRL kì ngay trước đó" rules={[{ required: true, message: 'Nhập ĐRL kì ngay trước đó!' }]}>
+                              <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="90" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
                       </Col>
                       <Col span={12}>
                         <Form.Item name={[name, 'processDescription']} label="Quá trình công tác & rèn luyện">
-                          <TextArea rows={5} placeholder="Nhập chi tiết về quá trình học tập, rèn luyện, các thành tích nổi bật, khen thưởng, kỷ luật..." />
+                          <TextArea rows={6} placeholder="Nhập chi tiết về quá trình học tập, rèn luyện, các thành tích nổi bật, khen thưởng, kỷ luật..." />
                         </Form.Item>
                       </Col>
                     </Row>
