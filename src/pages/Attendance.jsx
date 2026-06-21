@@ -8,9 +8,12 @@ import {
   PlayCircleOutlined, LockOutlined, PlusOutlined, DownloadOutlined,
   CloseCircleOutlined,
   ReloadOutlined,
-  UploadOutlined
+  UploadOutlined,
+  FullscreenOutlined,
+  CheckCircleOutlined,
+  QrcodeOutlined
 } from '@ant-design/icons';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
@@ -104,6 +107,21 @@ const Attendance = () => {
   const streamRef = useRef(null);
   const processingRef = useRef(new Set());
   const [logs, setLogs] = useState([]);
+
+  // Self check-in and projection modal states
+  const [isProjectionModalVisible, setIsProjectionModalVisible] = useState(false);
+  const [selfCheckInCode, setSelfCheckInCode] = useState('');
+  const [selfChecking, setSelfChecking] = useState(false);
+
+  // Device Camera QR Scanner states & refs
+  const qrVideoRef = useRef(null);
+  const qrCanvasRef = useRef(null);
+  const qrStreamRef = useRef(null);
+  const qrIntervalRef = useRef(null);
+  const [isQrScannerVisible, setIsQrScannerVisible] = useState(false);
+  const [qrScannerLoading, setQrScannerLoading] = useState(false);
+  const [qrCameraError, setQrCameraError] = useState('');
+  const [countdownSeconds, setCountdownSeconds] = useState(180);
 
   // Audio synthesis chime using Web Audio API
   const playBeep = (type = 'success') => {
@@ -410,9 +428,6 @@ const Attendance = () => {
       setImportCols([]);
       setImportMeetingsDetected([]);
       fetchMatrixData();
-      if (selectedMeeting) {
-        fetchAttendances(selectedMeeting.id);
-      }
     } catch (e) {
       console.error(e);
       message.error("Lỗi khi lưu dữ liệu nhập tổng hợp: " + e.message);
@@ -432,21 +447,25 @@ const Attendance = () => {
     }
   };
 
-  // Fetch Attendance records for a specific meeting
-  const fetchAttendances = async (meetingId) => {
+  // Real-time synchronization of check-in records for selected meeting
+  useEffect(() => {
+    if (!selectedMeeting?.id) return;
+    
     setLoading(true);
-    try {
-      const q = query(collection(db, "attendances"), where("meetingId", "==", meetingId));
-      const snapshot = await getDocs(q);
+    const q = query(collection(db, "attendances"), where("meetingId", "==", selectedMeeting.id));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      list.sort((a, b) => new Date(b.checkInTime) - new Date(a.checkInTime));
       setAttendances(list);
-    } catch (error) {
-      console.error(error);
-      message.error("Lỗi khi tải lịch sử điểm danh");
-    } finally {
       setLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error("Lỗi real-time attendances:", error);
+      setLoading(false);
+    });
+    
+    return () => unsubscribe();
+  }, [selectedMeeting?.id]);
 
   // 1. Initial Load: Fetch Meetings & DangVien list
   const loadInitialData = async () => {
@@ -490,15 +509,16 @@ const Attendance = () => {
       
       if (mtList.length > 0) {
         // Default select the latest meeting
-        setSelectedMeeting(mtList[0]);
-        fetchAttendances(mtList[0].id);
+        const latest = mtList[0];
+        setSelectedMeeting(latest);
         if (isAdminOrChiUy) {
-          fetchAbsenceRequests(mtList[0].id);
+          fetchAbsenceRequests(latest.id);
+          ensureMeetingSessionCode(latest);
         }
       }
 
-      // If regular member, fetch their personal records
-      if (!isAdminOrChiUy && currentUser) {
+      // Fetch personal records for the logged-in user
+      if (currentUser) {
         setLoadingPersonal(true);
         let profileDoc = null;
         let profileMssv = currentUser.mssv || '';
@@ -538,11 +558,356 @@ const Attendance = () => {
     }
   };
 
+  const ensureMeetingSessionCode = useCallback(async (meeting, forceRegenerate = false, silent = false) => {
+    if (!meeting) return null;
+    if (meeting.sessionCode && !forceRegenerate) return meeting.sessionCode;
+
+    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const nowStr = new Date().toISOString();
+    try {
+      await updateDoc(doc(db, "lich_hop", meeting.id), {
+        sessionCode: generatedCode,
+        sessionCodeCreatedAt: nowStr
+      });
+      const updated = { ...meeting, sessionCode: generatedCode, sessionCodeCreatedAt: nowStr };
+      setMeetings(prev => prev.map(m => m.id === meeting.id ? updated : m));
+      setSelectedMeeting(updated);
+      if (forceRegenerate && !silent) {
+        message.success("Đã làm mới mã số và QR điểm danh!");
+      }
+      return generatedCode;
+    } catch (e) {
+      console.error("Lỗi khi sinh mã điểm danh:", e);
+      return null;
+    }
+  }, []);
+
+  const handleSelfCheckIn = useCallback(async (codeToUse) => {
+    const codeClean = (codeToUse || selfCheckInCode).trim();
+    if (!codeClean) {
+      message.warning("Vui lòng nhập mã điểm danh!");
+      return;
+    }
+    
+    if (selfChecking) return;
+    setSelfChecking(true);
+    
+    try {
+      // Find the active meeting
+      const activeMeeting = meetings.find(m => m.status === 'ACTIVE');
+      if (!activeMeeting) {
+        message.error("Không có buổi sinh hoạt nào đang mở điểm danh (ACTIVE)!");
+        setSelfChecking(false);
+        return;
+      }
+
+      if (activeMeeting.selfCheckInOpen === false) {
+        message.error("Ban chi ủy đã khóa cổng tự điểm danh (QR/Mã số) cho buổi sinh hoạt này!");
+        setSelfChecking(false);
+        return;
+      }
+      
+      if (!activeMeeting.sessionCode) {
+        message.error("Buổi sinh hoạt này chưa cấu hình mã điểm danh!");
+        setSelfChecking(false);
+        return;
+      }
+      
+      if (activeMeeting.sessionCode !== codeClean) {
+        message.error("Mã điểm danh không chính xác!");
+        setSelfChecking(false);
+        return;
+      }
+
+      // Check session code expiration (3 minutes)
+      if (activeMeeting.sessionCodeCreatedAt) {
+        const createdAt = dayjs(activeMeeting.sessionCodeCreatedAt);
+        const diffMinutes = dayjs().diff(createdAt, 'minute');
+        if (diffMinutes > 3) {
+          message.error("Mã số điểm danh này đã hết hạn (chỉ có hiệu lực trong 3 phút)! Vui lòng quét mã mới hoặc nhập mã mới hiển thị trên màn hình máy chiếu.");
+          setSelfChecking(false);
+          return;
+        }
+      }
+      
+      // Resolve member profile
+      let profile = personalProfile;
+      if (!profile && currentUser) {
+        let profileMssv = currentUser.mssv || '';
+        let profileName = getCleanName(currentUser.name || '');
+        if (profileMssv) {
+          const q = query(collection(db, "dang_vien"), where("mssv", "==", profileMssv));
+          const snap = await getDocs(q);
+          if (!snap.empty) profile = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        } else if (profileName) {
+          const q = query(collection(db, "dang_vien"), where("ho_ten", "==", profileName));
+          const snap = await getDocs(q);
+          if (!snap.empty) profile = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        }
+      }
+      
+      if (!profile) {
+        message.error("Không tìm thấy thông tin Đảng viên của đồng chí trên hệ thống!");
+        setSelfChecking(false);
+        return;
+      }
+      
+      const mssv = profile.mssv;
+      
+      // Check if already checked in
+      const alreadyCheckedLocal = personalAttendances.some(a => a.meetingId === activeMeeting.id);
+      if (alreadyCheckedLocal) {
+        message.warning("Đồng chí đã điểm danh cho buổi sinh hoạt này rồi!");
+        setSelfChecking(false);
+        return;
+      }
+      
+      const qCheck = query(
+        collection(db, "attendances"),
+        where("meetingId", "==", activeMeeting.id),
+        where("mssv", "==", mssv)
+      );
+      const snapCheck = await getDocs(qCheck);
+      if (!snapCheck.empty) {
+        message.warning("Đồng chí đã điểm danh cho buổi sinh hoạt này rồi!");
+        const existing = snapCheck.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setPersonalAttendances(prev => {
+          const updated = [...prev];
+          existing.forEach(e => {
+            if (!updated.some(x => x.id === e.id)) updated.push(e);
+          });
+          return updated;
+        });
+        setSelfChecking(false);
+        return;
+      }
+      
+      // Determine Present vs Late status
+      const today = dayjs();
+      const meetingStart = dayjs(`${activeMeeting.date} ${activeMeeting.time}`);
+      const minutesDiff = today.diff(meetingStart, 'minute');
+      
+      let status = 'PRESENT';
+      if (minutesDiff > 15) {
+        status = 'LATE';
+      }
+      
+      const deviceInfo = `Self-CheckIn (Browser: ${navigator.userAgent.split(') ')[1] || 'WebClient'} | OS: ${navigator.platform})`;
+      const mockIp = `192.168.1.${Math.floor(Math.random() * 254) + 1}`;
+      
+      const newAttendance = {
+        meetingId: activeMeeting.id,
+        userId: profile.id,
+        ho_ten: profile.ho_ten,
+        mssv: profile.mssv,
+        lop: profile.lop || 'N/A',
+        checkInTime: new Date().toISOString(),
+        method: 'SELF_CODE',
+        status: status,
+        deviceInfo: deviceInfo,
+        ip: mockIp
+      };
+      
+      const docRef = await addDoc(collection(db, "attendances"), newAttendance);
+      const saved = { id: docRef.id, ...newAttendance };
+      
+      // Update local state
+      setPersonalAttendances(prev => [saved, ...prev]);
+      
+      // Clear input
+      setSelfCheckInCode('');
+      
+      if (status === 'LATE') {
+        message.warning(`Đã tự điểm danh thành công! (Đi muộn ${minutesDiff} phút)`);
+      } else {
+        message.success("Tự điểm danh thành công!");
+      }
+      
+    } catch (error) {
+      console.error("Lỗi tự điểm danh:", error);
+      message.error("Lỗi khi thực hiện tự điểm danh");
+    } finally {
+      setSelfChecking(false);
+    }
+  }, [meetings, personalProfile, personalAttendances, selfCheckInCode, selfChecking, currentUser]);
+
+  // Handle QR code / URL auto check-in
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    
+    if (codeParam) {
+      // Clear URL parameter immediately
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+      
+      if (!currentUser) {
+        localStorage.setItem('pending_checkin_code', codeParam);
+        message.info("Vui lòng đăng nhập để hoàn tất điểm danh tự động.");
+      } else if (!isAdminOrChiUy && meetings.length > 0) {
+        message.info(`Đang tự động điểm danh với mã QR: ${codeParam}...`);
+        handleSelfCheckIn(codeParam);
+      }
+    } else if (currentUser && !isAdminOrChiUy && meetings.length > 0) {
+      const pendingCode = localStorage.getItem('pending_checkin_code');
+      if (pendingCode) {
+        localStorage.removeItem('pending_checkin_code');
+        message.info(`Đang tự động điểm danh mã đã quét trước đó: ${pendingCode}...`);
+        handleSelfCheckIn(pendingCode);
+      }
+    }
+  }, [currentUser, isAdminOrChiUy, meetings, handleSelfCheckIn]);
+
+  const handleSelfCheckInRef = useRef(handleSelfCheckIn);
+  useEffect(() => {
+    handleSelfCheckInRef.current = handleSelfCheckIn;
+  }, [handleSelfCheckIn]);
+
+  const loadJsQR = () => {
+    return new Promise((resolve, reject) => {
+      if (window.jsQR) {
+        resolve(window.jsQR);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+      script.async = true;
+      script.onload = () => resolve(window.jsQR);
+      script.onerror = (err) => reject(err);
+      document.body.appendChild(script);
+    });
+  };
+
+  const stopQrScanner = useCallback(() => {
+    if (qrIntervalRef.current) {
+      clearInterval(qrIntervalRef.current);
+      qrIntervalRef.current = null;
+    }
+    
+    if (qrStreamRef.current) {
+      qrStreamRef.current.getTracks().forEach(track => track.stop());
+      qrStreamRef.current = null;
+    }
+    
+    if (qrVideoRef.current) {
+      qrVideoRef.current.srcObject = null;
+    }
+    
+    setIsQrScannerVisible(false);
+  }, []);
+
+  const scanFrame = useCallback(() => {
+    if (!qrVideoRef.current || !qrCanvasRef.current || !window.jsQR) return;
+    
+    const video = qrVideoRef.current;
+    const canvas = qrCanvasRef.current;
+    
+    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      
+      const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "dontInvert",
+      });
+      
+      if (code) {
+        const scannedData = code.data;
+        console.log("Tìm thấy mã QR:", scannedData);
+        
+        stopQrScanner();
+        
+        let resolvedCode = scannedData;
+        if (scannedData.includes('code=')) {
+          try {
+            const url = new URL(scannedData);
+            resolvedCode = url.searchParams.get('code') || scannedData;
+          } catch (e) {
+            const parts = scannedData.split('code=');
+            if (parts.length > 1) {
+              resolvedCode = parts[1].substring(0, 6);
+            }
+          }
+        }
+        
+        handleSelfCheckInRef.current(resolvedCode);
+      }
+    }
+  }, [stopQrScanner]);
+
+  const startQrScanner = async () => {
+    setIsQrScannerVisible(true);
+    setQrScannerLoading(true);
+    setQrCameraError('');
+    
+    try {
+      await loadJsQR();
+      
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      
+      qrStreamRef.current = stream;
+      
+      if (qrVideoRef.current) {
+        qrVideoRef.current.srcObject = stream;
+        qrVideoRef.current.setAttribute("playsinline", "true");
+        qrVideoRef.current.play();
+      }
+      
+      setQrScannerLoading(false);
+      qrIntervalRef.current = setInterval(scanFrame, 250);
+      
+    } catch (err) {
+      console.error("Lỗi khi mở camera quét QR:", err);
+      setQrCameraError(err.message || "Không thể truy cập camera. Vui lòng kiểm tra quyền camera.");
+      setQrScannerLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
+      if (qrStreamRef.current) {
+        qrStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
   useEffect(() => {
     loadInitialData(); // eslint-disable-line react-hooks/set-state-in-effect
     addLog("Khởi tạo hệ thống điểm danh thành công.");
     addLog("Đang chờ thiết bị quét...");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-refresh code & QR scanner timer for 3-minute validity
+  useEffect(() => {
+    if (!isProjectionModalVisible || !selectedMeeting || !selectedMeeting.sessionCodeCreatedAt) return;
+
+    const getRemainingSeconds = () => {
+      const createdAt = dayjs(selectedMeeting.sessionCodeCreatedAt);
+      const expiresAt = createdAt.add(3, 'minute');
+      const diffSecs = expiresAt.diff(dayjs(), 'second');
+      return Math.max(0, diffSecs);
+    };
+
+    setCountdownSeconds(getRemainingSeconds());
+
+    const interval = setInterval(() => {
+      const remaining = getRemainingSeconds();
+      if (remaining <= 0) {
+        clearInterval(interval);
+        ensureMeetingSessionCode(selectedMeeting, true, true);
+      } else {
+        setCountdownSeconds(remaining);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isProjectionModalVisible, selectedMeeting, ensureMeetingSessionCode]);
 
   // Persistent auto-focus on barcode scanner field
   useEffect(() => {
@@ -554,9 +919,9 @@ const Attendance = () => {
   const handleMeetingSelect = (val) => {
     const mt = meetings.find(m => m.id === val);
     setSelectedMeeting(mt);
-    fetchAttendances(val);
     if (isAdminOrChiUy) {
       fetchAbsenceRequests(val);
+      ensureMeetingSessionCode(mt);
     }
     setLastCheckedInMember(null);
     addLog(`Đã tải buổi sinh hoạt: ${mt.title}`);
@@ -568,12 +933,15 @@ const Attendance = () => {
       const formattedDate = values.date.format('YYYY-MM-DD');
       const formattedTime = values.time.format('HH:mm');
       const meetingDateTime = `${formattedDate} ${formattedTime}`;
+      const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
 
       const newMeeting = {
         title: values.title,
         date: meetingDateTime,
         location: values.location,
         status: 'ACTIVE',
+        sessionCode: generatedCode,
+        sessionCodeCreatedAt: new Date().toISOString(),
         created_at: new Date().toISOString(),
         created_by: currentUser?.name || 'Admin'
       };
@@ -657,6 +1025,32 @@ const Attendance = () => {
     } catch (e) {
       console.error(e);
       message.error("Lỗi khi mở khóa sổ");
+    }
+  };
+
+  const handleToggleSelfCheckIn = async () => {
+    if (!selectedMeeting) return;
+    const currentStatus = selectedMeeting.selfCheckInOpen !== false;
+    const newStatus = !currentStatus;
+    
+    try {
+      await updateDoc(doc(db, "lich_hop", selectedMeeting.id), {
+        selfCheckInOpen: newStatus,
+        updated_at: new Date().toISOString()
+      });
+      
+      const updated = { ...selectedMeeting, selfCheckInOpen: newStatus };
+      setSelectedMeeting(updated);
+      setMeetings(meetings.map(m => m.id === selectedMeeting.id ? updated : m));
+      
+      if (newStatus) {
+        message.success("Đã MỞ cổng tự điểm danh bằng QR và Mã số!");
+      } else {
+        message.warning("Đã KHÓA cổng tự điểm danh bằng QR và Mã số!");
+      }
+    } catch (e) {
+      console.error("Lỗi khi chuyển trạng thái cổng QR/Mã số:", e);
+      message.error("Lỗi khi thay đổi trạng thái cổng điểm danh");
     }
   };
 
@@ -1283,6 +1677,19 @@ const Attendance = () => {
   ];
 
   const renderPersonalDashboard = () => {
+    const activeMeeting = meetings.find(m => m.status === 'ACTIVE');
+    const personalCheckIn = activeMeeting ? personalAttendances.find(a => a.meetingId === activeMeeting.id) : null;
+    
+    // Check if current active meeting code is expired (3 minutes limit)
+    let isCodeExpired = false;
+    let expiresAtStr = '';
+    if (activeMeeting && activeMeeting.sessionCodeCreatedAt) {
+      const createdAt = dayjs(activeMeeting.sessionCodeCreatedAt);
+      const expiresAt = createdAt.add(3, 'minute');
+      isCodeExpired = dayjs().isAfter(expiresAt);
+      expiresAtStr = expiresAt.format('HH:mm:ss');
+    }
+
     return (
       <div style={{ fontFamily: "'SVN-Gilroy', 'Inter', sans-serif", minHeight: '80vh' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: 24 }}>
@@ -1291,6 +1698,155 @@ const Attendance = () => {
             Lịch sử Điểm danh cá nhân
           </Title>
         </div>
+
+        {activeMeeting && (
+          <Card
+            bordered={false}
+            style={{
+              borderRadius: 12,
+              boxShadow: '0 4px 20px rgba(198, 40, 40, 0.08)',
+              background: 'linear-gradient(135deg, #fffefe 0%, #fffbfb 100%)',
+              border: '1.5px solid #ffccc7',
+              borderLeft: '6px solid #c62828',
+              marginBottom: 20,
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <Badge status="processing" color="#c62828" />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#c62828', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                      BUỔI SINH HOẠT ĐANG DIỄN RA (ĐIỂM DANH MỞ)
+                    </span>
+                  </div>
+                  <Title level={4} style={{ margin: 0, fontWeight: 800, color: '#262626' }}>
+                    {activeMeeting.title}
+                  </Title>
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    📍 Địa điểm: <strong>{activeMeeting.location}</strong> | ⏰ Bắt đầu: <strong>{activeMeeting.time}</strong> | 📅 Ngày: <strong>{safeDayjs(activeMeeting.date).format('DD/MM/YYYY')}</strong>
+                  </Text>
+                </div>
+                
+                {personalCheckIn ? (
+                  <Tag color="success" style={{ fontSize: 13, padding: '4px 12px', borderRadius: 6, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <SafetyCertificateOutlined /> ĐÃ ĐIỂM DANH ({personalCheckIn.status === 'LATE' ? 'ĐI MUỘN' : 'CÓ MẶT'})
+                  </Tag>
+                ) : (
+                  <Tag color="error" style={{ fontSize: 13, padding: '4px 12px', borderRadius: 6, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <LockOutlined /> CHƯA ĐIỂM DANH
+                  </Tag>
+                )}
+              </div>
+
+              {personalCheckIn ? (
+                <div style={{ background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ color: '#52c41a', fontSize: 24, display: 'flex', alignItems: 'center' }}>
+                    <CheckCircleOutlined />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#1b5e20', fontSize: 14 }}>
+                      Đồng chí đã hoàn thành điểm danh!
+                    </div>
+                    <div style={{ fontSize: 13, color: '#43a047' }}>
+                      Thời gian ghi nhận: <strong>{dayjs(personalCheckIn.checkInTime).format('HH:mm:ss DD/MM/YYYY')}</strong> | Phương thức: <strong>{personalCheckIn.method === 'SELF_CODE' ? 'Mã số / QR cá nhân' : personalCheckIn.method}</strong>
+                    </div>
+                  </div>
+                </div>
+              ) : activeMeeting.selfCheckInOpen === false ? (
+                <div style={{ background: '#fff2f0', border: '1px solid #ffccc7', borderRadius: 8, padding: '16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontWeight: 700, color: '#ff4d4f', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    🔒 CỔNG TỰ ĐIỂM DANH ĐÃ KHÓA
+                  </div>
+                  <div style={{ fontSize: 13, color: '#595959' }}>
+                    Ban chi ủy đã khóa cổng tự điểm danh bằng QR và Mã số đối với buổi sinh hoạt này.
+                    Đồng chí vui lòng liên hệ trực tiếp Ban chi ủy tại bàn đón tiếp để ghi nhận điểm danh.
+                  </div>
+                </div>
+              ) : isCodeExpired ? (
+                <div style={{ background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 8, padding: '16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ fontWeight: 700, color: '#d46b08', fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    ⚠️ MÃ SỐ ĐIỂM DANH HẾT HẠN
+                  </div>
+                  <div style={{ fontSize: 13, color: '#595959' }}>
+                    Mã số điểm danh hiện tại của cuộc họp đã hết hạn (chỉ có hiệu lực trong 3 phút, hết hạn lúc <strong>{expiresAtStr}</strong>).
+                    Đồng chí vui lòng báo cáo Ban chi ủy làm mới mã số & QR điểm danh trên máy chiếu để tiếp tục điểm danh.
+                  </div>
+                </div>
+              ) : (
+                <div style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 8, padding: 16 }}>
+                  <Row gutter={[16, 16]} align="middle">
+                    <Col xs={24} md={14}>
+                      <div style={{ fontSize: 14, color: '#595959', marginBottom: 8 }}>
+                        Đồng chí hãy nhập <strong>Mã số điểm danh</strong> gồm 6 chữ số được Ban chi ủy công bố tại cuộc họp để điểm danh:
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, maxWidth: 360 }}>
+                        <Input
+                          placeholder="Nhập 6 chữ số"
+                          maxLength={6}
+                          value={selfCheckInCode}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            setSelfCheckInCode(val);
+                            if (val.length === 6) {
+                              handleSelfCheckIn(val);
+                            }
+                          }}
+                          style={{ 
+                            fontSize: 16, 
+                            fontWeight: 700, 
+                            letterSpacing: 2, 
+                            textAlign: 'center',
+                            height: 40,
+                            borderRadius: 6
+                          }}
+                          onPressEnter={() => handleSelfCheckIn()}
+                        />
+                        <Button 
+                          type="primary" 
+                          onClick={() => handleSelfCheckIn()} 
+                          loading={selfChecking}
+                          style={{ 
+                            backgroundColor: '#c62828', 
+                            borderColor: '#c62828',
+                            height: 40,
+                            fontWeight: 700,
+                            borderRadius: 6
+                          }}
+                        >
+                          Xác nhận
+                        </Button>
+                      </div>
+                    </Col>
+                    <Col xs={24} md={10} style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 24, display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#8c8c8c', fontSize: 13 }}>
+                        <ScanOutlined style={{ fontSize: 18, color: '#c62828' }} />
+                        <span>Hoặc sử dụng camera thiết bị quét mã QR hiển thị trên màn hình máy chiếu:</span>
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<QrcodeOutlined />}
+                        onClick={startQrScanner}
+                        style={{
+                          backgroundColor: '#52c41a',
+                          borderColor: '#52c41a',
+                          height: 40,
+                          fontWeight: 700,
+                          borderRadius: 6,
+                          width: '100%',
+                          maxWidth: 240
+                        }}
+                      >
+                        Quét mã QR điểm danh
+                      </Button>
+                    </Col>
+                  </Row>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
 
         {personalProfile && (
           <Card 
@@ -1843,7 +2399,35 @@ const Attendance = () => {
                       Đang điều hành họp
                     </Text>
                     {selectedMeeting.status === 'ACTIVE' ? (
-                      <Badge status="processing" text={<span style={{ color: '#52c41a', fontWeight: 'bold', fontSize: 11 }}>Cổng điểm danh MỞ</span>} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                        <Badge status="processing" text={<span style={{ color: '#52c41a', fontWeight: 'bold', fontSize: 11 }}>Cổng điểm danh MỞ</span>} />
+                        <Button 
+                          type="link" 
+                          size="small" 
+                          icon={<FullscreenOutlined />} 
+                          style={{ padding: 0, height: 'auto', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, color: '#1890ff' }}
+                          onClick={() => setIsProjectionModalVisible(true)}
+                        >
+                          Trình chiếu QR & Mã số
+                        </Button>
+                        <Button 
+                          type="primary" 
+                          size="small"
+                          onClick={handleToggleSelfCheckIn}
+                          style={{ 
+                            height: '24px', 
+                            fontSize: '11px', 
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            backgroundColor: selectedMeeting.selfCheckInOpen !== false ? '#ff4d4f' : '#52c41a',
+                            borderColor: selectedMeeting.selfCheckInOpen !== false ? '#ff4d4f' : '#52c41a',
+                          }}
+                        >
+                          {selectedMeeting.selfCheckInOpen !== false ? '🔒 Khóa cổng tự điểm danh' : '🔓 Mở cổng tự điểm danh'}
+                        </Button>
+                      </div>
                     ) : (
                       <Badge status="default" text={<span style={{ color: '#777', fontWeight: 'bold', fontSize: 11 }}>ĐÃ KHÓA</span>} />
                     )}
@@ -2289,6 +2873,11 @@ const Attendance = () => {
                   </Row>
                 </div>
               </Tabs.TabPane>
+              <Tabs.TabPane tab={<strong>👤 ĐIỂM DANH CÁ NHÂN</strong>} key="4">
+                <div style={{ padding: '8px 0' }}>
+                  {renderPersonalDashboard()}
+                </div>
+              </Tabs.TabPane>
             </Tabs>
           </Card>
         </div>
@@ -2370,6 +2959,173 @@ const Attendance = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* 6. Modal: Projection QR and Session Code */}
+      <Modal
+        title={<b>TRÌNH CHIẾU QR & MÃ SỐ ĐIỂM DANH</b>}
+        open={isProjectionModalVisible}
+        onCancel={() => setIsProjectionModalVisible(false)}
+        footer={[
+          <Button 
+            key="refresh" 
+            icon={<ReloadOutlined />} 
+            onClick={() => ensureMeetingSessionCode(selectedMeeting, true)}
+            style={{ marginRight: 8 }}
+          >
+            Làm mới mã số & QR
+          </Button>,
+          <Button key="close" type="primary" style={{ backgroundColor: '#c62828', borderColor: '#c62828' }} onClick={() => setIsProjectionModalVisible(false)}>
+            Đóng trình chiếu
+          </Button>
+        ]}
+        width={600}
+        centered
+        destroyOnClose
+      >
+        {selectedMeeting && (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <Title level={4} style={{ color: '#c62828', marginBottom: 8, fontWeight: 800 }}>
+              ĐANG ĐIỂM DANH: {selectedMeeting.title}
+            </Title>
+            <Paragraph style={{ color: '#555', fontSize: 13, marginBottom: 16 }}>
+              📍 Địa điểm: <strong>{selectedMeeting.location}</strong> | 📅 Ngày: <strong>{safeDayjs(selectedMeeting.date).format('DD/MM/YYYY')}</strong> | ⏰ Bắt đầu: <strong>{selectedMeeting.time}</strong>
+            </Paragraph>
+
+            {selectedMeeting.selfCheckInOpen === false ? (
+              <div style={{ fontSize: 16, color: '#f5222d', fontWeight: 'bold', background: '#fff2f0', border: '1px solid #ffccc7', padding: '12px 24px', borderRadius: 8, display: 'inline-block', marginBottom: 20 }}>
+                🔒 CỔNG TỰ ĐIỂM DANH (QR/MÃ SỐ) HIỆN ĐANG KHÓA
+              </div>
+            ) : (
+              selectedMeeting.sessionCodeCreatedAt && (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 20 }}>
+                  <div style={{ fontSize: 13, color: '#d46b08', background: '#fffbe6', border: '1px solid #ffe58f', padding: '6px 12px', borderRadius: 8, display: 'inline-block' }}>
+                    🕒 <strong>Hiệu lực của mã đến:</strong> {dayjs(selectedMeeting.sessionCodeCreatedAt).add(3, 'minute').format('HH:mm:ss')}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 'bold', color: '#c62828' }}>
+                    🔄 Tự động đổi mã mới sau: {Math.floor(countdownSeconds / 60)} phút {countdownSeconds % 60} giây
+                  </div>
+                </div>
+              )
+            )}
+            
+            {selectedMeeting.selfCheckInOpen !== false && (
+              <>
+                <div style={{ background: '#f5f5f5', padding: '24px 16px', borderRadius: 12, border: '1.5px solid #d9d9d9', display: 'inline-block', width: '100%', maxWidth: 450, marginBottom: 24 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#555', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 }}>
+                    MÃ SỐ ĐIỂM DANH (SESSION CODE)
+                  </div>
+                  <div style={{ fontSize: 44, fontWeight: 900, color: '#c62828', fontFamily: 'monospace', letterSpacing: 6 }}>
+                    {selectedMeeting.sessionCode ? selectedMeeting.sessionCode.replace(/(\d{3})(\d{3})/, '$1 $2') : '------'}
+                  </div>
+                </div>
+
+                {selectedMeeting.sessionCode && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                    <div style={{ padding: 12, background: '#fff', border: '2px solid #f0f0f0', borderRadius: 12, display: 'inline-block', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin + '/attendance?code=' + selectedMeeting.sessionCode)}`} 
+                        alt="QR Code Điểm danh"
+                        style={{ width: 250, height: 250, display: 'block' }}
+                      />
+                    </div>
+                    <div style={{ fontSize: 13, color: '#666', maxWidth: 400, marginTop: 8 }}>
+                      📱 Hướng camera điện thoại quét mã QR ở trên để <strong>điểm danh tự động nhanh</strong>, hoặc truy cập trang Điểm danh và nhập <strong>mã số 6 chữ số</strong>.
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* 7. Modal: Device Camera QR Scanner */}
+      <Modal
+        title={<b>QUÉT MÃ QR ĐIỂM DANH</b>}
+        open={isQrScannerVisible}
+        onCancel={stopQrScanner}
+        footer={[
+          <Button key="close" type="primary" style={{ backgroundColor: '#c62828', borderColor: '#c62828' }} onClick={stopQrScanner}>
+            Đóng Camera
+          </Button>
+        ]}
+        width={450}
+        centered
+        destroyOnClose
+      >
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes qr-scanner-line {
+            0% { top: 15%; }
+            50% { top: 85%; }
+            100% { top: 15%; }
+          }
+        `}} />
+        <div style={{ textAlign: 'center', padding: '10px 0' }}>
+          {qrScannerLoading && (
+            <div style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+              <Badge status="processing" color="#c62828" />
+              <span style={{ fontWeight: 600, color: '#555' }}>Đang kết nối camera...</span>
+            </div>
+          )}
+          
+          {qrCameraError && (
+            <div style={{ color: '#c62828', padding: '20px 10px', fontSize: 14 }}>
+              ⚠️ {qrCameraError}
+              <div style={{ marginTop: 12, fontSize: 12, color: '#666' }}>
+                Đồng chí vui lòng cấp quyền truy cập camera cho trang web hoặc nhập mã số 6 chữ số thủ công.
+              </div>
+            </div>
+          )}
+
+          <div style={{ 
+            position: 'relative', 
+            display: qrScannerLoading || qrCameraError ? 'none' : 'block', 
+            width: '100%', 
+            maxWidth: 360, 
+            margin: '0 auto', 
+            overflow: 'hidden', 
+            borderRadius: 12, 
+            border: '3px solid #c62828', 
+            boxShadow: '0 4px 16px rgba(198, 40, 40, 0.15)' 
+          }}>
+            <video 
+              ref={qrVideoRef} 
+              style={{ width: '100%', height: 'auto', display: 'block' }} 
+              playsInline 
+            />
+            <canvas ref={qrCanvasRef} style={{ display: 'none' }} />
+            
+            {/* Viewfinder target overlay box */}
+            <div style={{
+              position: 'absolute',
+              top: '15%',
+              left: '15%',
+              width: '70%',
+              height: '70%',
+              border: '2px dashed rgba(255,255,255,0.6)',
+              borderRadius: 8,
+              pointerEvents: 'none'
+            }} />
+            
+            {/* Scanner overlay viewfinder line */}
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '15%',
+              width: '70%',
+              height: '2px',
+              backgroundColor: '#c62828',
+              boxShadow: '0 0 8px #c62828',
+              animation: 'qr-scanner-line 2s infinite ease-in-out',
+              pointerEvents: 'none'
+            }} />
+          </div>
+          
+          <div style={{ fontSize: 13, color: '#666', marginTop: 16, padding: '0 12px' }}>
+            📱 Hướng camera về phía <strong>Mã QR điểm danh</strong> hiển thị trên màn hình máy chiếu của cuộc họp.
+          </div>
+        </div>
       </Modal>
 
     </div>
