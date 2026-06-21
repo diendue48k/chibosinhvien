@@ -346,6 +346,7 @@ const DangVienDuBi = () => {
   const [isEmailModalVisible, setIsEmailModalVisible] = useState(false);
   const [emailRecord, setEmailRecord] = useState(null);
   const [isNextStepModalVisible, setIsNextStepModalVisible] = useState(false);
+  const [selectedTargetStep, setSelectedTargetStep] = useState(null);
   const [nextStepNote, setNextStepNote] = useState('');
   const [nextStepLoading, setNextStepLoading] = useState(false);
   
@@ -1706,36 +1707,38 @@ const DangVienDuBi = () => {
     }
   };
 
-  const handleNextStep = async () => {
+  const handleSelectStep = (targetStep) => {
     const currentStep = editingRecord?.ho_so_status || 1;
-    if (currentStep >= 6) return;
+    if (targetStep === currentStep) return;
 
-    if (currentStep === 1) {
+    if (targetStep > 1) {
       const currentDvhd = form.getFieldValue('dvhd_ho_so') || editingRecord?.dvhd_ho_so;
       if (!currentDvhd || !currentDvhd.trim()) {
-        message.error("Bắt buộc phải phân công Đảng viên hướng dẫn mới được chuyển sang Bước 2!");
+        message.error("Bắt buộc phải phân công Đảng viên hướng dẫn mới được chuyển sang các bước tiếp theo!");
         return;
       }
     }
 
+    setSelectedTargetStep(targetStep);
     setIsNextStepModalVisible(true);
     setNextStepNote('');
   };
 
   const submitNextStep = async () => {
     const currentStep = editingRecord?.ho_so_status || 1;
+    const targetStep = selectedTargetStep || (currentStep + 1);
     setNextStepLoading(true);
     try {
       const newHistory = [...(editingRecord?.ho_so_history || []), {
         from: currentStep,
-        to: currentStep + 1,
+        to: targetStep,
         time: new Date().toISOString(),
         note: nextStepNote || "",
         updated_by: currentUser?.email || currentUser?.username || "Admin"
       }];
 
       const updateData = {
-        ho_so_status: currentStep + 1,
+        ho_so_status: targetStep,
         ho_so_history: newHistory,
         updated_at: new Date().toISOString()
       };
@@ -1754,11 +1757,11 @@ const DangVienDuBi = () => {
           field: "ho_so_status",
           label: "Bước hồ sơ",
           oldVal: `Bước ${currentStep}: ${HO_SO_STEPS[currentStep] || ''}`,
-          newVal: `Bước ${currentStep + 1}: ${HO_SO_STEPS[currentStep + 1]}${nextStepNote ? ` (Ghi chú: ${nextStepNote})` : ''}`
+          newVal: `Bước ${targetStep}: ${HO_SO_STEPS[targetStep]}${nextStepNote ? ` (Ghi chú: ${nextStepNote})` : ''}`
         }]
       });
 
-      message.success(`Đã chuyển sang Bước ${currentStep + 1}: ${HO_SO_STEPS[currentStep + 1]}`);
+      message.success(`Đã chuyển sang Bước ${targetStep}: ${HO_SO_STEPS[targetStep]}`);
       
       setEditingRecord({ ...editingRecord, ...updateData });
       setIsNextStepModalVisible(false);
@@ -2651,52 +2654,124 @@ const DangVienDuBi = () => {
         }
       >
         {editingRecord && (
-          <div style={{ marginBottom: 24, padding: '20px', background: '#fafafa', borderRadius: '12px', border: '1px solid #f0f0f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: '8px' }}>
-              <Title level={5} style={{ margin: 0, flex: '1 1 auto', minWidth: '220px' }}>Tiến độ hồ sơ xét chuyển chính thức</Title>
-              <Tag color="blue" style={{ fontSize: 13, padding: '4px 8px' }}>Bước {editingRecord.ho_so_status || 1}: {HO_SO_STEPS[editingRecord.ho_so_status || 1]}</Tag>
+          <div style={{ 
+            marginBottom: 24, 
+            padding: '24px', 
+            background: 'linear-gradient(135deg, #ffffff 0%, #fcfcfc 100%)', 
+            borderRadius: '16px', 
+            border: '1px solid #e2e8f0',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.02)'
+          }}>
+            {/* Header with Title and Current Status Badge */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: '12px' }}>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#c62828', letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '4px', height: '16px', backgroundColor: '#c62828', borderRadius: '2px' }} />
+                TIẾN ĐỘ HỒ SƠ XÉT CHUYỂN CHÍNH THỨC
+              </span>
+              <Tag color="red" style={{ fontSize: 12, padding: '4px 12px', fontWeight: 700, borderRadius: '20px', border: 'none', background: '#ffeef0', color: '#c62828' }}>
+                Bước {editingRecord.ho_so_status || 1}: {SHORT_STEPS[editingRecord.ho_so_status || 1]}
+              </Tag>
             </div>
-            <Steps
-              current={(editingRecord.ho_so_status || 1) - 1}
-              size="small"
-              progressDot
-              items={Object.keys(SHORT_STEPS).map(key => ({
-                title: `B${key}`,
-                description: SHORT_STEPS[key]
-              }))}
-            />
-            <Divider style={{ margin: '16px 0' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <div>
-                <strong>Trạng thái: </strong>
-                <span style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                  Bước {editingRecord.ho_so_status || 1}: {HO_SO_STEPS[editingRecord.ho_so_status || 1]}
-                </span>
-              </div>
-              {(editingRecord.ho_so_status || 1) < 6 && (
-                <Button 
-                  type="primary" 
-                  style={{ backgroundColor: '#1890ff', borderColor: '#1890ff' }}
-                  onClick={handleNextStep}
+
+            {/* Futuristic Progress Tracker Dots */}
+            <div style={{ padding: '8px 0 24px 0' }}>
+              <Steps
+                current={(editingRecord.ho_so_status || 1) - 1}
+                size="small"
+                progressDot
+                items={Object.keys(SHORT_STEPS).map(key => ({
+                  title: <span style={{ fontWeight: 700, color: Number(key) <= (editingRecord.ho_so_status || 1) ? '#c62828' : '#bfbfbf' }}>B{key}</span>,
+                  description: <span style={{ fontSize: '11px', fontWeight: 500, color: Number(key) === (editingRecord.ho_so_status || 1) ? '#262626' : '#8c8c8c' }}>{SHORT_STEPS[key]}</span>
+                }))}
+              />
+            </div>
+
+            <Divider style={{ margin: '16px 0', borderColor: '#f0f0f0' }} />
+
+            {/* Dropdown status updater */}
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              flexWrap: 'wrap', 
+              gap: 16,
+              background: '#f8fafc',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              border: '1px solid #edf2f7'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 280 }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#4a5568' }}>Cập nhật trạng thái:</span>
+                <Select
+                  value={editingRecord.ho_so_status || 1}
+                  style={{ flex: 1, minWidth: 260 }}
+                  onChange={handleSelectStep}
+                  dropdownStyle={{ borderRadius: '8px' }}
                 >
-                  Chuyển bước tiếp theo 👉
-                </Button>
-              )}
+                  {Object.keys(HO_SO_STEPS).map(key => (
+                    <Select.Option key={key} value={Number(key)}>
+                      <span style={{ fontWeight: 600 }}>Bước {key}:</span> {SHORT_STEPS[key]}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </div>
             </div>
             
+            {/* Elegant Step History Timeline/Cards */}
             {editingRecord.ho_so_history && editingRecord.ho_so_history.length > 0 && (
-              <div style={{ marginTop: 16, background: '#f5f5f5', padding: '10px 16px', borderRadius: '8px' }}>
-                <span style={{ fontSize: 12, fontWeight: 'bold', color: '#595959', display: 'block', marginBottom: 6 }}>
-                  📜 Lịch sử chuyển bước:
+              <div style={{ marginTop: 20 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                  📜 Lịch sử chuyển bước & Ghi chú:
                 </span>
-                <ul style={{ paddingLeft: 16, margin: 0, fontSize: 12, color: '#8c8c8c' }}>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {editingRecord.ho_so_history.map((log, idx) => (
-                    <li key={idx} style={{ marginBottom: 4 }}>
-                      Chuyển từ <strong>Bước {log.from}</strong> → <strong>Bước {log.to}</strong> ({dayjs(log.time).format('DD/MM/YYYY HH:mm')} bởi {log.updated_by || 'Hệ thống'})
-                      {log.note && <div style={{ color: '#555', fontStyle: 'italic', paddingLeft: 8 }}>Ghi chú: {log.note}</div>}
-                    </li>
+                    <div 
+                      key={idx}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '10px',
+                        padding: '12px 16px',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.01)',
+                        position: 'relative'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Tag color="blue" style={{ margin: 0, fontWeight: 700, borderRadius: '4px' }}>
+                            B{log.from} → B{log.to}
+                          </Tag>
+                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                            bởi {log.updated_by || 'Hệ thống'}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                          {dayjs(log.time).format('DD/MM/YYYY HH:mm')}
+                        </span>
+                      </div>
+                      
+                      {log.note ? (
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#334155', 
+                          background: '#f8fafc', 
+                          padding: '8px 12px', 
+                          borderRadius: '6px', 
+                          borderLeft: '3px solid #c62828',
+                          marginTop: 6,
+                          fontStyle: 'italic'
+                        }}>
+                          "{log.note}"
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic', marginTop: 4 }}>
+                          (Không có ghi chú)
+                        </div>
+                      )}
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
           </div>
@@ -3094,7 +3169,7 @@ const DangVienDuBi = () => {
 
       {/* Modal Chuyển bước kèm ghi chú */}
       <Modal
-        title={`Chuyển sang Bước ${(editingRecord?.ho_so_status || 1) + 1}`}
+        title={`Chuyển sang Bước ${selectedTargetStep || (editingRecord?.ho_so_status || 1) + 1}`}
         open={isNextStepModalVisible}
         onOk={submitNextStep}
         onCancel={() => {
@@ -3107,7 +3182,7 @@ const DangVienDuBi = () => {
         okButtonProps={{ style: { backgroundColor: '#c62828' } }}
       >
         <div style={{ marginBottom: 12 }}>
-          {editingRecord?.ho_so_status === 3 && (
+          {selectedTargetStep === 4 && (
             <Alert 
               message="Lưu ý khi chuyển sang Bước 4" 
               description="Đảm bảo bạn đã nhận được Nhận xét cư trú của Đảng viên này và đã chuẩn bị các bản tự kiểm điểm liên quan." 
@@ -3116,7 +3191,7 @@ const DangVienDuBi = () => {
               style={{ marginBottom: 12 }}
             />
           )}
-          {editingRecord?.ho_so_status === 5 && (
+          {selectedTargetStep === 6 && (
             <Alert 
               message="Lưu ý khi chuyển sang Bước 6" 
               description="Đảm bảo đã có đầy đủ Biên nhận / Minh chứng nộp hồ sơ lên VPĐU Trường trước khi chuyển tiếp." 
