@@ -943,10 +943,29 @@ const HoSoDaKetNap = () => {
         }
       });
 
+      // 2b. Fetch dang_vien_dang_sinh_hoat records to check if they exist there
+      const dshSnapshot = await getDocs(collection(dbMain, "dang_vien_dang_sinh_hoat"));
+      const dshMssvs = new Set();
+      dshSnapshot.docs.forEach(doc => {
+        const d = doc.data();
+        const mssvStr = normalizeDocMssv(d);
+        if (mssvStr) {
+          dshMssvs.add(mssvStr);
+        }
+      });
+
       // 3. Merge data from dang_vien for transferred dossiers
       const mergedRecords = ketNapRecords.map(rec => {
         const mssvKey = normalizeDocMssv(rec);
         const dvDoc = dvMap[mssvKey];
+        const existsInDsh = mssvKey ? dshMssvs.has(mssvKey) : false;
+        const isTransferred = rec.da_chuyen_sinh_hoat || !!dvDoc;
+        
+        let finalStatus = rec.trang_thai || 'dang_sinh_hoat';
+        if (isTransferred) {
+          finalStatus = existsInDsh ? 'dang_sinh_hoat' : 'da_chuyen';
+        }
+
         if (dvDoc) {
           return {
             ...rec,
@@ -974,10 +993,14 @@ const HoSoDaKetNap = () => {
             gioitinh: dvDoc.gioi_tinh || rec.gioitinh,
             gioi_tinh: dvDoc.gioi_tinh || rec.gioi_tinh,
             da_chuyen_sinh_hoat: rec.da_chuyen_sinh_hoat || true,
+            trang_thai: finalStatus,
             id: rec.id
           };
         }
-        return rec;
+        return {
+          ...rec,
+          trang_thai: finalStatus
+        };
       });
 
       setData(mergedRecords);
@@ -1867,9 +1890,9 @@ const HoSoDaKetNap = () => {
       render: (_, record) => (
         <Space size="middle">
           {record.da_chuyen_sinh_hoat ? (
-            <Tooltip title="Đã chuyển sang Đảng viên đang sinh hoạt">
+            <Tooltip title={record.trang_thai === 'da_chuyen' ? "Đã chuyển đi nơi khác" : "Đã chuyển sang Đảng viên đang sinh hoạt"}>
               <span style={{ display: 'inline-flex', padding: '4px', cursor: 'default' }}>
-                <CheckCircleOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
+                <CheckCircleOutlined style={{ color: record.trang_thai === 'da_chuyen' ? '#8c8c8c' : '#52c41a', fontSize: '16px' }} />
               </span>
             </Tooltip>
           ) : (
