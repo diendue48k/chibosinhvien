@@ -55,8 +55,8 @@ Hệ thống quản lý 2 luồng hồ sơ chính theo quy trình chuẩn của 
 - **Lịch họp & Thông báo**: Bí thư/Chi ủy tạo lịch họp chi bộ định kỳ hoặc đột xuất, đính kèm tài liệu sinh hoạt. Hệ thống gửi thông báo tự động cho đảng viên.
 - **Đăng ký xin vắng**: Đảng viên nếu bận lịch học/lịch thi trùng giờ họp có thể nộp đơn xin vắng kèm lý do trực tiếp trên hệ thống để Ban chi ủy xét duyệt.
 - **Điểm danh sinh hoạt**: 
-  - **Dành cho Ban chi ủy**: Tạo mã điểm danh hoặc quét mã để ghi nhận sự diện diện của đảng viên.
-  - **Dành cho Đảng viên**: Nhập mã điểm danh được cung cấp tại buổi họp hoặc thực hiện quét QR để ghi nhận điểm danh tự động.
+  - **Dành cho Ban chi ủy**: Quản lý và thực hiện điểm danh cho đảng viên bằng cách bật nhận diện khuôn mặt tự động (Face ID), quét mã vạch trên thẻ đảng viên hoặc điểm danh thủ công nhanh.
+  - **Dành cho Đảng viên**: Tra cứu trực tuyến lịch sử chuyên cần cá nhân (số buổi tham gia, vắng phép, vắng không phép) và biểu đồ tỷ lệ chuyên cần trực quan.
 
 ### 2.5. Biểu quyết Chi bộ (Voting)
 *Truy cập từ menu: **Biểu quyết Chi bộ**.*
