@@ -5,7 +5,7 @@ import {
 } from 'antd';
 import { 
   ScanOutlined, SafetyCertificateOutlined, UserOutlined, CameraOutlined,
-  PlayCircleOutlined, LockOutlined, PlusOutlined, DownloadOutlined,
+  PlayCircleOutlined, LockOutlined, UnlockOutlined, PlusOutlined, DownloadOutlined,
   CloseCircleOutlined,
   ReloadOutlined,
   UploadOutlined,
@@ -13,7 +13,7 @@ import {
   CheckCircleOutlined,
   QrcodeOutlined
 } from '@ant-design/icons';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
@@ -122,6 +122,7 @@ const Attendance = () => {
   const [qrScannerLoading, setQrScannerLoading] = useState(false);
   const [qrCameraError, setQrCameraError] = useState('');
   const [countdownSeconds, setCountdownSeconds] = useState(180);
+  const [isFaceIdRegistrationOpen, setIsFaceIdRegistrationOpen] = useState(true);
 
   // Audio synthesis chime using Web Audio API
   const playBeep = (type = 'success') => {
@@ -882,6 +883,39 @@ const Attendance = () => {
     addLog("Khởi tạo hệ thống điểm danh thành công.");
     addLog("Đang chờ thiết bị quét...");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Subscribe to global Face ID registration configuration
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "system_config", "face_id"), (docSnap) => {
+      if (docSnap.exists()) {
+        setIsFaceIdRegistrationOpen(docSnap.data().registrationOpen !== false);
+      } else {
+        setIsFaceIdRegistrationOpen(true);
+      }
+    }, (err) => {
+      console.error("Lỗi đồng bộ cấu hình Face ID:", err);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleToggleFaceIdRegistration = async () => {
+    const newStatus = !isFaceIdRegistrationOpen;
+    try {
+      await setDoc(doc(db, "system_config", "face_id"), {
+        registrationOpen: newStatus,
+        updated_at: new Date().toISOString()
+      }, { merge: true });
+      
+      if (newStatus) {
+        message.success("Đã MỞ cổng đăng ký/cập nhật Face ID cho tất cả Đảng viên!");
+      } else {
+        message.warning("Đã KHÓA cổng đăng ký/cập nhật Face ID cho tất cả Đảng viên!");
+      }
+    } catch (e) {
+      console.error("Lỗi khi thay đổi cấu hình đăng ký Face ID:", e);
+      message.error("Lỗi khi thay đổi quyền thiết lập Face ID");
+    }
+  };
 
   // Auto-refresh code & QR scanner timer for 3-minute validity
   useEffect(() => {
@@ -2497,15 +2531,27 @@ const Attendance = () => {
                 bordered={false} 
                 style={{ borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.04)', height: '100%' }}
                 extra={
-                  cameraActive ? (
-                    <Button type="primary" danger size="small" onClick={stopCamera}>
-                      Tắt camera
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <Button 
+                      type={isFaceIdRegistrationOpen ? "default" : "primary"}
+                      danger={isFaceIdRegistrationOpen}
+                      size="small"
+                      icon={isFaceIdRegistrationOpen ? <LockOutlined /> : <UnlockOutlined />}
+                      onClick={handleToggleFaceIdRegistration}
+                      style={!isFaceIdRegistrationOpen ? { backgroundColor: '#52c41a', borderColor: '#52c41a' } : undefined}
+                    >
+                      {isFaceIdRegistrationOpen ? "Khóa thiết lập" : "Mở thiết lập"}
                     </Button>
-                  ) : (
-                    <Button type="primary" size="small" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }} onClick={startCamera}>
-                      Bật nhận dạng
-                    </Button>
-                  )
+                    {cameraActive ? (
+                      <Button type="primary" danger size="small" onClick={stopCamera}>
+                        Tắt camera
+                      </Button>
+                    ) : (
+                      <Button type="primary" size="small" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }} onClick={startCamera}>
+                        Bật nhận dạng
+                      </Button>
+                    )}
+                  </div>
                 }
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

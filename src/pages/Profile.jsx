@@ -10,7 +10,7 @@ import {
   MailOutlined, FacebookOutlined, SwapOutlined, ScanOutlined, CameraOutlined,
   CheckCircleOutlined, LoadingOutlined, SafetyCertificateOutlined, DeleteOutlined, UploadOutlined
 } from '@ant-design/icons';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLES } from '../services/permissionService';
@@ -409,6 +409,21 @@ const Profile = () => {
   const [isSavingFace, setIsSavingFace] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [faceDescriptor, setFaceDescriptor] = useState(null);
+  const [isFaceIdRegistrationOpen, setIsFaceIdRegistrationOpen] = useState(true);
+
+  // Sync global Face ID registration setting
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "system_config", "face_id"), (docSnap) => {
+      if (docSnap.exists()) {
+        setIsFaceIdRegistrationOpen(docSnap.data().registrationOpen !== false);
+      } else {
+        setIsFaceIdRegistrationOpen(true);
+      }
+    }, (err) => {
+      console.error("Lỗi đồng bộ cấu hình Face ID:", err);
+    });
+    return () => unsub();
+  }, []);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -1202,6 +1217,15 @@ const Profile = () => {
                   )}
                 </div>
 
+                {!isFaceIdRegistrationOpen && (
+                  <Alert
+                    message="Mở khóa Face ID đã bị khóa bởi Ban chi ủy"
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 12, fontSize: 11 }}
+                  />
+                )}
+
                 {memberData.khuon_mat_registered ? (
                   <div style={{
                     background: 'linear-gradient(135deg, #f6ffed 0%, #ffffff 100%)',
@@ -1245,8 +1269,9 @@ const Profile = () => {
                         <Button
                           size="small"
                           icon={<ScanOutlined />}
+                          disabled={!isFaceIdRegistrationOpen}
                           onClick={() => { setIsFaceModalVisible(true); setScanStep(0); }}
-                          style={{ flex: 1, fontSize: 11, fontWeight: 600, color: '#722ed1', borderColor: '#722ed1' }}
+                          style={{ flex: 1, fontSize: 11, fontWeight: 600, color: isFaceIdRegistrationOpen ? '#722ed1' : '#bfbfbf', borderColor: isFaceIdRegistrationOpen ? '#722ed1' : '#d9d9d9' }}
                         >
                           Quét lại
                         </Button>
@@ -1255,6 +1280,7 @@ const Profile = () => {
                           description="Hệ thống sẽ xóa vĩnh viễn mẫu khuôn mặt và hình chụp đã lưu. Bạn chắc chắn?"
                           onConfirm={handleDeleteFace}
                           okText="Xóa"
+                          disabled={!isFaceIdRegistrationOpen}
                           cancelText="Hủy"
                           okButtonProps={{ danger: true }}
                         >
@@ -1262,6 +1288,7 @@ const Profile = () => {
                             danger
                             size="small"
                             icon={<DeleteOutlined />}
+                            disabled={!isFaceIdRegistrationOpen}
                             style={{ fontSize: 11 }}
                           />
                         </Popconfirm>
@@ -1282,7 +1309,8 @@ const Profile = () => {
                     </div>
                     <Button
                       type="primary"
-                      className="glow-btn-face"
+                      className={isFaceIdRegistrationOpen ? "glow-btn-face" : undefined}
+                      disabled={!isFaceIdRegistrationOpen}
                       icon={<ScanOutlined />}
                       onClick={() => { setIsFaceModalVisible(true); setScanStep(0); }}
                       style={{ width: '100%', fontWeight: 700, borderRadius: 6, height: 34 }}
