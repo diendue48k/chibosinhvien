@@ -2419,102 +2419,175 @@ const Attendance = () => {
           <Card 
             bordered={false} 
             style={{ 
-              borderRadius: 12, 
-              boxShadow: '0 4px 16px rgba(0,0,0,0.04)',
-              background: 'linear-gradient(135deg, #ffffff 0%, #fffbfb 100%)',
-              borderLeft: selectedMeeting.status === 'ACTIVE' ? '5px solid #52c41a' : '5px solid #bfbfbf'
+              borderRadius: 16, 
+              boxShadow: '0 8px 32px 0 rgba(198, 40, 40, 0.02)',
+              background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
+              border: '1px solid #f0f0f0',
+              borderLeft: selectedMeeting.status === 'ACTIVE' ? '6px solid #52c41a' : '6px solid #bfbfbf',
+              overflow: 'hidden'
             }}
           >
             <Row gutter={[24, 24]} align="middle">
-              <Col xs={24} md={10}>
-                <Space direction="vertical" size={2}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#999', letterSpacing: '0.5px' }}>
-                      Đang điều hành họp
-                    </Text>
+              <Col xs={24} lg={11}>
+                <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: '#999', letterSpacing: '0.8px' }}>
+                      Đang điều hành cuộc họp
+                    </span>
                     {selectedMeeting.status === 'ACTIVE' ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                        <Badge status="processing" text={<span style={{ color: '#52c41a', fontWeight: 'bold', fontSize: 11 }}>Cổng điểm danh MỞ</span>} />
+                      <Tag color="success" style={{ fontWeight: 700, borderRadius: 4, border: 'none' }}>
+                        ● CỔNG ĐIỂM DANH MỞ
+                      </Tag>
+                    ) : (
+                      <Tag color="default" style={{ fontWeight: 700, borderRadius: 4, border: 'none' }}>
+                        🔒 ĐÃ KHÓA
+                      </Tag>
+                    )}
+                  </div>
+                  
+                  <Title level={4} style={{ margin: 0, fontWeight: 900, color: '#1a1a1a', lineHeight: '1.4' }}>
+                    {selectedMeeting.title}
+                  </Title>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, color: '#555', fontSize: 13 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: '#c62828' }}>📍</span>
+                      <span>Địa điểm: <strong style={{ color: '#222' }}>{selectedMeeting.location}</strong></span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: '#c62828' }}>📅</span>
+                        <span>Ngày: <strong style={{ color: '#222' }}>{safeDayjs(selectedMeeting.date).format('DD/MM/YYYY')}</strong></span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color: '#c62828' }}>⏰</span>
+                        <span>Giờ bắt đầu: <strong style={{ color: '#222' }}>{selectedMeeting.time}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedMeeting.status === 'ACTIVE' && (
+                    <div style={{ 
+                      background: '#fff7e6', 
+                      border: '1px solid #ffd591', 
+                      borderRadius: 8, 
+                      padding: '8px 12px', 
+                      fontSize: 12, 
+                      color: '#d46b08',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      width: 'fit-content'
+                    }}>
+                      <span>⚙️ Tự động điểm danh:</span>
+                      <strong>{selectedMeeting.selfCheckInOpen !== false ? 'Đang mở (Quét QR/Mã số)' : 'Đang khóa'}</strong>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+                    {selectedMeeting.status === 'ACTIVE' ? (
+                      <>
                         <Button 
-                          type="link" 
-                          size="small" 
+                          type="primary" 
                           icon={<FullscreenOutlined />} 
-                          style={{ padding: 0, height: 'auto', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, color: '#1890ff' }}
                           onClick={() => setIsProjectionModalVisible(true)}
+                          style={{ backgroundColor: '#1890ff', borderColor: '#1890ff', fontWeight: 600, borderRadius: 6 }}
                         >
                           Trình chiếu QR & Mã số
                         </Button>
                         <Button 
-                          type="primary" 
-                          size="small"
                           onClick={handleToggleSelfCheckIn}
                           style={{ 
-                            height: '24px', 
-                            fontSize: '11px', 
-                            borderRadius: '4px',
                             fontWeight: 600,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            backgroundColor: selectedMeeting.selfCheckInOpen !== false ? '#ff4d4f' : '#52c41a',
+                            borderRadius: 6,
+                            color: selectedMeeting.selfCheckInOpen !== false ? '#ff4d4f' : '#52c41a',
                             borderColor: selectedMeeting.selfCheckInOpen !== false ? '#ff4d4f' : '#52c41a',
                           }}
                         >
-                          {selectedMeeting.selfCheckInOpen !== false ? '🔒 Khóa cổng tự điểm danh' : '🔓 Mở cổng tự điểm danh'}
+                          {selectedMeeting.selfCheckInOpen !== false ? '🔒 Khóa tự điểm danh' : '🔓 Mở tự điểm danh'}
                         </Button>
-                      </div>
+                        {isKiemTra && (
+                          <Button danger icon={<LockOutlined />} onClick={handleLockMeeting} style={{ fontWeight: 600, borderRadius: 6 }}>
+                            Khóa sổ họp
+                          </Button>
+                        )}
+                      </>
                     ) : (
-                      <Badge status="default" text={<span style={{ color: '#777', fontWeight: 'bold', fontSize: 11 }}>ĐÃ KHÓA</span>} />
+                      isBiThu && (
+                        <Button type="dashed" icon={<PlayCircleOutlined />} onClick={handleUnlockMeeting} style={{ fontWeight: 600, borderRadius: 6 }}>
+                          Mở lại sổ điểm danh (Ghi đè)
+                        </Button>
+                      )
                     )}
                   </div>
-                  <Title level={4} style={{ margin: '4px 0 8px 0', fontWeight: 900, color: '#333' }}>
-                    {selectedMeeting.title}
-                  </Title>
-                  <Space size="large" style={{ fontSize: 13, color: '#666' }}>
-                    <span>📍 Địa điểm: <strong>{selectedMeeting.location}</strong></span>
-                    <span>📅 Ngày: <strong>{safeDayjs(selectedMeeting.date).format('DD/MM/YYYY')}</strong></span>
-                    <span>⏰ Bắt đầu: <strong>{selectedMeeting.time}</strong></span>
-                  </Space>
                 </Space>
-                <div style={{ marginTop: 16 }}>
-                  {selectedMeeting.status === 'ACTIVE' ? (
-                    isKiemTra && (
-                      <Button danger icon={<LockOutlined />} onClick={handleLockMeeting}>
-                        Khóa sổ điểm danh
-                      </Button>
-                    )
-                  ) : (
-                    isBiThu && (
-                      <Button type="dashed" icon={<PlayCircleOutlined />} onClick={handleUnlockMeeting}>
-                        Mở sổ điểm danh (Override)
-                      </Button>
-                    )
-                  )}
-                </div>
               </Col>
 
-              <Col xs={24} md={14}>
-                <Row gutter={12} style={{ textAlign: 'center' }}>
-                  <Col span={6}>
-                    <Card size="small" style={{ background: '#f6ffed', border: 'none', borderRadius: 8 }}>
-                      <Text style={{ color: '#52c41a', fontSize: 11, fontWeight: 'bold' }}>CÓ MẶT</Text>
-                      <Title level={3} style={{ margin: '4px 0 0 0', color: '#389e0d', fontWeight: 900 }}>{stats.present}</Title>
-                    </Card>
+              <Col xs={24} lg={13}>
+                <Row gutter={[16, 16]} style={{ textAlign: 'center' }}>
+                  <Col xs={12} sm={8}>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #f6ffed 0%, #e8fdbb 100%)', 
+                      border: '1.5px solid #b7eb8f', 
+                      borderRadius: 12,
+                      padding: '16px 8px',
+                      boxShadow: '0 4px 12px rgba(82, 196, 26, 0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4
+                    }}>
+                      <span style={{ color: '#389e0d', fontSize: 11, fontWeight: 800, letterSpacing: '0.5px' }}>✓ CÓ MẶT</span>
+                      <span style={{ fontSize: 32, fontWeight: 900, color: '#237804', fontFamily: 'monospace', lineHeight: 1 }}>
+                        {stats.present}
+                      </span>
+                    </div>
                   </Col>
-                  <Col span={6}>
-                    <Card size="small" style={{ background: '#fff7e6', border: 'none', borderRadius: 8 }}>
-                      <Text style={{ color: '#fa8c16', fontSize: 11, fontWeight: 'bold' }}>ĐI MUỘN</Text>
-                      <Title level={3} style={{ margin: '4px 0 0 0', color: '#d46b08', fontWeight: 900 }}>{stats.late}</Title>
-                    </Card>
+                  
+                  <Col xs={12} sm={8}>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%)', 
+                      border: '1.5px solid #ffd591', 
+                      borderRadius: 12,
+                      padding: '16px 8px',
+                      boxShadow: '0 4px 12px rgba(250, 140, 22, 0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4
+                    }}>
+                      <span style={{ color: '#d46b08', fontSize: 11, fontWeight: 800, letterSpacing: '0.5px' }}>⏱ ĐI MUỘN</span>
+                      <span style={{ fontSize: 32, fontWeight: 900, color: '#ad4e00', fontFamily: 'monospace', lineHeight: 1 }}>
+                        {stats.late}
+                      </span>
+                    </div>
                   </Col>
-                  <Col span={6}>
-                    <Card size="small" style={{ background: '#fff1f0', border: 'none', borderRadius: 8 }}>
-                      <Text style={{ color: '#ff4d4f', fontSize: 11, fontWeight: 'bold' }}>VẮNG MẶT</Text>
-                      <Title level={3} style={{ margin: '4px 0 0 0', color: '#cf1322', fontWeight: 900 }}>{stats.absent}</Title>
-                    </Card>
+
+                  <Col xs={12} sm={8}>
+                    <div style={{ 
+                      background: 'linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%)', 
+                      border: '1.5px solid #ffa39e', 
+                      borderRadius: 12,
+                      padding: '16px 8px',
+                      boxShadow: '0 4px 12px rgba(245, 34, 45, 0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4
+                    }}>
+                      <span style={{ color: '#cf1322', fontSize: 11, fontWeight: 800, letterSpacing: '0.5px' }}>✗ VẮNG MẶT</span>
+                      <span style={{ fontSize: 32, fontWeight: 900, color: '#a8071a', fontFamily: 'monospace', lineHeight: 1 }}>
+                        {stats.absent}
+                      </span>
+                    </div>
                   </Col>
-                  <Col span={6} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                    <Progress type="circle" size={54} percent={stats.rate} strokeColor="#c62828" />
-                    <Text style={{ fontSize: 10, color: '#888', marginTop: 4, fontWeight: 'bold' }}>TỶ LỆ THAM GIA</Text>
+
+                  <Col xs={12} sm={24} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0', gap: 16 }}>
+                    <Progress type="circle" size={60} percent={stats.rate} strokeColor="#c62828" strokeWidth={8} />
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#333' }}>TỶ LỆ THAM GIA</div>
+                      <div style={{ fontSize: 11, color: '#777' }}>Tính trên tổng số sinh hoạt viên</div>
+                    </div>
                   </Col>
                 </Row>
               </Col>
@@ -2527,47 +2600,55 @@ const Attendance = () => {
             {/* Column Left: High-Tech Biometric Camera Scan */}
             <Col xs={24} lg={11}>
               <Card 
-                title={<span style={{ fontWeight: 800, color: '#333' }}><CameraOutlined /> PHƯƠNG THỨC 1: XÁC THỰC KHUÔN MẶT</span>}
+                title={
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <span style={{ fontWeight: 800, color: '#1a1a1a', fontSize: 14 }}>
+                      <CameraOutlined style={{ marginRight: 6, color: '#c62828' }} />
+                      XÁC THỰC KHUÔN MẶT (FACE ID)
+                    </span>
+                  </div>
+                }
                 bordered={false} 
-                style={{ borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.04)', height: '100%' }}
-                extra={
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                style={{ borderRadius: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0', height: '100%' }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  
+                  {/* Modern dynamic controls right inside Card body */}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', background: '#fafafa', padding: 8, borderRadius: 8 }}>
+                    {cameraActive ? (
+                      <Button type="primary" danger size="small" style={{ borderRadius: 4, fontWeight: 600 }} onClick={stopCamera}>
+                        Tắt Camera nhận dạng
+                      </Button>
+                    ) : (
+                      <Button type="primary" size="small" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: 4, fontWeight: 600 }} onClick={startCamera}>
+                        Bật Camera nhận dạng
+                      </Button>
+                    )}
                     <Button 
                       type={isFaceIdRegistrationOpen ? "default" : "primary"}
                       danger={isFaceIdRegistrationOpen}
                       size="small"
                       icon={isFaceIdRegistrationOpen ? <LockOutlined /> : <UnlockOutlined />}
                       onClick={handleToggleFaceIdRegistration}
-                      style={!isFaceIdRegistrationOpen ? { backgroundColor: '#52c41a', borderColor: '#52c41a' } : undefined}
+                      style={!isFaceIdRegistrationOpen ? { backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: 4, fontWeight: 600 } : { borderRadius: 4, fontWeight: 600 }}
                     >
-                      {isFaceIdRegistrationOpen ? "Khóa thiết lập" : "Mở thiết lập"}
+                      {isFaceIdRegistrationOpen ? "Khóa thiết lập FaceID" : "Mở thiết lập FaceID"}
                     </Button>
-                    {cameraActive ? (
-                      <Button type="primary" danger size="small" onClick={stopCamera}>
-                        Tắt camera
-                      </Button>
-                    ) : (
-                      <Button type="primary" size="small" style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }} onClick={startCamera}>
-                        Bật nhận dạng
-                      </Button>
-                    )}
                   </div>
-                }
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  
+
                   {/* Camera view screen container */}
                   <div style={{ 
                     width: '100%', 
-                    height: 300, 
-                    backgroundColor: '#111', 
+                    height: 280, 
+                    backgroundColor: '#0a0d14', 
                     borderRadius: 12, 
                     position: 'relative',
                     overflow: 'hidden',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '3px solid #333'
+                    border: '1.5px solid #2d384c',
+                    boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)'
                   }}>
                     {cameraActive ? (
                       <>
@@ -2587,20 +2668,48 @@ const Attendance = () => {
                           left: 0,
                           right: 0,
                           bottom: 0,
-                          pointerEvents: 'none',
-                          border: '2px solid rgba(82, 196, 26, 0.2)'
+                          pointerEvents: 'none'
                         }}>
+                          {/* Pulsing neon green camera target indicator */}
+                          <div style={{
+                            position: 'absolute',
+                            top: 8,
+                            left: 12,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            background: 'rgba(0,0,0,0.5)',
+                            padding: '3px 8px',
+                            borderRadius: 4,
+                            border: '1px solid rgba(82, 196, 26, 0.4)'
+                          }}>
+                            <span style={{ 
+                              width: 8, 
+                              height: 8, 
+                              backgroundColor: '#52c41a', 
+                              borderRadius: '50%',
+                              animation: 'neonBlink 1s infinite alternate' 
+                            }} />
+                            <span style={{ fontSize: 9, fontWeight: 800, color: '#52c41a', letterSpacing: 0.5 }}>CAMERA LIVE</span>
+                          </div>
+
+                          {/* Futuristic corners overlay */}
+                          <div style={{ position: 'absolute', top: 12, left: 12, width: 14, height: 14, borderTop: '3px solid #52c41a', borderLeft: '3px solid #52c41a' }} />
+                          <div style={{ position: 'absolute', top: 12, right: 12, width: 14, height: 14, borderTop: '3px solid #52c41a', borderRight: '3px solid #52c41a' }} />
+                          <div style={{ position: 'absolute', bottom: 12, left: 12, width: 14, height: 14, borderBottom: '3px solid #52c41a', borderLeft: '3px solid #52c41a' }} />
+                          <div style={{ position: 'absolute', bottom: 12, right: 12, width: 14, height: 14, borderBottom: '3px solid #52c41a', borderRight: '3px solid #52c41a' }} />
+
                           {/* Circle Target Frame */}
                           <div style={{
                             position: 'absolute',
                             top: '50%',
                             left: '50%',
                             transform: 'translate(-50%, -50%)',
-                            width: 180,
-                            height: 180,
-                            border: '2px dashed #52c41a',
+                            width: 170,
+                            height: 170,
+                            border: '1.5px dashed rgba(82, 196, 26, 0.6)',
                             borderRadius: '50%',
-                            boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)'
+                            boxShadow: '0 0 0 9999px rgba(10, 13, 20, 0.5)'
                           }}>
                             {/* Rotating radar corner indicators */}
                             <div style={{
@@ -2611,7 +2720,8 @@ const Attendance = () => {
                               width: 8,
                               height: 8,
                               background: '#52c41a',
-                              borderRadius: '50%'
+                              borderRadius: '50%',
+                              boxShadow: '0 0 8px #52c41a'
                             }} />
                           </div>
 
@@ -2630,6 +2740,10 @@ const Attendance = () => {
                               0% { top: 10%; }
                               50% { top: 90%; }
                               100% { top: 10%; }
+                            }
+                            @keyframes neonBlink {
+                              from { opacity: 0.3; }
+                              to { opacity: 1; }
                             }
                           `}</style>
 
@@ -2663,20 +2777,14 @@ const Attendance = () => {
                               </div>
                             </div>
                           )}
-                          <style>{`
-                            @keyframes pulseBox {
-                              from { border-color: #52c41a; box-shadow: 0 0 5px #52c41a; }
-                              to { border-color: #73d13d; box-shadow: 0 0 15px #73d13d; }
-                            }
-                          `}</style>
                         </div>
                       </>
                     ) : (
-                      <div style={{ textAlign: 'center', padding: 24, color: '#666' }}>
-                        <CameraOutlined style={{ fontSize: 48, color: '#333', marginBottom: 12 }} />
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 'bold' }}>Camera nhận dạng đang tắt</p>
-                        <p style={{ margin: '4px 0 0 0', fontSize: 11, color: '#444' }}>
-                          Nhấp bật camera để bắt đầu nhận diện sinh trắc học khuôn mặt tự động chống gian lận.
+                      <div style={{ textAlign: 'center', padding: 24, color: '#778899' }}>
+                        <CameraOutlined style={{ fontSize: 44, color: '#555', marginBottom: 12 }} />
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 'bold', color: '#888' }}>Camera nhận dạng đang tắt</p>
+                        <p style={{ margin: '6px auto 0 auto', fontSize: 11, color: '#555', maxWidth: 300 }}>
+                          Nhấp bật camera để bắt đầu nhận diện sinh trắc học khuôn mặt tự động nhanh chóng và chống gian lận.
                         </p>
                       </div>
                     )}
@@ -2684,23 +2792,40 @@ const Attendance = () => {
 
                   {/* High tech AI Console Log terminal */}
                   <div style={{ 
-                    backgroundColor: '#0c0e12', 
-                    borderRadius: 8, 
-                    padding: 12, 
+                    backgroundColor: '#070a12', 
+                    borderRadius: 10, 
+                    padding: '12px 14px', 
                     fontFamily: 'monospace', 
                     fontSize: '11px',
-                    color: '#4af626',
+                    color: '#00ff66',
                     height: 120,
                     overflowY: 'auto',
-                    border: '1px solid #1a2333'
+                    border: '1px solid #1c273c',
+                    boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.8)'
                   }}>
-                    <div style={{ borderBottom: '1px dashed rgba(74,246,38,0.2)', paddingBottom: 4, marginBottom: 6, fontWeight: 'bold' }}>
-                      🤖 HỆ THỐNG PHÂN TÍCH NHẬN DIỆN SINH TRẮC HỌC:
+                    <div style={{ 
+                      borderBottom: '1px dashed rgba(0,255,102,0.2)', 
+                      paddingBottom: 4, 
+                      marginBottom: 6, 
+                      fontWeight: 'bold', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between' 
+                    }}>
+                      <span>🤖 LOG MONITOR: BIOMETRIC ANALYSIS</span>
+                      <span style={{ 
+                        width: 6, 
+                        height: 6, 
+                        backgroundColor: '#00ff66', 
+                        borderRadius: '50%', 
+                        display: 'inline-block',
+                        animation: 'neonBlink 0.6s infinite alternate' 
+                      }} />
                     </div>
                     {logs.length > 0 ? (
-                      logs.map((log, i) => <div key={i}>{log}</div>)
+                      logs.map((log, i) => <div key={i} style={{ padding: '1px 0' }}>{log}</div>)
                     ) : (
-                      <div style={{ color: '#595959', fontStyle: 'italic' }}>Chưa có hoạt động. Đang chờ bật Camera...</div>
+                      <div style={{ color: '#4c607a', fontStyle: 'italic' }}>Chưa có hoạt động. Đang chờ kết nối...</div>
                     )}
                   </div>
                 </div>
@@ -2710,45 +2835,56 @@ const Attendance = () => {
             {/* Column Right: Barcode scanner & Live stream checked list */}
             <Col xs={24} lg={13}>
               <Card 
-                title={<span style={{ fontWeight: 800, color: '#333' }}><ScanOutlined /> PHƯƠNG THỨC 2: QUÉT THẺ ĐẢNG VIÊN (MÃ VẠCH)</span>}
+                title={
+                  <span style={{ fontWeight: 800, color: '#1a1a1a', fontSize: 14 }}>
+                    <ScanOutlined style={{ marginRight: 6, color: '#c62828' }} />
+                    QUÉT THẺ ĐẢNG VIÊN (MÃ VẠCH / THỦ CÔNG)
+                  </span>
+                }
                 bordered={false} 
-                style={{ borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}
+                style={{ borderRadius: 16, boxShadow: '0 8px 24px rgba(0,0,0,0.03)', border: '1px solid #f0f0f0' }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   
                   {/* Scanner input area */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-                    <span style={{ fontWeight: 'bold', fontSize: 12 }}>
-                      Đầu đọc máy quét thẻ (Keyboard emulation):
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: '#fafafa', padding: 14, borderRadius: 12, border: '1px solid #f0f0f0' }}>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: '#444' }}>
+                      Đầu đọc máy quét thẻ (Súng quét mã vạch):
                     </span>
                     <Input
                       ref={barcodeRef}
-                      placeholder={selectedMeeting?.status === 'ACTIVE' ? "Đang lắng nghe tín hiệu quét mã vạch..." : "Đã khóa cổng quét"}
-                      prefix={<ScanOutlined style={{ color: '#c62828' }} />}
+                      placeholder={selectedMeeting?.status === 'ACTIVE' ? "Đang lắng nghe tín hiệu quét..." : "Cổng quét đang đóng"}
+                      prefix={<ScanOutlined style={{ color: '#52c41a' }} />}
                       value={barcodeInput}
                       disabled={selectedMeeting?.status !== 'ACTIVE'}
                       onChange={(e) => setBarcodeInput(e.target.value)}
                       onPressEnter={handleBarcodeSubmit}
-                      style={{ height: 44, borderRadius: 6, fontSize: 15 }}
+                      style={{ 
+                        height: 42, 
+                        borderRadius: 6, 
+                        fontSize: 14,
+                        boxShadow: selectedMeeting?.status === 'ACTIVE' ? '0 0 0 2px rgba(82, 196, 26, 0.05)' : undefined
+                      }}
                     />
-                    <div style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>
-                      Hướng máy quét vào mã vạch trên thẻ Đảng viên để điểm danh tự động.
+                    <div style={{ color: '#777', fontSize: 11 }}>
+                      💡 Hướng đầu đọc súng quét vào mã vạch in trên thẻ Đảng viên để ghi nhận điểm danh tự động.
                     </div>
                   </div>
 
                   {/* Manual search check-in selection for errors */}
                   {isKiemTra && selectedMeeting.status === 'ACTIVE' && (
-                    <div style={{ background: '#fafafa', padding: 12, borderRadius: 8, border: '1px solid #f0f0f0' }}>
-                      <div style={{ fontWeight: 700, fontSize: 12, color: '#555', marginBottom: 8 }}>
-                        Sự cố quét thẻ? Điểm danh thủ công nhanh:
+                    <div style={{ background: '#fffefe', padding: 14, borderRadius: 12, border: '1.5px dashed #d9d9d9' }}>
+                      <div style={{ fontWeight: 700, fontSize: 12, color: '#c62828', marginBottom: 8 }}>
+                        Sự cố thẻ / Không có thẻ? Điểm danh thủ công nhanh:
                       </div>
                       <Select
                         showSearch
-                        placeholder="Chọn tên Đảng viên cần điểm danh..."
+                        placeholder="Nhập tên hoặc MSSV để điểm danh thủ công..."
                         style={{ width: '100%' }}
                         optionFilterProp="children"
                         value={undefined}
                         onChange={handleManualAdd}
+                        size="large"
                       >
                         {missingMembers.map(m => (
                           <Option key={m.id} value={m.mssv}>
@@ -2762,33 +2898,34 @@ const Attendance = () => {
                   {/* Notification screen of last success checkin */}
                   {lastCheckedInMember && (
                     <div style={{ 
-                      padding: 12, 
-                      background: lastCheckedInMember.status === 'LATE' ? '#fff7e6' : '#f6ffed', 
-                      borderRadius: 8, 
-                      border: lastCheckedInMember.status === 'LATE' ? '1.5px solid #ffd591' : '1.5px solid #b7eb8f',
+                      padding: '14px 16px', 
+                      background: lastCheckedInMember.status === 'LATE' ? '#fffbe6' : '#f6ffed', 
+                      borderRadius: 12, 
+                      border: lastCheckedInMember.status === 'LATE' ? '1.5px solid #ffe58f' : '1.5px solid #d9f7be',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 12,
-                      animation: 'successFlash 0.3s ease-out'
+                      gap: 14,
+                      animation: 'successSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.03)'
                     }}>
                       <Avatar size="large" style={{ backgroundColor: lastCheckedInMember.status === 'LATE' ? '#fa8c16' : '#52c41a' }} icon={<UserOutlined />} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 800, fontSize: 14, color: '#262626' }}>
-                          ĐÃ QUÉT: Đ/c {lastCheckedInMember.ho_ten}
+                        <div style={{ fontWeight: 800, fontSize: 14, color: '#1a1a1a' }}>
+                          ĐÃ GHI NHẬN: Đ/c {lastCheckedInMember.ho_ten}
                         </div>
-                        <Text style={{ fontSize: 11, color: '#555' }}>
-                          MSSV: <strong>{lastCheckedInMember.mssv}</strong> | Lớp: <strong>{lastCheckedInMember.lop || 'N/A'}</strong> | Lúc: <strong>{lastCheckedInMember.time}</strong>
+                        <Text style={{ fontSize: 12, color: '#555' }}>
+                          MSSV: <strong style={{ color: '#222' }}>{lastCheckedInMember.mssv}</strong> | Lớp: <strong style={{ color: '#222' }}>{lastCheckedInMember.lop || 'N/A'}</strong> | Lúc: <strong style={{ color: '#222' }}>{lastCheckedInMember.time}</strong>
                         </Text>
                       </div>
-                      <Tag color={lastCheckedInMember.status === 'LATE' ? 'warning' : 'success'} style={{ padding: '4px 10px', fontSize: 12, fontWeight: 'bold' }}>
+                      <Tag color={lastCheckedInMember.status === 'LATE' ? 'warning' : 'success'} style={{ padding: '6px 12px', fontSize: 11, fontWeight: 'bold', borderRadius: 6, border: 'none' }}>
                         {lastCheckedInMember.status === 'LATE' ? 'ĐI MUỘN' : 'CÓ MẶT'}
                       </Tag>
                     </div>
                   )}
                   <style>{`
-                    @keyframes successFlash {
-                      0% { transform: scale(0.95); opacity: 0.8; }
-                      100% { transform: scale(1); opacity: 1; }
+                    @keyframes successSlideIn {
+                      0% { transform: translateY(10px); opacity: 0; }
+                      100% { transform: translateY(0); opacity: 1; }
                     }
                   `}</style>
 
@@ -2800,9 +2937,9 @@ const Attendance = () => {
           {/* 4. Table: Attendance List with Tabs */}
           <Card 
             bordered={false} 
-            style={{ borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.04)' }}
+            style={{ borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.02)', border: '1px solid #f0f0f0' }}
             extra={
-              <Button type="primary" icon={<DownloadOutlined />} style={{ backgroundColor: '#389e0d', borderColor: '#389e0d' }} onClick={handleExportExcel}>
+              <Button type="primary" icon={<DownloadOutlined />} style={{ backgroundColor: '#389e0d', borderColor: '#389e0d', fontWeight: 600, borderRadius: 6 }} onClick={handleExportExcel}>
                 Xuất báo cáo (Excel)
               </Button>
             }
@@ -3070,7 +3207,7 @@ const Attendance = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                     <div style={{ padding: 12, background: '#fff', border: '2px solid #f0f0f0', borderRadius: 12, display: 'inline-block', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin + '/attendance?code=' + selectedMeeting.sessionCode)}`} 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(window.location.origin + '/quick-attendance?code=' + selectedMeeting.sessionCode)}`} 
                         alt="QR Code Điểm danh"
                         style={{ width: 250, height: 250, display: 'block' }}
                       />

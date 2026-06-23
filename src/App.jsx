@@ -28,6 +28,7 @@ import LichHop from './pages/LichHop';
 import XinVang from './pages/XinVang';
 import DocumentGenerator from './pages/DocumentGenerator';
 import DangKyChuyenSinhHoat from './pages/DangKyChuyenSinhHoat';
+import QuickAttendance from './pages/QuickAttendance';
 function App() {
   useEffect(() => {
     const loadRolePermissions = async () => {
@@ -49,6 +50,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/quick-attendance" element={<QuickAttendance />} />
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

@@ -12,6 +12,11 @@ const ProtectedRoute = ({ children }) => {
   const location = useLocation();
 
   if (!currentUser) {
+    if (location.pathname === '/attendance') {
+      const params = new URLSearchParams(location.search);
+      const code = params.get('code');
+      return <Navigate to={`/quick-attendance${code ? `?code=${code}` : ''}`} replace />;
+    }
     message.warning("Vui lòng đăng nhập hệ thống!");
     return <Navigate to="/login" replace />;
   }
