@@ -38,8 +38,22 @@ const { Title } = Typography;
 
 const MainLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 992;
+      setIsMobile(mobile);
+      if (mobile) {
+        setCollapsed(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const { currentUser, getRoleBadgeName, logout } = useAuth();
 
@@ -430,10 +444,10 @@ const MainLayout = () => {
         theme="light"
         width={250}
         collapsed={collapsed}
-        collapsedWidth={80}
+        collapsedWidth={isMobile ? 0 : 80}
         style={{ 
           boxShadow: '2px 0 8px 0 rgba(29,35,41,.05)', 
-          zIndex: 10,
+          zIndex: isMobile ? 1001 : 10,
           position: 'fixed',
           height: '100vh',
           left: 0,
@@ -455,7 +469,7 @@ const MainLayout = () => {
             backgroundColor: '#ffffff',
             border: '1px solid #d9d9d9',
             boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
-            display: 'flex',
+            display: isMobile ? 'none' : 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
@@ -579,17 +593,32 @@ const MainLayout = () => {
           )}
         </div>
       </Sider>
-      <Layout style={{ marginLeft: collapsed ? 80 : 250, transition: 'all 0.2s' }}>
+      {!collapsed && isMobile && (
+        <div 
+          onClick={() => setCollapsed(true)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            zIndex: 1000,
+            transition: 'opacity 0.3s'
+          }}
+        />
+      )}
+      <Layout style={{ marginLeft: isMobile ? 0 : (collapsed ? 80 : 250), transition: 'all 0.2s' }}>
           <Header style={{ 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'space-between', 
-            padding: '0 24px', 
+            padding: isMobile ? '0 12px' : '0 24px', 
             background: '#c62828',
             position: 'fixed',
             top: 0,
             right: 0,
-            left: collapsed ? 80 : 250,
+            left: isMobile ? 0 : (collapsed ? 80 : 250),
             zIndex: 99,
             height: 64,
             transition: 'all 0.2s'
@@ -603,7 +632,7 @@ const MainLayout = () => {
                   fontSize: '18px',
                   width: 40,
                   height: 40,
-                  marginRight: 16,
+                  marginRight: isMobile ? 8 : 16,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -621,7 +650,7 @@ const MainLayout = () => {
                 HỆ THỐNG QUẢN LÝ, ĐIỀU HÀNH CHI BỘ SINH VIÊN
               </span>
             </div>
-            <Space size="large">
+            <Space size={isMobile ? "small" : "large"}>
               <Popover
                 content={notificationPopoverContent}
                 trigger="click"
@@ -670,9 +699,9 @@ const MainLayout = () => {
                 style={{ 
                   display: 'flex', 
                   alignItems: 'center', 
-                  gap: '12px', 
+                  gap: isMobile ? '4px' : '12px', 
                   cursor: 'pointer', 
-                  padding: '6px 12px', 
+                  padding: isMobile ? '4px 6px' : '6px 12px', 
                   borderRadius: '6px', 
                   transition: 'background 0.3s' 
                 }}
@@ -682,18 +711,20 @@ const MainLayout = () => {
                 title="Hồ sơ cá nhân"
               >
                 <Avatar style={{ backgroundColor: '#fbc02d', color: '#c62828' }} icon={<UserOutlined />} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
-                  <span style={{ color: 'white', fontWeight: 800, fontSize: '13px' }}>
-                    {currentUser?.name || 'Đồng chí'}
-                  </span>
-                  <span style={{ color: '#ffeb3b', fontSize: '10px', fontWeight: 700 }}>
-                    {getRoleBadgeName(currentUser?.role)}
-                  </span>
-                </div>
+                {!isMobile && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+                    <span style={{ color: 'white', fontWeight: 800, fontSize: '13px' }}>
+                      {currentUser?.name || 'Đồng chí'}
+                    </span>
+                    <span style={{ color: '#ffeb3b', fontSize: '10px', fontWeight: 700 }}>
+                      {getRoleBadgeName(currentUser?.role)}
+                    </span>
+                  </div>
+                )}
               </div>
             </Space>
           </Header>
-         <Content style={{ margin: '88px 16px 24px', padding: 24, background: '#fff', borderRadius: 8 }}>
+         <Content style={{ margin: isMobile ? '80px 8px 16px' : '88px 16px 24px', padding: isMobile ? 12 : 24, background: '#fff', borderRadius: 8 }}>
           <Outlet />
         </Content>
       </Layout>
