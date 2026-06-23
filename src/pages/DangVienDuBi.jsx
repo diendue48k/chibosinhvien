@@ -11,7 +11,7 @@ import {
   ExportOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, FilterOutlined, SearchOutlined, CloseOutlined,
   TableOutlined, FullscreenOutlined, FullscreenExitOutlined, SettingOutlined,
   BoldOutlined, ItalicOutlined, UnderlineOutlined, LinkOutlined, DisconnectOutlined,
-  UnorderedListOutlined, OrderedListOutlined, FileZipOutlined
+  UnorderedListOutlined, OrderedListOutlined, FileZipOutlined, LockOutlined
 } from '@ant-design/icons';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { dbMain as db } from '../firebase';
