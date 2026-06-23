@@ -952,7 +952,6 @@ const HoSoDaChinhThuc = () => {
 
         const updateData = {
           so_quyet_dinh_dvct: row.soQd || null,
-          so_qd: row.soQd || null,
           ngay_ky_quyet_dinh_dvct: row.ngayKy || null,
           ngay_chinh_thuc: ngayCongNhan,
           ngay_cong_nhan_dvct: ngayCongNhan,
@@ -969,8 +968,8 @@ const HoSoDaChinhThuc = () => {
           const dshSnap = await getDocs(qDsh);
           if (!dshSnap.empty) {
             await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", dshSnap.docs[0].id), {
-              so_qd: row.soQd || '',
-              ngay_ki_qd: row.ngayKy || null,
+              so_quyet_dinh_dvct: row.soQd || '',
+              ngay_ky_quyet_dinh_dvct: row.ngayKy || null,
               ngay_chinh_thuc: ngayCongNhan,
               ngay_cong_nhan_dvct: ngayCongNhan
             });
@@ -1345,7 +1344,6 @@ const HoSoDaChinhThuc = () => {
         ngay_cong_nhan_dvct: values.ngay_chinh_thuc ? values.ngay_chinh_thuc.format('YYYY-MM-DD') : null, // Sync both fields
         ngay_ky_quyet_dinh_dvct: values.ngay_ky_quyet_dinh_dvct ? values.ngay_ky_quyet_dinh_dvct.format('YYYY-MM-DD') : null,
         so_quyet_dinh_dvct: values.so_quyet_dinh_dvct || null,
-        so_qd: values.so_quyet_dinh_dvct || null, // Sync both fields
         loai_dang_vien: "Chính thức",
         dang_vien_du_bi: false,
         updated_at: new Date().toISOString()
@@ -1369,8 +1367,8 @@ const HoSoDaChinhThuc = () => {
               facebook: values.facebook || selectedRecord.facebook || '',
               ngay_sinh: formatted.ngay_sinh,
               ngay_vao_dang: formatted.ngay_vao_dang,
-              so_qd: formatted.so_qd || '',
-              ngay_ki_qd: formatted.ngay_ky_quyet_dinh_dvct || null
+              so_quyet_dinh_dvct: formatted.so_quyet_dinh_dvct || '',
+              ngay_ky_quyet_dinh_dvct: formatted.ngay_ky_quyet_dinh_dvct || null
             });
           }
         }
@@ -1411,8 +1409,8 @@ const HoSoDaChinhThuc = () => {
               facebook: formatted.facebook || selectedPrep.facebook || '',
               ngay_sinh: formatted.ngay_sinh,
               ngay_vao_dang: formatted.ngay_vao_dang,
-              so_qd: formatted.so_qd || '',
-              ngay_ki_qd: formatted.ngay_ky_quyet_dinh_dvct || null
+              so_quyet_dinh_dvct: formatted.so_quyet_dinh_dvct || '',
+              ngay_ky_quyet_dinh_dvct: formatted.ngay_ky_quyet_dinh_dvct || null
             });
           }
         }

@@ -23,6 +23,7 @@ import addressDataMoi from '../data/addressDataMoi.json';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+import { lookupOldAddress } from '../services/addressService';
 
 const addProvincePrefix = (tinh) => {
   if (!tinh) return tinh;
@@ -844,6 +845,8 @@ const Profile = () => {
         noi_chuyen_di: values.noi_chuyen_di || '',
         ngaykiqd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : (memberData.ngaykiqd || null),
         soqd: values.soqd || '',
+        so_quyet_dinh_dvct: values.so_quyet_dinh_dvct || '',
+        ngay_ky_quyet_dinh_dvct: values.ngay_ky_quyet_dinh_dvct ? values.ngay_ky_quyet_dinh_dvct.format('YYYY-MM-DD') : (memberData.ngay_ky_quyet_dinh_dvct || null),
         dvhd: values.dvhd || '',
         so_dien_thoai: values.so_dien_thoai || '',
         facebook: values.facebook || '',
@@ -964,6 +967,38 @@ const Profile = () => {
       fetchMemberRecord();
     } catch (e) {
       message.error('Lỗi khi cấp số thẻ Đảng: ' + e.message);
+    }
+  };
+
+  const onValuesChange = (changedValues) => {
+    // Auto lookup and sync old address fields
+    if (changedValues.xa_phuong_tt || changedValues.tinh_tp_tt) {
+      const tinh = changedValues.tinh_tp_tt || form.getFieldValue('tinh_tp_tt');
+      const xa = changedValues.xa_phuong_tt || form.getFieldValue('xa_phuong_tt');
+      const mapped = lookupOldAddress(tinh, xa);
+      if (mapped) {
+        form.setFieldsValue({
+          tinh_tp_tt_cu: mapped.tinh_tp_cu,
+          quan_huyen_tt_cu: mapped.quan_huyen_cu,
+          xa_phuong_tt_cu: mapped.xa_phuong_cu
+        });
+        handleAddressSelectChange('tt_cu', 'tinh_tp', mapped.tinh_tp_cu);
+        handleAddressSelectChange('tt_cu', 'quan_huyen', mapped.quan_huyen_cu);
+        handleAddressSelectChange('tt_cu', 'xa_phuong', mapped.xa_phuong_cu);
+      }
+    }
+
+    if (changedValues.xa_phuong_qq || changedValues.tinh_tp_qq) {
+      const tinh = changedValues.tinh_tp_qq || form.getFieldValue('tinh_tp_qq');
+      const xa = changedValues.xa_phuong_qq || form.getFieldValue('xa_phuong_qq');
+      const mapped = lookupOldAddress(tinh, xa);
+      if (mapped) {
+        form.setFieldsValue({
+          tinh_tp_qq_cu: mapped.tinh_tp_cu,
+          quan_huyen_qq_cu: mapped.quan_huyen_cu,
+          xa_phuong_qq_cu: mapped.xa_phuong_cu
+        });
+      }
     }
   };
 
@@ -1326,7 +1361,7 @@ const Profile = () => {
 
         {/* RIGHT SIDE: Details Sections */}
         <Col xs={24} md={17}>
-          <Form form={form} layout="vertical">
+          <Form form={form} layout="vertical" onValuesChange={onValuesChange}>
 
             {/* SECTION 1 */}
             <Card title={<><IdcardOutlined style={{ marginRight: 8 }} /> Thông tin cá nhân</>} bordered={false} style={cardStyle} headStyle={headStyle}>

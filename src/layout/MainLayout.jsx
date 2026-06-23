@@ -501,12 +501,17 @@ const MainLayout = () => {
                   objectFit: 'cover',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                   transition: 'transform 0.3s ease',
+                  cursor: 'pointer',
                 }}
+                onClick={() => navigate('/dashboard')}
                 onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
                 onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
               />
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
+              <div 
+                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', cursor: 'pointer' }}
+                onClick={() => navigate('/dashboard')}
+              >
                 <img 
                   src="/logo.png" 
                   alt="Logo" 
@@ -640,21 +645,52 @@ const MainLayout = () => {
                   />
                 </Badge>
               </Popover>
-               <Dropdown menu={{ items: dropdownItems }} trigger={['click']} placement="bottomRight">
-                 <Space 
-                   style={{ cursor: 'pointer' }}
-                 >
-                   <Avatar style={{ backgroundColor: '#fbc02d', color: '#c62828' }} icon={<UserOutlined />} />
-                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
-                     <span style={{ color: 'white', fontWeight: 800, fontSize: '13px' }}>
-                       {currentUser?.name || 'Đồng chí'}
-                     </span>
-                     <span style={{ color: '#ffeb3b', fontSize: '10px', fontWeight: 700 }}>
-                       {getRoleBadgeName(currentUser?.role)}
-                     </span>
-                   </div>
-                 </Space>
-               </Dropdown>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  cursor: 'pointer', 
+                  padding: '6px 8px', 
+                  borderRadius: '6px', 
+                  transition: 'background 0.3s' 
+                }}
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                title="Đăng xuất"
+              >
+                <LogoutOutlined style={{ fontSize: 18, color: 'white' }} />
+              </div>
+
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  cursor: 'pointer', 
+                  padding: '6px 12px', 
+                  borderRadius: '6px', 
+                  transition: 'background 0.3s' 
+                }}
+                onClick={() => navigate('/profile')}
+                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                title="Hồ sơ cá nhân"
+              >
+                <Avatar style={{ backgroundColor: '#fbc02d', color: '#c62828' }} icon={<UserOutlined />} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+                  <span style={{ color: 'white', fontWeight: 800, fontSize: '13px' }}>
+                    {currentUser?.name || 'Đồng chí'}
+                  </span>
+                  <span style={{ color: '#ffeb3b', fontSize: '10px', fontWeight: 700 }}>
+                    {getRoleBadgeName(currentUser?.role)}
+                  </span>
+                </div>
+              </div>
             </Space>
           </Header>
          <Content style={{ margin: '88px 16px 24px', padding: 24, background: '#fff', borderRadius: 8 }}>

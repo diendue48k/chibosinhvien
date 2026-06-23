@@ -2553,6 +2553,12 @@ const HoSoChuyenRa = ({ forceTab }) => {
                 </div>
 
                 <Form form={docForm} layout="vertical">
+                  <div style={{ display: 'none' }}>
+                    <Form.Item name="tinh_tp"><Input /></Form.Item>
+                    <Form.Item name="ngay_ky"><DatePicker format="DD/MM/YYYY" /></Form.Item>
+                    <Form.Item name="uu_diem"><Input.TextArea /></Form.Item>
+                    <Form.Item name="khuyet_diem"><Input.TextArea /></Form.Item>
+                  </div>
                   <Row gutter={24}>
                     {/* Left inputs column */}
                     <Col xs={24} lg={10} style={{ maxHeight: '75vh', overflowY: 'auto', paddingRight: '16px' }}>
@@ -2660,7 +2666,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
                             Thông tin bổ sung cho hồ sơ
                           </div>
 
-                          <Collapse defaultActiveKey={['1', '2', '3', '4']} bordered={false} style={{ backgroundColor: 'transparent' }} items={[
+                          <Collapse defaultActiveKey={['1', '2', '3']} bordered={false} style={{ backgroundColor: 'transparent' }} items={[
                             {
                               key: '1',
                               label: <div style={{ fontWeight: 700, color: '#1e293b' }}>1. Thông tin Cá nhân</div>,
@@ -3514,19 +3520,20 @@ const HoSoChuyenRa = ({ forceTab }) => {
             <Form.Item name="que_quan"><Input /></Form.Item>
             <Form.Item name="dia_chi"><Input /></Form.Item>
             <Form.Item name="nhiem_vu_dang"><Input /></Form.Item>
+            <Form.Item name="tinh_tp"><Input /></Form.Item>
+            <Form.Item name="ngay_ky"><DatePicker format="DD/MM/YYYY" /></Form.Item>
+            <Form.Item name="uu_diem"><Input.TextArea /></Form.Item>
+            <Form.Item name="khuyet_diem"><Input.TextArea /></Form.Item>
           </div>
           
           <Row gutter={16}>
-            <Col span={12}>
+            <Col span={24}>
               <Form.Item name="loai_chuyen_sh" label="Loại chuyển sinh hoạt Đảng" rules={[{ required: true }]}>
                 <Radio.Group>
                   <Radio value="chuyen_ra">Chuyển ra ngoài</Radio>
                   <Radio value="chuyen_tam_thoi">Chuyển tạm thời</Radio>
                 </Radio.Group>
               </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="tinh_tp" label="Tỉnh/Thành phố ký hồ sơ" rules={[{ required: true }]}><Input /></Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
@@ -3568,16 +3575,11 @@ const HoSoChuyenRa = ({ forceTab }) => {
             </Col>
           </Row>
           <Row gutter={16}>
-            <Col span={12}>
+            <Col span={24}>
               <Form.Item name="ngay_nop_ho_so" label="Ngày nhận hồ sơ" rules={[{ required: true }]}><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="ngay_ky" label="Ngày ký hồ sơ" rules={[{ required: true }]}><DatePicker format="DD/MM/YYYY" style={{ width: '100%' }} /></Form.Item>
             </Col>
           </Row>
           <Form.Item name="ly_do_chuyen" label="Lý do xin chuyển sinh hoạt Đảng" rules={[{ required: true }]}><Input.TextArea rows={2} /></Form.Item>
-          <Form.Item name="uu_diem" label="Tự nhận xét Ưu điểm" rules={[{ required: true }]}><Input.TextArea rows={4} /></Form.Item>
-          <Form.Item name="khuyet_diem" label="Tự nhận xét Khuyết điểm" rules={[{ required: true }]}><Input.TextArea rows={2} /></Form.Item>
           <Form.Item name="ghi_chu" label="Ghi chú hồ sơ"><Input.TextArea rows={2} placeholder="Nhập ghi chú hoặc nhắc nhở về hồ sơ này..." /></Form.Item>
           
           {isProbationaryAdd && (

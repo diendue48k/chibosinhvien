@@ -12,6 +12,7 @@ const { Option } = Select;
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { DEFAULT_KHOA, DEFAULT_NHOM } from '../services/permissionService';
+import { lookupOldAddress } from '../services/addressService';
 
 const DAN_TOC = ["Kinh", "Tày", "Thái", "Hoa", "Khmer", "Mường", "Nùng", "H'Mông", "Dao", "Gia Rai", "Ngái", "Ê Đê", "Ba Na", "Xơ Đăng", "Sán Chay", "Cơ Ho", "Chăm", "Sán Dìu", "Hrê", "Mnông", "Ra Glai", "Xtiêng", "Bru-Vân Kiều", "Thổ", "Giáy", "Cơ Tu", "Giẻ Triêng", "Mạ", "Khơ Mú", "Co", "Tà Ôi", "Chơ Ro", "Kháng", "Xinh Mun", "Hà Nhì", "Chu Ru", "Lào", "La Chí", "La Ha", "Phù Lá", "La Hủ", "Lự", "Lô Lô", "Chứt", "Mảng", "Pà Thẻn", "Co Lao", "Cống", "Bố Y", "Si La", "Pu Péo", "Brâu", "Ơ Đu", "Rơ Măm", "Khác"];
 const TON_GIAO = ["Không", "Phật giáo", "Công giáo", "Tin Lành", "Cao Đài", "Hòa Hảo", "Hồi giáo", "Bà La Môn", "Khác"];
@@ -150,6 +151,68 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
   const isDuBi = Form.useWatch('dang_vien_du_bi', form);
   const watchAvatar = Form.useWatch('anh_ca_nhan', form);
 
+  const handleAddressSelectChange = (type, fieldName, val) => {
+    const currentValues = form.getFieldsValue();
+    
+    let chiTietKey = '';
+    let tinhKey = '';
+    let xaKey = '';
+    let huyenKey = '';
+    
+    if (type === 'tt') {
+      chiTietKey = 'chi_tiet_dc';
+      tinhKey = 'tinh_tp_tt';
+      xaKey = 'xa_phuong_tt';
+    } else if (type === 'tam_tru') {
+      chiTietKey = 'chi_tiet_tam_tru';
+      tinhKey = 'tinh_tp_tam_tru';
+      xaKey = 'xa_phuong_tam_tru';
+    } else if (type === 'tt_cu') {
+      chiTietKey = 'chi_tiet_tt_cu';
+      tinhKey = 'tinh_tp_tt_cu';
+      xaKey = 'xa_phuong_tt_cu';
+      huyenKey = 'quan_huyen_tt_cu';
+    }
+    
+    const currentChiTiet = currentValues[chiTietKey] || '';
+    const selectedTinh = fieldName === 'tinh_tp' ? val : currentValues[tinhKey];
+    const selectedXa = fieldName === 'xa_phuong' ? val : currentValues[xaKey];
+    const selectedHuyen = fieldName === 'quan_huyen' ? val : currentValues[huyenKey];
+    
+    let customPart = currentChiTiet;
+    
+    const oldTinh = currentValues[tinhKey];
+    const oldXa = currentValues[xaKey];
+    const oldHuyen = huyenKey ? currentValues[huyenKey] : undefined;
+    
+    if (oldTinh) {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(addProvincePrefix(oldTinh))}`, 'gi'), '');
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldTinh)}`, 'gi'), '');
+    }
+    if (oldXa) {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldXa)}`, 'gi'), '');
+    }
+    if (oldHuyen && oldHuyen !== 'undefined') {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldHuyen)}`, 'gi'), '');
+    }
+    
+    customPart = customPart.trim().replace(/^[,\s_]+|[,\s_]+$/g, '');
+    
+    const parts = [];
+    if (customPart) parts.push(customPart);
+    if (selectedXa) parts.push(selectedXa);
+    if (selectedHuyen) parts.push(selectedHuyen);
+    if (selectedTinh) parts.push(addProvincePrefix(selectedTinh));
+    
+    form.setFieldsValue({
+      [chiTietKey]: parts.join(', ')
+    });
+  };
+  
+  const escapeRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+
   // Dynamic categories states
   const [facultiesList, setFacultiesList] = React.useState(DEFAULT_KHOA);
   const [groupsList, setGroupsList] = React.useState(DEFAULT_NHOM);
@@ -258,6 +321,38 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
     onSave(formattedValues);
   };
 
+  const onValuesChange = (changedValues) => {
+    // Auto lookup and sync old address fields
+    if (changedValues.xa_phuong_tt || changedValues.tinh_tp_tt) {
+      const tinh = changedValues.tinh_tp_tt || form.getFieldValue('tinh_tp_tt');
+      const xa = changedValues.xa_phuong_tt || form.getFieldValue('xa_phuong_tt');
+      const mapped = lookupOldAddress(tinh, xa);
+      if (mapped) {
+        form.setFieldsValue({
+          tinh_tp_tt_cu: mapped.tinh_tp_cu,
+          quan_huyen_tt_cu: mapped.quan_huyen_cu,
+          xa_phuong_tt_cu: mapped.xa_phuong_cu
+        });
+        handleAddressSelectChange('tt_cu', 'tinh_tp', mapped.tinh_tp_cu);
+        handleAddressSelectChange('tt_cu', 'quan_huyen', mapped.quan_huyen_cu);
+        handleAddressSelectChange('tt_cu', 'xa_phuong', mapped.xa_phuong_cu);
+      }
+    }
+
+    if (changedValues.xa_phuong_qq || changedValues.tinh_tp_qq) {
+      const tinh = changedValues.tinh_tp_qq || form.getFieldValue('tinh_tp_qq');
+      const xa = changedValues.xa_phuong_qq || form.getFieldValue('xa_phuong_qq');
+      const mapped = lookupOldAddress(tinh, xa);
+      if (mapped) {
+        form.setFieldsValue({
+          tinh_tp_qq_cu: mapped.tinh_tp_cu,
+          quan_huyen_qq_cu: mapped.quan_huyen_cu,
+          xa_phuong_qq_cu: mapped.xa_phuong_cu
+        });
+      }
+    }
+  };
+
   return (
     <Modal
       title={title || "Thêm mới Đảng viên"}
@@ -274,6 +369,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
         form={form}
         layout="vertical"
         onFinish={onFinish}
+        onValuesChange={onValuesChange}
       >
         <Tabs defaultActiveKey="1">
           <TabPane tab="Cá nhân & Liên hệ" key="1">
@@ -427,7 +523,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
             <Row gutter={16}>
               <Col span={24}>
-                <Form.Item name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
+                <Form.Item name="chi_tiet_dc" label="Địa chỉ chi tiết">
                   <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ height: 40 }} />
                 </Form.Item>
               </Col>
@@ -435,12 +531,17 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="tinh_tp_tt" label="Tỉnh/TP thường trú">
-                   <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} size="large" />
+                   <AddressProvinceSelect onChange={(prov) => {
+                     form.setFieldsValue({ xa_phuong_tt: undefined });
+                     handleAddressSelectChange('tt', 'tinh_tp', prov);
+                   }} size="large" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name="xa_phuong_tt" label="Xã/Phường thường trú">
-                   <AddressWardSelect province={watchTinhTpTt} />
+                   <AddressWardSelect province={watchTinhTpTt} onChange={(ward) => {
+                     handleAddressSelectChange('tt', 'xa_phuong', ward);
+                   }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -448,7 +549,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
             <Row gutter={16}>
               <Col span={24}>
-                <Form.Item name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ">
+                <Form.Item name="chi_tiet_tt_cu" label="Địa chỉ chi tiết cũ">
                   <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." style={{ height: 40 }} />
                 </Form.Item>
               </Col>
@@ -456,17 +557,25 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Row gutter={16}>
               <Col span={8}>
                 <Form.Item name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ">
-                  <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} size="large" />
+                  <AddressProvinceSelect isOld={true} onChange={(prov) => {
+                    form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined });
+                    handleAddressSelectChange('tt_cu', 'tinh_tp', prov);
+                  }} size="large" />
                 </Form.Item>
               </Col>
               <Col span={8}>
                 <Form.Item name="quan_huyen_tt_cu" label="Quận/Huyện thường trú cũ">
-                  <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} size="large" />
+                  <AddressDistrictSelect province={watchTinhTpTtCu} onChange={(dist) => {
+                    form.setFieldsValue({ xa_phuong_tt_cu: undefined });
+                    handleAddressSelectChange('tt_cu', 'quan_huyen', dist);
+                  }} size="large" />
                 </Form.Item>
               </Col>
               <Col span={8}>
                 <Form.Item name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ">
-                  <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
+                  <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} onChange={(ward) => {
+                    handleAddressSelectChange('tt_cu', 'xa_phuong', ward);
+                  }} />
                 </Form.Item>
               </Col>
             </Row>
@@ -474,7 +583,7 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
             <Row gutter={16}>
               <Col span={24}>
-                <Form.Item name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
+                <Form.Item name="chi_tiet_tam_tru" label="Địa chỉ chi tiết">
                   <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ height: 40 }} />
                 </Form.Item>
               </Col>
@@ -482,12 +591,17 @@ const DangVienForm = ({ open, onCancel, onSave, initialValues, title }) => {
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item name="tinh_tp_tam_tru" label="Tỉnh/TP tạm trú">
-                   <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} size="large" />
+                   <AddressProvinceSelect onChange={(prov) => {
+                     form.setFieldsValue({ xa_phuong_tam_tru: undefined });
+                     handleAddressSelectChange('tam_tru', 'tinh_tp', prov);
+                   }} size="large" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name="xa_phuong_tam_tru" label="Xã/Phường tạm trú">
-                   <AddressWardSelect province={watchTinhTpTamTru} />
+                   <AddressWardSelect province={watchTinhTpTamTru} onChange={(ward) => {
+                     handleAddressSelectChange('tam_tru', 'xa_phuong', ward);
+                   }} />
                 </Form.Item>
               </Col>
             </Row>

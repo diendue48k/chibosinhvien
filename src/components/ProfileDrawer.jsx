@@ -18,6 +18,7 @@ import AddressDistrictSelect from './AddressDistrictSelect';
 import PermissionWrapper from './PermissionWrapper';
 import addressDataCu from '../data/addressDataCu.json';
 import addressDataMoi from '../data/addressDataMoi.json';
+import { lookupOldAddress } from '../services/addressService';
 const { Option } = Select;
 
 const addProvincePrefix = (tinh) => {
@@ -520,7 +521,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
       const dshDoc = await findDocByMssv("dang_vien_dang_sinh_hoat", mssvStr);
       if (dshDoc) {
         await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", dshDoc.id), {
-          so_qd: cccdVal,
+          so_the_dang: cccdVal,
           updated_at: new Date().toISOString()
         });
       }
@@ -544,6 +545,68 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
   const watchQuanHuyenTtCu = Form.useWatch('quan_huyen_tt_cu', form);
   const isDuBiWatch = Form.useWatch('dang_vien_du_bi', form);
   const shouldHideOfficialDetails = editMode ? isDuBiWatch : data?.dang_vien_du_bi;
+
+  const handleAddressSelectChange = (type, fieldName, val) => {
+    const currentValues = form.getFieldsValue();
+    
+    let chiTietKey = '';
+    let tinhKey = '';
+    let xaKey = '';
+    let huyenKey = '';
+    
+    if (type === 'tt') {
+      chiTietKey = 'chi_tiet_dc';
+      tinhKey = 'tinh_tp_tt';
+      xaKey = 'xa_phuong_tt';
+    } else if (type === 'tam_tru') {
+      chiTietKey = 'chi_tiet_tam_tru';
+      tinhKey = 'tinh_tp_tam_tru';
+      xaKey = 'xa_phuong_tam_tru';
+    } else if (type === 'tt_cu') {
+      chiTietKey = 'chi_tiet_tt_cu';
+      tinhKey = 'tinh_tp_tt_cu';
+      xaKey = 'xa_phuong_tt_cu';
+      huyenKey = 'quan_huyen_tt_cu';
+    }
+    
+    const currentChiTiet = currentValues[chiTietKey] || '';
+    const selectedTinh = fieldName === 'tinh_tp' ? val : currentValues[tinhKey];
+    const selectedXa = fieldName === 'xa_phuong' ? val : currentValues[xaKey];
+    const selectedHuyen = fieldName === 'quan_huyen' ? val : currentValues[huyenKey];
+    
+    let customPart = currentChiTiet;
+    
+    const oldTinh = currentValues[tinhKey];
+    const oldXa = currentValues[xaKey];
+    const oldHuyen = huyenKey ? currentValues[huyenKey] : undefined;
+    
+    if (oldTinh) {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(addProvincePrefix(oldTinh))}`, 'gi'), '');
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldTinh)}`, 'gi'), '');
+    }
+    if (oldXa) {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldXa)}`, 'gi'), '');
+    }
+    if (oldHuyen && oldHuyen !== 'undefined') {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldHuyen)}`, 'gi'), '');
+    }
+    
+    customPart = customPart.trim().replace(/^[,\s_]+|[,\s_]+$/g, '');
+    
+    const parts = [];
+    if (customPart) parts.push(customPart);
+    if (selectedXa) parts.push(selectedXa);
+    if (selectedHuyen) parts.push(selectedHuyen);
+    if (selectedTinh) parts.push(addProvincePrefix(selectedTinh));
+    
+    form.setFieldsValue({
+      [chiTietKey]: parts.join(', ')
+    });
+  };
+  
+  const escapeRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
 
   // Watch for form changes to disable save button if no changes
   const [isModified, setIsModified] = useState(false);
@@ -713,7 +776,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
         ngaykiqd: values.ngaykiqd ? values.ngaykiqd.format('YYYY-MM-DD') : null,
         ngay_ky_quyet_dinh_dvct: values.ngay_ky_quyet_dinh_dvct ? values.ngay_ky_quyet_dinh_dvct.format('YYYY-MM-DD') : null,
         so_quyet_dinh_dvct: values.so_quyet_dinh_dvct || null,
-        so_qd: values.so_quyet_dinh_dvct || null,
+        so_qd: values.soqd || null,
         dang_vien_du_bi: !!values.dang_vien_du_bi
       };
 
@@ -1112,8 +1175,38 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
     }
   };
 
-  const onValuesChange = () => {
+  const onValuesChange = (changedValues) => {
     setIsModified(true);
+    
+    // Auto lookup and sync old address fields
+    if (changedValues.xa_phuong_tt || changedValues.tinh_tp_tt) {
+      const tinh = changedValues.tinh_tp_tt || form.getFieldValue('tinh_tp_tt');
+      const xa = changedValues.xa_phuong_tt || form.getFieldValue('xa_phuong_tt');
+      const mapped = lookupOldAddress(tinh, xa);
+      if (mapped) {
+        form.setFieldsValue({
+          tinh_tp_tt_cu: mapped.tinh_tp_cu,
+          quan_huyen_tt_cu: mapped.quan_huyen_cu,
+          xa_phuong_tt_cu: mapped.xa_phuong_cu
+        });
+        handleAddressSelectChange('tt_cu', 'tinh_tp', mapped.tinh_tp_cu);
+        handleAddressSelectChange('tt_cu', 'quan_huyen', mapped.quan_huyen_cu);
+        handleAddressSelectChange('tt_cu', 'xa_phuong', mapped.xa_phuong_cu);
+      }
+    }
+
+    if (changedValues.xa_phuong_qq || changedValues.tinh_tp_qq) {
+      const tinh = changedValues.tinh_tp_qq || form.getFieldValue('tinh_tp_qq');
+      const xa = changedValues.xa_phuong_qq || form.getFieldValue('xa_phuong_qq');
+      const mapped = lookupOldAddress(tinh, xa);
+      if (mapped) {
+        form.setFieldsValue({
+          tinh_tp_qq_cu: mapped.tinh_tp_cu,
+          quan_huyen_qq_cu: mapped.quan_huyen_cu,
+          xa_phuong_qq_cu: mapped.xa_phuong_cu
+        });
+      }
+    }
   };
 
   if (!data) return null;
@@ -1562,7 +1655,7 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ thường trú</Divider>
                   <Row gutter={16}>
                     {editMode ? (
-                      <Field name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24}>
+                      <Field name="chi_tiet_dc" label="Địa chỉ chi tiết" span={24}>
                          <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
                       </Field>
                     ) : (
@@ -1578,17 +1671,22 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   </Row>
                   <Row gutter={16}>
                     <Field name="tinh_tp_tt" label="Tỉnh/TP thường trú" span={12}>
-                       <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
+                       <AddressProvinceSelect size="large" onChange={(prov) => {
+                         form.setFieldsValue({ xa_phuong_tt: undefined });
+                         handleAddressSelectChange('tt', 'tinh_tp', prov);
+                       }} />
                     </Field>
                     <Field name="xa_phuong_tt" label="Xã/Phường thường trú" span={12}>
-                       <AddressWardSelect province={watchTinhTpTt} />
+                       <AddressWardSelect province={watchTinhTpTt} onChange={(ward) => {
+                         handleAddressSelectChange('tt', 'xa_phuong', ward);
+                       }} />
                     </Field>
                   </Row>
 
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Thường trú cũ (nếu có)</Divider>
                   <Row gutter={16}>
                     {editMode ? (
-                      <Field name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ" span={24}>
+                      <Field name="chi_tiet_tt_cu" label="Địa chỉ chi tiết cũ" span={24}>
                          <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
                       </Field>
                     ) : (
@@ -1604,20 +1702,28 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   </Row>
                   <Row gutter={16}>
                     <Field name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" span={8}>
-                       <AddressProvinceSelect isOld={true} size="large" onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} />
+                       <AddressProvinceSelect isOld={true} size="large" onChange={(prov) => {
+                         form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined });
+                         handleAddressSelectChange('tt_cu', 'tinh_tp', prov);
+                       }} />
                     </Field>
                     <Field name="quan_huyen_tt_cu" label="Quận/Huyện thường trú cũ" span={8}>
-                       <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} size="large" />
+                       <AddressDistrictSelect province={watchTinhTpTtCu} onChange={(dist) => {
+                         form.setFieldsValue({ xa_phuong_tt_cu: undefined });
+                         handleAddressSelectChange('tt_cu', 'quan_huyen', dist);
+                       }} size="large" />
                     </Field>
                     <Field name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ" span={8}>
-                       <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
+                       <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} onChange={(ward) => {
+                         handleAddressSelectChange('tt_cu', 'xa_phuong', ward);
+                       }} />
                     </Field>
                   </Row>
 
                   <Divider style={{ margin: '12px 0', fontWeight: 700, color: '#c62828' }}>Địa chỉ tạm trú</Divider>
                   <Row gutter={16}>
                     {editMode ? (
-                      <Field name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm..." span={24}>
+                      <Field name="chi_tiet_tam_tru" label="Địa chỉ chi tiết" span={24}>
                          <Input size="large" placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
                       </Field>
                     ) : (
@@ -1633,10 +1739,15 @@ const ProfileDrawer = ({ open, onClose, data: originalData, onUpdate, collection
                   </Row>
                   <Row gutter={16}>
                     <Field name="tinh_tp_tam_tru" label="Tỉnh/TP tạm trú" span={12}>
-                       <AddressProvinceSelect size="large" onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} />
+                       <AddressProvinceSelect size="large" onChange={(prov) => {
+                         form.setFieldsValue({ xa_phuong_tam_tru: undefined });
+                         handleAddressSelectChange('tam_tru', 'tinh_tp', prov);
+                       }} />
                     </Field>
                     <Field name="xa_phuong_tam_tru" label="Xã/Phường tạm trú" span={12}>
-                       <AddressWardSelect province={watchTinhTpTamTru} />
+                       <AddressWardSelect province={watchTinhTpTamTru} onChange={(ward) => {
+                         handleAddressSelectChange('tam_tru', 'xa_phuong', ward);
+                       }} />
                     </Field>
                   </Row>
                 </Card>

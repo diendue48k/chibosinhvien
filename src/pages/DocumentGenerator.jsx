@@ -19,6 +19,7 @@ import AddressProvinceSelect from '../components/AddressProvinceSelect';
 import AddressDistrictSelect from '../components/AddressDistrictSelect';
 import addressDataCu from '../data/addressDataCu.json';
 import addressDataMoi from '../data/addressDataMoi.json';
+import { lookupOldAddress } from '../services/addressService';
 
 const addProvincePrefix = (tinh) => {
   if (!tinh) return tinh;
@@ -263,6 +264,73 @@ const DocumentGenerator = () => {
   const watchQuanHuyenTamTru = Form.useWatch('quan_huyen_tam_tru', form);
   const watchTinhTpTamTruCu = Form.useWatch('tinh_tp_tam_tru_cu', form);
   const watchQuanHuyenTamTruCu = Form.useWatch('quan_huyen_tam_tru_cu', form);
+
+  const handleAddressSelectChange = (type, fieldName, val) => {
+    const currentValues = form.getFieldsValue();
+    
+    let chiTietKey = '';
+    let tinhKey = '';
+    let xaKey = '';
+    let huyenKey = '';
+    
+    if (type === 'tt') {
+      chiTietKey = 'chi_tiet_dc';
+      tinhKey = 'tinh_tp_tt';
+      xaKey = 'xa_phuong_tt';
+    } else if (type === 'tam_tru') {
+      chiTietKey = 'chi_tiet_tam_tru';
+      tinhKey = 'tinh_tp_tam_tru';
+      xaKey = 'xa_phuong_tam_tru';
+    } else if (type === 'tt_cu') {
+      chiTietKey = 'chi_tiet_tt_cu';
+      tinhKey = 'tinh_tp_tt_cu';
+      xaKey = 'xa_phuong_tt_cu';
+      huyenKey = 'quan_huyen_tt_cu';
+    } else if (type === 'tam_tru_cu') {
+      chiTietKey = 'chi_tiet_tam_tru_cu';
+      tinhKey = 'tinh_tp_tam_tru_cu';
+      xaKey = 'xa_phuong_tam_tru_cu';
+      huyenKey = 'quan_huyen_tam_tru_cu';
+    }
+    
+    const currentChiTiet = currentValues[chiTietKey] || '';
+    const selectedTinh = fieldName === 'tinh_tp' ? val : currentValues[tinhKey];
+    const selectedXa = fieldName === 'xa_phuong' ? val : currentValues[xaKey];
+    const selectedHuyen = fieldName === 'quan_huyen' ? val : currentValues[huyenKey];
+    
+    let customPart = currentChiTiet;
+    
+    const oldTinh = currentValues[tinhKey];
+    const oldXa = currentValues[xaKey];
+    const oldHuyen = huyenKey ? currentValues[huyenKey] : undefined;
+    
+    if (oldTinh) {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(addProvincePrefix(oldTinh))}`, 'gi'), '');
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldTinh)}`, 'gi'), '');
+    }
+    if (oldXa) {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldXa)}`, 'gi'), '');
+    }
+    if (oldHuyen && oldHuyen !== 'undefined') {
+      customPart = customPart.replace(new RegExp(`[,_]\\s*${escapeRegExp(oldHuyen)}`, 'gi'), '');
+    }
+    
+    customPart = customPart.trim().replace(/^[,\s_]+|[,\s_]+$/g, '');
+    
+    const parts = [];
+    if (customPart) parts.push(customPart);
+    if (selectedXa) parts.push(selectedXa);
+    if (selectedHuyen) parts.push(selectedHuyen);
+    if (selectedTinh) parts.push(addProvincePrefix(selectedTinh));
+    
+    form.setFieldsValue({
+      [chiTietKey]: parts.join(', ')
+    });
+  };
+  
+  const escapeRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
 
   // Role permissions
   const isManager = useMemo(() => {
@@ -1883,8 +1951,55 @@ const DocumentGenerator = () => {
                     } else if ('tan_thanh_doan_truong' in changedValues) {
                       updates.khong_tan_thanh_doan_truong = 0;
                     }
+
+                    // Auto lookup and sync old address fields
+                    if (changedValues.xa_phuong_tt || changedValues.tinh_tp_tt) {
+                      const tinh = changedValues.tinh_tp_tt || form.getFieldValue('tinh_tp_tt');
+                      const xa = changedValues.xa_phuong_tt || form.getFieldValue('xa_phuong_tt');
+                      const mapped = lookupOldAddress(tinh, xa);
+                      if (mapped) {
+                        updates.tinh_tp_tt_cu = mapped.tinh_tp_cu;
+                        updates.quan_huyen_tt_cu = mapped.quan_huyen_cu;
+                        updates.xa_phuong_tt_cu = mapped.xa_phuong_cu;
+                      }
+                    }
+
+                    if (changedValues.xa_phuong_qq || changedValues.tinh_tp_qq) {
+                      const tinh = changedValues.tinh_tp_qq || form.getFieldValue('tinh_tp_qq');
+                      const xa = changedValues.xa_phuong_qq || form.getFieldValue('xa_phuong_qq');
+                      const mapped = lookupOldAddress(tinh, xa);
+                      if (mapped) {
+                        updates.tinh_tp_qq_cu = mapped.tinh_tp_cu;
+                        updates.quan_huyen_qq_cu = mapped.quan_huyen_cu;
+                        updates.xa_phuong_qq_cu = mapped.xa_phuong_cu;
+                      }
+                    }
+
+                    if (changedValues.xa_phuong_tam_tru || changedValues.tinh_tp_tam_tru) {
+                      const tinh = changedValues.tinh_tp_tam_tru || form.getFieldValue('tinh_tp_tam_tru');
+                      const xa = changedValues.xa_phuong_tam_tru || form.getFieldValue('xa_phuong_tam_tru');
+                      const mapped = lookupOldAddress(tinh, xa);
+                      if (mapped) {
+                        updates.tinh_tp_tam_tru_cu = mapped.tinh_tp_cu;
+                        updates.quan_huyen_tam_tru_cu = mapped.quan_huyen_cu;
+                        updates.xa_phuong_tam_tru_cu = mapped.xa_phuong_cu;
+                      }
+                    }
+
                     if (Object.keys(updates).length > 0) {
                       form.setFieldsValue(updates);
+                      
+                      // After updating values, synchronize the concatenated strings
+                      if (updates.tinh_tp_tt_cu) {
+                        handleAddressSelectChange('tt_cu', 'tinh_tp', updates.tinh_tp_tt_cu);
+                        handleAddressSelectChange('tt_cu', 'quan_huyen', updates.quan_huyen_tt_cu);
+                        handleAddressSelectChange('tt_cu', 'xa_phuong', updates.xa_phuong_tt_cu);
+                      }
+                      if (updates.tinh_tp_tam_tru_cu) {
+                        handleAddressSelectChange('tam_tru_cu', 'tinh_tp', updates.tinh_tp_tam_tru_cu);
+                        handleAddressSelectChange('tam_tru_cu', 'quan_huyen', updates.quan_huyen_tam_tru_cu);
+                        handleAddressSelectChange('tam_tru_cu', 'xa_phuong', updates.xa_phuong_tam_tru_cu);
+                      }
                     }
                   }}
                 >
@@ -2005,16 +2120,21 @@ const DocumentGenerator = () => {
                     <Row gutter={16}>
                       <Col span={8}>
                         <Form.Item name="tinh_tp_tt" label={<span className="premium-form-label">Tỉnh/Thành phố</span>}>
-                          <AddressProvinceSelect />
+                          <AddressProvinceSelect onChange={(prov) => {
+                            form.setFieldsValue({ xa_phuong_tt: undefined });
+                            handleAddressSelectChange('tt', 'tinh_tp', prov);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={8}>
                         <Form.Item name="xa_phuong_tt" label={<span className="premium-form-label">Phường/Xã</span>}>
-                          <AddressWardSelect province={watchTinhTpTt} />
+                          <AddressWardSelect province={watchTinhTpTt} onChange={(ward) => {
+                            handleAddressSelectChange('tt', 'xa_phuong', ward);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={8}>
-                        <Form.Item name="chi_tiet_dc" label={<span className="premium-form-label">Số nhà, tên đường, tổ dân phố, thôn, xóm...</span>}>
+                        <Form.Item name="chi_tiet_dc" label={<span className="premium-form-label">Địa chỉ chi tiết</span>}>
                           <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
                         </Form.Item>
                       </Col>
@@ -2025,21 +2145,29 @@ const DocumentGenerator = () => {
                     <Row gutter={16}>
                       <Col span={6}>
                         <Form.Item name="tinh_tp_tt_cu" label={<span className="premium-form-label">Tỉnh/Thành phố cũ</span>}>
-                          <AddressProvinceSelect isOld={true} />
+                          <AddressProvinceSelect isOld={true} onChange={(prov) => {
+                            form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined });
+                            handleAddressSelectChange('tt_cu', 'tinh_tp', prov);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
                         <Form.Item name="quan_huyen_tt_cu" label={<span className="premium-form-label">Quận/Huyện cũ</span>}>
-                          <AddressDistrictSelect province={watchTinhTpTtCu} />
+                          <AddressDistrictSelect province={watchTinhTpTtCu} onChange={(dist) => {
+                            form.setFieldsValue({ xa_phuong_tt_cu: undefined });
+                            handleAddressSelectChange('tt_cu', 'quan_huyen', dist);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
                         <Form.Item name="xa_phuong_tt_cu" label={<span className="premium-form-label">Phường/Xã cũ</span>}>
-                          <AddressWardSelect province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} isOld={true} />
+                          <AddressWardSelect province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} isOld={true} onChange={(ward) => {
+                            handleAddressSelectChange('tt_cu', 'xa_phuong', ward);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
-                        <Form.Item name="chi_tiet_tt_cu" label={<span className="premium-form-label">Số nhà, tên đường, tổ dân phố, thôn, xóm cũ</span>}>
+                        <Form.Item name="chi_tiet_tt_cu" label={<span className="premium-form-label">Địa chỉ chi tiết cũ</span>}>
                           <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
                         </Form.Item>
                       </Col>
@@ -2051,16 +2179,21 @@ const DocumentGenerator = () => {
                     <Row gutter={16}>
                       <Col span={8}>
                         <Form.Item name="tinh_tp_tam_tru" label={<span className="premium-form-label">Tỉnh/Thành phố</span>}>
-                          <AddressProvinceSelect />
+                          <AddressProvinceSelect onChange={(prov) => {
+                            form.setFieldsValue({ xa_phuong_tam_tru: undefined });
+                            handleAddressSelectChange('tam_tru', 'tinh_tp', prov);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={8}>
                         <Form.Item name="xa_phuong_tam_tru" label={<span className="premium-form-label">Phường/Xã</span>}>
-                          <AddressWardSelect province={watchTinhTpTamTru} />
+                          <AddressWardSelect province={watchTinhTpTamTru} onChange={(ward) => {
+                            handleAddressSelectChange('tam_tru', 'xa_phuong', ward);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={8}>
-                        <Form.Item name="chi_tiet_tam_tru" label={<span className="premium-form-label">Số nhà, tên đường, tổ dân phố, thôn, xóm...</span>}>
+                        <Form.Item name="chi_tiet_tam_tru" label={<span className="premium-form-label">Địa chỉ chi tiết</span>}>
                           <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." />
                         </Form.Item>
                       </Col>
@@ -2071,21 +2204,29 @@ const DocumentGenerator = () => {
                     <Row gutter={16}>
                       <Col span={6}>
                         <Form.Item name="tinh_tp_tam_tru_cu" label={<span className="premium-form-label">Tỉnh/Thành phố cũ</span>}>
-                          <AddressProvinceSelect isOld={true} />
+                          <AddressProvinceSelect isOld={true} onChange={(prov) => {
+                            form.setFieldsValue({ quan_huyen_tam_tru_cu: undefined, xa_phuong_tam_tru_cu: undefined });
+                            handleAddressSelectChange('tam_tru_cu', 'tinh_tp', prov);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
                         <Form.Item name="quan_huyen_tam_tru_cu" label={<span className="premium-form-label">Quận/Huyện cũ</span>}>
-                          <AddressDistrictSelect province={watchTinhTpTamTruCu} />
+                          <AddressDistrictSelect province={watchTinhTpTamTruCu} onChange={(dist) => {
+                            form.setFieldsValue({ xa_phuong_tam_tru_cu: undefined });
+                            handleAddressSelectChange('tam_tru_cu', 'quan_huyen', dist);
+                          }} size="large" />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
                         <Form.Item name="xa_phuong_tam_tru_cu" label={<span className="premium-form-label">Phường/Xã cũ</span>}>
-                          <AddressWardSelect province={watchTinhTpTamTruCu} district={watchQuanHuyenTamTruCu} isOld={true} />
+                          <AddressWardSelect province={watchTinhTpTamTruCu} district={watchQuanHuyenTamTruCu} isOld={true} onChange={(ward) => {
+                            handleAddressSelectChange('tam_tru_cu', 'xa_phuong', ward);
+                          }} />
                         </Form.Item>
                       </Col>
                       <Col span={6}>
-                        <Form.Item name="chi_tiet_tam_tru_cu" label={<span className="premium-form-label">Số nhà, tên đường, tổ dân phố, thôn, xóm cũ</span>}>
+                        <Form.Item name="chi_tiet_tam_tru_cu" label={<span className="premium-form-label">Địa chỉ chi tiết cũ</span>}>
                           <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." />
                         </Form.Item>
                       </Col>

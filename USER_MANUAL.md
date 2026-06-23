@@ -53,21 +53,21 @@ Hệ thống quản lý 2 luồng hồ sơ chính theo quy trình chuẩn của 
 *Truy cập từ menu: **Sinh hoạt Chi bộ**.*
 
 - **Lịch họp & Thông báo**: Bí thư/Chi ủy tạo lịch họp chi bộ định kỳ hoặc đột xuất, đính kèm tài liệu sinh hoạt. Hệ thống gửi thông báo tự động cho đảng viên.
-- **Đăng ký xin vắng**: Đảng viên nếu bận lịch học/lịch thi trùng giờ họp có thể nộp đơn xin vắng kèm lý do trực tiếp trên hệ thống để Ban chi ủy xét duyệt.
+- **Đăng ký xin vắng**: Đảng viên nếu bận lịch học/lịch thi trùng giờ họp có thể nộp đơn xin vắng kèm lý do trực tiếp trên hệ thống để Quản trị viên hệ thống xét duyệt.
 - **Điểm danh sinh hoạt**: 
-  - **Dành cho Ban chi ủy**: Quản lý và thực hiện điểm danh cho đảng viên bằng cách bật nhận diện khuôn mặt tự động (Face ID), quét mã vạch trên thẻ đảng viên hoặc điểm danh thủ công nhanh.
+  - **Dành cho Quản trị viên hệ thống**: Quản lý và thực hiện điểm danh cho đảng viên bằng cách bật nhận diện khuôn mặt tự động (Face ID), quét mã vạch trên thẻ đảng viên hoặc điểm danh thủ công nhanh.
   - **Dành cho Đảng viên**: Tra cứu trực tuyến lịch sử chuyên cần cá nhân (số buổi tham gia, vắng phép, vắng không phép) và biểu đồ tỷ lệ chuyên cần trực quan.
 
 ### 2.5. Biểu quyết Chi bộ (Voting)
 *Truy cập từ menu: **Biểu quyết Chi bộ**.*
-- Ban chi ủy tạo các nội dung biểu quyết (ví dụ: Biểu quyết kết nạp quần chúng, biểu quyết công nhận đảng viên chính thức, biểu quyết xếp loại cuối năm).
+- Quản trị viên hệ thống tạo các nội dung biểu quyết (ví dụ: Biểu quyết kết nạp quần chúng, biểu quyết công nhận đảng viên chính thức, biểu quyết xếp loại cuối năm).
 - Thiết lập thông số: Điểm học tập tối thiểu, điểm rèn luyện tối thiểu của học kỳ gần nhất và học kỳ trước đó để làm cơ sở đối chiếu.
 - Đảng viên tham gia bỏ phiếu trực tuyến công khai hoặc bỏ phiếu kín. Hệ thống tự động tổng hợp kết quả bầu chọn theo tỷ lệ % đạt yêu cầu.
 
 ### 2.6. Quản lý 213 (Sinh hoạt nơi cư trú)
 *Truy cập từ menu: **Đăng ký 213**.*
 - Giúp đảng viên dễ dàng kê khai thông tin nơi cư trú, tải lên file scan Phiếu giới thiệu 213 và Bản nhận xét đảng viên sinh hoạt nơi cư trú định kỳ hàng năm.
-- Ban chi ủy dễ dàng thống kê, xuất file Excel danh sách gửi về các Đảng ủy phường/xã để quản lý.
+- Quản trị viên hệ thống dễ dàng thống kê, xuất file Excel danh sách gửi về các Đảng ủy phường/xã để quản lý.
 
 ---
 

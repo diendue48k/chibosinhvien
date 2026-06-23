@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { 
-  Table, Typography, Card, Row, Col, Space, Input, Button, Modal, 
+import {
+  Table, Typography, Card, Row, Col, Space, Input, Button, Modal,
   Form, Select, DatePicker, message, Badge, Tooltip, Drawer, Popconfirm, Steps, Divider,
   Radio, Progress, Dropdown, Tag, Alert, Tabs, Checkbox
 } from 'antd';
-import { 
-  PlusOutlined, EditOutlined, 
+import {
+  PlusOutlined, EditOutlined,
   CheckCircleOutlined, EyeOutlined, MailOutlined,
   UserOutlined, EnvironmentOutlined, HomeOutlined, PhoneOutlined, FlagOutlined,
   ExportOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, FilterOutlined, SearchOutlined, CloseOutlined,
@@ -22,6 +22,7 @@ import addressDataMoi from '../data/addressDataMoi.json';
 import AddressWardSelect from '../components/AddressWardSelect';
 import AddressProvinceSelect from '../components/AddressProvinceSelect';
 import AddressDistrictSelect from '../components/AddressDistrictSelect';
+import { lookupOldAddress } from '../services/addressService';
 
 const safeDayjs = (val) => {
   if (!val) return dayjs(null);
@@ -72,7 +73,7 @@ const addProvincePrefix = (tinh) => {
 const normalizeAddressForForm = (data) => {
   if (!data) return {};
   const res = { ...data };
-  
+
   const cleanProvinceName = (val) => {
     if (!val) return "";
     let s = val.trim();
@@ -148,7 +149,7 @@ const normalizeAddressForForm = (data) => {
     res.tinh_tp_qq = findProvinceKeyMoi(res.tinh_tp_qq);
     res.xa_phuong_qq = findWardKeyMoi(res.tinh_tp_qq, res.xa_phuong_qq);
   }
-  
+
   if (res.tinh_tp_tt) {
     res.tinh_tp_tt = findProvinceKeyMoi(res.tinh_tp_tt);
     res.xa_phuong_tt = findWardKeyMoi(res.tinh_tp_tt, res.xa_phuong_tt);
@@ -191,23 +192,23 @@ const EXPORT_FIELDS = [
   { key: 'dan_toc', label: 'Dân tộc', group: 'basic' },
   { key: 'ton_giao', label: 'Tôn giáo', group: 'basic' },
   { key: 'anh_ca_nhan', label: 'Link ảnh cá nhân', group: 'basic' },
-  
+
   { key: 'lop', label: 'Lớp', group: 'org' },
   { key: 'khoa', label: 'Khoa', group: 'org' },
   { key: 'nhom', label: 'Nhóm sinh hoạt', group: 'org' },
-  
+
   { key: 'so_dien_thoai', label: 'SĐT', group: 'contact' },
   { key: 'email', label: 'Email cá nhân', group: 'contact' },
   { key: 'email_sv', label: 'Email sinh viên', group: 'contact' },
   { key: 'facebook', label: 'Facebook', group: 'contact' },
   { key: 'dia_chi_tam_tru', label: 'Địa chỉ tạm trú', group: 'contact' },
-  
+
   { key: 'chi_tiet_dc', label: 'Chi tiết ĐC thường trú', group: 'address' },
   { key: 'xa_phuong_tt', label: 'Xã/phường thường trú', group: 'address' },
   { key: 'tinh_tp_tt', label: 'Tỉnh/TP thường trú', group: 'address' },
   { key: 'xa_phuong_qq', label: 'Xã/phường quê quán', group: 'address' },
   { key: 'tinh_tp_qq', label: 'Tỉnh/TP quê quán', group: 'address' },
-  
+
   { key: 'ngay_vao_dang', label: 'Ngày vào Đảng', group: 'party', isDate: true },
   { key: 'soqd', label: 'Số quyết định kết nạp', group: 'party' },
   { key: 'ngaykiqd', label: 'Ngày ký quyết định kết nạp', group: 'party', isDate: true },
@@ -220,7 +221,7 @@ const EXPORT_FIELDS = [
   { key: 'dang_vien_du_bi', label: 'Loại Đảng viên', group: 'party', isSpecial: 'type' },
   { key: 'trang_thai', label: 'Trạng thái sinh hoạt', group: 'party', isSpecial: 'status' },
   { key: 'dvhd', label: 'Đảng viên hướng dẫn', group: 'party' },
-  
+
   { key: 'ho_ten_nguoi_than', label: 'Họ tên người thân', group: 'family' },
   { key: 'sdt_nguoi_than', label: 'SĐT người thân', group: 'family' }
 ];
@@ -309,8 +310,8 @@ const SHORT_STEPS = {
 };
 
 const KHOA_LIST = [
-  "P.CTSV", "Quản trị Kinh doanh", "Trung tâm Đào tạo Quốc tế", "Du lịch", "Marketing", 
-  "Tài chính", "Ngân hàng", "Kinh tế", "Kế toán", "Luật", "Thống kê - Tin học", 
+  "P.CTSV", "Quản trị Kinh doanh", "Trung tâm Đào tạo Quốc tế", "Du lịch", "Marketing",
+  "Tài chính", "Ngân hàng", "Kinh tế", "Kế toán", "Luật", "Thống kê - Tin học",
   "Thương mại điện tử", "Kinh doanh quốc tế", "Lý luận chính trị", "Khác"
 ];
 
@@ -320,7 +321,7 @@ const DangVienDuBi = () => {
   const [allOfficialMembers, setAllOfficialMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
-  
+
   // Filter states
   const [filterKhoa, setFilterKhoa] = useState(null);
   const [filterLop, setFilterLop] = useState(null);
@@ -328,7 +329,7 @@ const DangVienDuBi = () => {
   const [filterHocLop, setFilterHocLop] = useState(null);
   const [filterHanXet, setFilterHanXet] = useState(null);
   const [filterThangXet, setFilterThangXet] = useState(null);
-  
+
   // Drawer/Modal state
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [activeTabKey, setActiveTabKey] = useState("inprogress");
@@ -349,7 +350,7 @@ const DangVienDuBi = () => {
   const [selectedTargetStep, setSelectedTargetStep] = useState(null);
   const [nextStepNote, setNextStepNote] = useState('');
   const [nextStepLoading, setNextStepLoading] = useState(false);
-  
+
   // === DETAIL MODAL STATE ===
   const [isDetailVisible, setIsDetailVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -358,7 +359,7 @@ const DangVienDuBi = () => {
     setSelectedRecord(record);
     setIsDetailVisible(true);
   };
-  
+
   // Email editor states
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBodyText, setEmailBodyText] = useState("");
@@ -449,9 +450,9 @@ const DangVienDuBi = () => {
     try {
       const q = query(collection(db, "dang_vien"));
       const snapshot = await getDocs(q);
-      
+
       const members = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
+
       // checkIsDuBi is now defined globally
 
       // Filter those who are probationary
@@ -459,10 +460,10 @@ const DangVienDuBi = () => {
         if (member.trang_thai && member.trang_thai !== 'dang_sinh_hoat') return false;
         return checkIsDuBi(member);
       });
-      
+
       // Filter those who are official members to be guides (DVHD)
-      const official = members.filter(member => 
-        member.ho_ten && 
+      const official = members.filter(member =>
+        member.ho_ten &&
         (!member.trang_thai || member.trang_thai === 'dang_sinh_hoat') &&
         !checkIsDuBi(member)
       );
@@ -521,7 +522,7 @@ const DangVienDuBi = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const data = new Uint8Array(event.target.result);
@@ -534,7 +535,7 @@ const DangVienDuBi = () => {
         message.error("File Excel trống hoặc sai định dạng!");
         return;
       }
-      
+
       const validated = parsed.map((row, index) => {
         const item = {};
         Object.keys(row).forEach(header => {
@@ -543,10 +544,10 @@ const DangVienDuBi = () => {
             item[key] = row[header];
           }
         });
-        
+
         item.stt = index + 1;
         item.ho_so_status = 1;
-        
+
         const errors = [];
         if (!item.mssv) errors.push("Thiếu MSSV");
         if (!item.ho_ten) errors.push("Thiếu Họ tên");
@@ -560,7 +561,7 @@ const DangVienDuBi = () => {
             item.ngay_vao_dang = d.format('YYYY-MM-DD');
           }
         }
-        
+
         if (item.ngay_sinh) {
           const d = dayjs(item.ngay_sinh, ['DD/MM/YYYY', 'YYYY-MM-DD']);
           if (d.isValid()) {
@@ -569,25 +570,25 @@ const DangVienDuBi = () => {
             item.ngay_sinh = null;
           }
         }
-        
+
         if (typeof item.hoc_lop_dv_moi === 'string') {
           const l = item.hoc_lop_dv_moi.toLowerCase().trim();
           item.hoc_lop_dv_moi = l === 'đã học' || l === 'da hoc' || l === 'yes' || l === 'true' || l === 'x';
         } else {
           item.hoc_lop_dv_moi = !!item.hoc_lop_dv_moi;
         }
-        
+
         const isLocalDuplicate = parsed.filter(r => {
           const m = r['MSSV'] || r['mã số sinh viên'] || r['mssv'];
           return m && String(m).trim() === String(item.mssv).trim();
         }).length > 1;
-        
+
         if (isLocalDuplicate) {
           errors.push("Trùng MSSV trong chính file CSV");
         }
-        
+
         const dbConflict = data.find(d => String(d.mssv).trim() === String(item.mssv).trim());
-        
+
         return {
           ...item,
           errors,
@@ -596,7 +597,7 @@ const DangVienDuBi = () => {
           existingRecordData: dbConflict || null
         };
       });
-      
+
       setParsedData(validated);
       setImportStep(1);
     };
@@ -624,11 +625,11 @@ const DangVienDuBi = () => {
   const handleCommitImport = async () => {
     setImportStep(2);
     setImportProgress({ current: 0, total: parsedData.length, success: 0, error: 0 });
-    
+
     let currentCount = 0;
     let successCount = 0;
     let errorCount = 0;
-    
+
     for (const record of parsedData) {
       currentCount++;
       if (record.errors && record.errors.length > 0) {
@@ -636,7 +637,7 @@ const DangVienDuBi = () => {
         setImportProgress(p => ({ ...p, current: currentCount, error: errorCount }));
         continue;
       }
-      
+
       try {
         if (record.dbConflict) {
           const updateFields = {};
@@ -656,7 +657,7 @@ const DangVienDuBi = () => {
           if (record.dia_chi_tam_tru) updateFields.dia_chi_tam_tru = record.dia_chi_tam_tru;
           if (record.ngay_vao_dang) updateFields.ngay_vao_dang = record.ngay_vao_dang;
           if (record.dvhd) updateFields.dvhd = record.dvhd;
-          
+
           if (Object.prototype.hasOwnProperty.call(record, 'hoc_lop_dv_moi')) {
             updateFields.hoc_lop_dv_moi = !!record.hoc_lop_dv_moi;
           }
@@ -703,7 +704,7 @@ const DangVienDuBi = () => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           };
-          
+
           if (docData.dvhd) {
             const matchedGuide = allOfficialMembers.find(m => m.ho_ten === docData.dvhd);
             if (matchedGuide) docData.dvhd_email = matchedGuide.email;
@@ -716,7 +717,7 @@ const DangVienDuBi = () => {
         console.error("Lỗi khi import dòng:", record, err);
         errorCount++;
       }
-      
+
       setImportProgress({
         current: currentCount,
         total: parsedData.length,
@@ -724,7 +725,7 @@ const DangVienDuBi = () => {
         error: errorCount
       });
     }
-    
+
     message.success(`Hoàn thành nhập danh sách! Thành công: ${successCount}, Bỏ qua/Lỗi: ${errorCount}`);
     setImportModalVisible(false);
     setImportStep(0);
@@ -797,7 +798,7 @@ const DangVienDuBi = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "DangVienDuBi");
     XLSX.writeFile(wb, `DanhSachDangVienDuBi_TuyChinh_${dayjs().format('YYYYMMDD')}.xlsx`);
-    
+
     setIsExportModalVisible(false);
     message.success(`Xuất Excel thành công ${dataToExport.length} Đảng viên dự bị!`);
   };
@@ -825,7 +826,7 @@ const DangVienDuBi = () => {
     try {
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
-      
+
       const downloadImage = async (member) => {
         try {
           let fetchUrl = member.anh_ca_nhan;
@@ -835,7 +836,7 @@ const DangVienDuBi = () => {
           const response = await fetch(fetchUrl);
           if (!response.ok) throw new Error("Fetch error");
           const blob = await response.blob();
-          
+
           let ext = 'jpg';
           const contentType = response.headers.get('Content-Type');
           if (contentType) {
@@ -845,7 +846,7 @@ const DangVienDuBi = () => {
             }
           }
           if (ext === 'octet-stream') ext = 'jpg';
-          
+
           const cleanName = member.ho_ten.replace(/[^a-zA-Z0-9\s_àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/gi, '').trim().replace(/\s+/g, '_');
           const filename = `${member.mssv || 'CHUA_CO_MSSV'}_${cleanName}.${ext}`;
           zip.file(filename, blob);
@@ -869,7 +870,7 @@ const DangVienDuBi = () => {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
+
       message.success(`Tải ảnh Đảng viên thành công!`);
     } catch (e) {
       console.error(e);
@@ -914,7 +915,7 @@ const DangVienDuBi = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "BaoCaoAnh");
       XLSX.writeFile(wb, `BaoCaoAnh_DangVienDuBi_${dayjs().format('YYYYMMDD')}.xlsx`);
-      
+
       setIsExportModalVisible(false);
       message.success(`Xuất báo cáo trạng thái ảnh thành công cho ${mappedData.length} Đảng viên dự bị!`);
     } catch (error) {
@@ -1178,11 +1179,11 @@ const DangVienDuBi = () => {
     if (!ngayVaoDang) return null;
     const ngayVao = safeDayjs(ngayVaoDang);
     if (!ngayVao.isValid()) return null;
-    
+
     const hanXet = ngayVao.add(12, 'month');
     const today = dayjs();
     const daysLeft = hanXet.diff(today, 'day');
-    
+
     return {
       hanXetDate: hanXet.format('DD/MM/YYYY'),
       daysLeft
@@ -1194,7 +1195,7 @@ const DangVienDuBi = () => {
       return <Badge status="success" text="Đã nộp đúng hạn" />;
     }
     if (daysLeft === null) return <Badge status="default" text="Chưa xác định" />;
-    
+
     if (daysLeft > 30) {
       return <Badge status="success" text={`Còn ${daysLeft} ngày`} />;
     } else if (daysLeft > 0) {
@@ -1212,13 +1213,13 @@ const DangVienDuBi = () => {
       align: 'center',
       render: (text, record, index) => index + 1
     },
-    { 
-      title: 'Họ tên & MSSV', 
+    {
+      title: 'Họ tên & MSSV',
       key: 'ho_ten',
       render: (_, record) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <a 
-            style={{ fontWeight: 500, color: '#1890ff' }} 
+          <a
+            style={{ fontWeight: 500, color: '#1890ff' }}
             onClick={() => handleOpenEditDrawer(record)}
           >
             {record.ho_ten}
@@ -1227,8 +1228,8 @@ const DangVienDuBi = () => {
         </div>
       )
     },
-    { 
-      title: 'Chi đoàn / Khoa', 
+    {
+      title: 'Chi đoàn / Khoa',
       key: 'chi_doan',
       render: (_, record) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1237,9 +1238,9 @@ const DangVienDuBi = () => {
         </div>
       )
     },
-    { 
-      title: 'Ngày vào Đảng', 
-      dataIndex: 'ngay_vao_dang', 
+    {
+      title: 'Ngày vào Đảng',
+      dataIndex: 'ngay_vao_dang',
       key: 'ngay_vao_dang',
       render: (text) => text ? dayjs(text).format('DD/MM/YYYY') : ''
     },
@@ -1259,7 +1260,7 @@ const DangVienDuBi = () => {
         if (status === 1 || status === 2) badgeColor = '#1890ff'; // Xanh nhạt
         if (status === 3 || status === 4) badgeColor = '#faad14'; // Vàng
         if (status === 5 || status === 6) badgeColor = '#52c41a'; // Xanh lá
-        
+
         const han = calculateHanXet(record.ngay_vao_dang);
         const daysLeft = han ? han.daysLeft : null;
         return (
@@ -1325,10 +1326,10 @@ const DangVienDuBi = () => {
       message.error("Thiếu thông tin để gửi email (Yêu cầu có email và link hồ sơ)!");
       return;
     }
-    
+
     const status = record.ho_so_status || 1;
     const defaultSubject = "Nhắc chuẩn bị hồ sơ xét công nhận Đảng viên chính thức";
-    const defaultBody = 
+    const defaultBody =
       `Kính gửi đồng chí ${record.ho_ten},<br /><br />` +
       `Chi bộ Sinh viên xin thông báo về việc chuẩn bị hồ sơ xét công nhận Đảng viên chính thức của đồng chí với các thông tin sau:<br />` +
       `- MSSV: ${record.mssv || 'Chưa cập nhật'}<br />` +
@@ -1360,7 +1361,7 @@ const DangVienDuBi = () => {
   const handleConfirmSendEmail = async () => {
     if (!emailRecord) return;
     setIsSendingEmail(true);
-    
+
     try {
       const htmlBody = `
         <!DOCTYPE html>
@@ -1431,14 +1432,14 @@ const DangVienDuBi = () => {
                 <p style="color: #ffffff; margin: 0 0 8px 0; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">Chi bộ Sinh viên - Đảng bộ Trường Đại học Kinh tế, ĐHĐN</p>
                 <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">THƯ NHẮC NHỞ HOÀN THIỆN HỒ SƠ CHÍNH THỨC</h2>
               </div>
-          
+
               <!-- Content Body -->
               <div class="email-body" style="padding: 30px 24px; line-height: 1.8; color: #333333; font-size: 14px; background-color: #ffffff; text-align: justify; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">
                 <div style="font-size: 14px; color: #333333; text-align: justify; line-height: 1.8;">
                   ${formattedBodyText}
                 </div>
               </div>
-          
+
               <!-- Brand Signature Footer -->
               <div style="background-color: #ffffff; padding: 24px 20px; border-top: 1.5px solid #e0e0e0; font-family: 'SVN-Gilroy', 'Inter', sans-serif;">
                 <table cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -1449,12 +1450,12 @@ const DangVienDuBi = () => {
                       <div style="color: #b71c1c; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; font-family: 'SVN-Gilroy', 'Inter', Arial, sans-serif;">CHI BỘ SINH VIÊN</div>
                       <div style="color: #610c0c; font-size: 9px; font-weight: bold; text-transform: uppercase; font-family: 'SVN-Gilroy', 'Inter', Arial, sans-serif;">ĐẢNG BỘ TRƯỜNG ĐẠI HỌC KINH TẾ</div>
                     </td>
-                    
+
                     <!-- Divider Line -->
                     <td class="footer-cell-divider" width="3%" align="center" style="vertical-align: middle;">
                       <div style="border-left: 1.5px solid #b71c1c; height: 95px; width: 1px;"></div>
                     </td>
-                    
+
                     <!-- Right Side: Contacts -->
                     <td class="footer-cell-right" width="55%" style="vertical-align: middle; padding-left: 15px; text-align: left; font-size: 12px; color: #333333; line-height: 1.5;">
                       <div style="margin-bottom: 4px;">
@@ -1502,7 +1503,7 @@ const DangVienDuBi = () => {
         last_email_sent_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
-      
+
       message.success("Đã tự động gửi email thành công!");
       setIsEmailModalVisible(false);
       fetchDangVienDuBi();
@@ -1519,11 +1520,11 @@ const DangVienDuBi = () => {
   const handleSaveDetails = async () => {
     try {
       const values = await form.validateFields();
-      
+
       // Auto-populate dvhd emails from the selected guide names
       const selectedTheoDoiGuide = allOfficialMembers.find(m => m.ho_ten === values.dvhd_theo_doi);
       const dvhd_theo_doi_email = selectedTheoDoiGuide ? selectedTheoDoiGuide.email : null;
-      
+
       const selectedHoSoGuide = allOfficialMembers.find(m => m.ho_ten === values.dvhd_ho_so);
       const dvhd_ho_so_email = selectedHoSoGuide ? selectedHoSoGuide.email : null;
 
@@ -1586,10 +1587,10 @@ const DangVienDuBi = () => {
           if (key === 'updated_at' || key === 'id') return;
           const newVal = cleaned[key];
           const oldVal = editingRecord[key];
-          
+
           let strOld = oldVal !== undefined && oldVal !== null ? String(oldVal).trim() : "";
           let strNew = newVal !== undefined && newVal !== null ? String(newVal).trim() : "";
-          
+
           if (key === 'hoc_lop_dv_moi' || key === 'dang_vien_du_bi') {
             if (!!oldVal !== !!newVal) {
               changes.push({
@@ -1629,7 +1630,7 @@ const DangVienDuBi = () => {
         cleaned.ho_so_status = 1;
         cleaned.ho_so_history = [];
         cleaned.created_at = new Date().toISOString();
-        
+
         // Ensure MSSV is unique
         const q = query(collection(db, "dang_vien"), where("mssv", "==", values.mssv));
         const snapshot = await getDocs(q);
@@ -1661,10 +1662,39 @@ const DangVienDuBi = () => {
     }
   };
 
+  const onValuesChange = (changedValues) => {
+    // Auto lookup and sync old address fields
+    if (changedValues.xa_phuong_tt || changedValues.tinh_tp_tt) {
+      const tinh = changedValues.tinh_tp_tt || form.getFieldValue('tinh_tp_tt');
+      const xa = changedValues.xa_phuong_tt || form.getFieldValue('xa_phuong_tt');
+      const mapped = lookupOldAddress(tinh, xa);
+      if (mapped) {
+        form.setFieldsValue({
+          tinh_tp_tt_cu: mapped.tinh_tp_cu,
+          quan_huyen_tt_cu: mapped.quan_huyen_cu,
+          xa_phuong_tt_cu: mapped.xa_phuong_cu
+        });
+      }
+    }
+
+    if (changedValues.xa_phuong_qq || changedValues.tinh_tp_qq) {
+      const tinh = changedValues.tinh_tp_qq || form.getFieldValue('tinh_tp_qq');
+      const xa = changedValues.xa_phuong_qq || form.getFieldValue('xa_phuong_qq');
+      const mapped = lookupOldAddress(tinh, xa);
+      if (mapped) {
+        form.setFieldsValue({
+          tinh_tp_qq_cu: mapped.tinh_tp_cu,
+          quan_huyen_qq_cu: mapped.quan_huyen_cu,
+          xa_phuong_qq_cu: mapped.xa_phuong_cu
+        });
+      }
+    }
+  };
+
   const handleChuyenChinhThuc = async () => {
     try {
       const values = await chuyenChinhThucForm.validateFields();
-      
+
       if (!editingRecord) return;
 
       const vaoDang = safeDayjs(editingRecord.ngay_vao_dang);
@@ -1678,7 +1708,7 @@ const DangVienDuBi = () => {
       };
 
       await updateDoc(doc(db, "dang_vien", editingRecord.id), formatted);
-      
+
       // Log history
       await addDoc(collection(db, "lich_su_cap_nhat"), {
         dang_vien_id: editingRecord.id,
@@ -1696,7 +1726,7 @@ const DangVienDuBi = () => {
       });
 
       message.success("Chuyển Đảng viên chính thức thành công!");
-      
+
       setIsChuyenChinhThucModalVisible(false);
       fetchDangVienDuBi();
     } catch (error) {
@@ -1762,7 +1792,7 @@ const DangVienDuBi = () => {
       });
 
       message.success(`Đã chuyển sang Bước ${targetStep}: ${HO_SO_STEPS[targetStep]}`);
-      
+
       setEditingRecord({ ...editingRecord, ...updateData });
       setIsNextStepModalVisible(false);
       setNextStepNote('');
@@ -1892,7 +1922,7 @@ const DangVienDuBi = () => {
       };
 
       await updateDoc(doc(db, "dang_vien", id), updateData);
-      
+
       // Log history
       await addDoc(collection(db, "lich_su_cap_nhat"), {
         dang_vien_id: id,
@@ -1908,7 +1938,7 @@ const DangVienDuBi = () => {
           newVal: newVal !== undefined && newVal !== null ? newVal : ''
         }]
       });
-      
+
       setData(prevData => prevData.map(item => {
         if (item.id === id) {
           return { ...item, ...updateData };
@@ -2021,17 +2051,17 @@ const DangVienDuBi = () => {
       }
 
       const displayVal = originalRender ? originalRender(text, record, index) : (text !== undefined && text !== null ? String(text) : '--');
-      
+
       return (
-        <div 
+        <div
           onDoubleClick={(e) => {
             e.stopPropagation();
             startCellEdit(record.id, dataIndex, value);
           }}
           title="Nhấp đúp chuột để sửa nhanh"
-          style={{ 
-            minHeight: '22px', 
-            width: '100%', 
+          style={{
+            minHeight: '22px',
+            width: '100%',
             cursor: 'pointer',
             padding: '2px 4px',
             borderRadius: '4px',
@@ -2082,9 +2112,9 @@ const DangVienDuBi = () => {
           >
             Tìm
           </Button>
-          <Button 
-            onClick={() => { clearFilters(); confirm(); }} 
-            size="small" 
+          <Button
+            onClick={() => { clearFilters(); confirm(); }}
+            size="small"
             style={{ width: 90, borderRadius: '4px' }}
           >
             Đặt lại
@@ -2141,28 +2171,28 @@ const DangVienDuBi = () => {
           </Tooltip>
         )
       },
-      { 
-        title: 'MSSV', 
-        dataIndex: 'mssv', 
-        key: 'mssv', 
-        width: 120, 
+      {
+        title: 'MSSV',
+        dataIndex: 'mssv',
+        key: 'mssv',
+        width: 120,
         fixed: 'left',
         sorter: (a, b) => (a.mssv || '').localeCompare(b.mssv || ''),
         ...getColumnSearchProps('mssv', 'MSSV')
       },
-      { 
-        title: 'Họ tên', 
-        dataIndex: 'ho_ten', 
-        key: 'ho_ten', 
-        width: 180, 
+      {
+        title: 'Họ tên',
+        dataIndex: 'ho_ten',
+        key: 'ho_ten',
+        width: 180,
         fixed: 'left',
         sorter: (a, b) => (a.ho_ten || '').localeCompare(b.ho_ten || ''),
         ...getColumnSearchProps('ho_ten', 'Họ tên')
       },
-      { 
-        title: 'Giới tính', 
-        dataIndex: 'gioi_tinh', 
-        key: 'gioi_tinh', 
+      {
+        title: 'Giới tính',
+        dataIndex: 'gioi_tinh',
+        key: 'gioi_tinh',
         width: 100,
         filters: [
           { text: 'Nam', value: 'Nam' },
@@ -2170,52 +2200,52 @@ const DangVienDuBi = () => {
         ],
         onFilter: (value, record) => record.gioi_tinh === value,
       },
-      { 
-        title: 'Ngày sinh', 
-        dataIndex: 'ngay_sinh', 
-        key: 'ngay_sinh', 
+      {
+        title: 'Ngày sinh',
+        dataIndex: 'ngay_sinh',
+        key: 'ngay_sinh',
         width: 120,
         render: (text) => text ? dayjs(text).format('DD/MM/YYYY') : ''
       },
-      { 
-        title: 'Lớp', 
-        dataIndex: 'lop', 
-        key: 'lop', 
+      {
+        title: 'Lớp',
+        dataIndex: 'lop',
+        key: 'lop',
         width: 120,
         filters: getUniqueColumnFilters(data, 'lop'),
         onFilter: (value, record) => record.lop === value,
       },
-      { 
-        title: 'Khoa', 
-        dataIndex: 'khoa', 
-        key: 'khoa', 
+      {
+        title: 'Khoa',
+        dataIndex: 'khoa',
+        key: 'khoa',
         width: 180,
         filters: KHOA_LIST.map(k => ({ text: k, value: k })),
         onFilter: (value, record) => record.khoa === value,
       },
-      { 
-        title: 'Số điện thoại', 
-        dataIndex: 'sdt', 
-        key: 'sdt', 
+      {
+        title: 'Số điện thoại',
+        dataIndex: 'sdt',
+        key: 'sdt',
         width: 130,
         render: (text, record) => record.so_dien_thoai || record.sdt || '--',
         ...getColumnSearchProps('sdt', 'Số điện thoại')
       },
-      { 
-        title: 'Email', 
-        dataIndex: 'email', 
-        key: 'email', 
+      {
+        title: 'Email',
+        dataIndex: 'email',
+        key: 'email',
         width: 200,
         ...getColumnSearchProps('email', 'Email')
       },
-      { 
-        title: 'Số CCCD', 
-        dataIndex: 'cccd', 
-        key: 'cccd', 
+      {
+        title: 'Số CCCD',
+        dataIndex: 'cccd',
+        key: 'cccd',
         width: 130,
         ...getColumnSearchProps('cccd', 'Số CCCD')
       },
-      { 
+      {
         title: 'Quê quán',
         key: 'que_quan',
         width: 200,
@@ -2270,31 +2300,31 @@ const DangVienDuBi = () => {
         key: 'dia_chi_tam_tru',
         width: 250,
       },
-      { 
-        title: 'Ngày vào Đảng', 
-        dataIndex: 'ngay_vao_dang', 
-        key: 'ngay_vao_dang', 
+      {
+        title: 'Ngày vào Đảng',
+        dataIndex: 'ngay_vao_dang',
+        key: 'ngay_vao_dang',
         width: 130,
         render: (text) => text ? dayjs(text).format('DD/MM/YYYY') : ''
       },
-      { 
-        title: 'ĐVHD theo dõi', 
-        dataIndex: 'dvhd_theo_doi', 
-        key: 'dvhd_theo_doi', 
+      {
+        title: 'ĐVHD theo dõi',
+        dataIndex: 'dvhd_theo_doi',
+        key: 'dvhd_theo_doi',
         width: 180,
         ...getColumnSearchProps('dvhd_theo_doi', 'ĐVHD theo dõi')
       },
-      { 
-        title: 'ĐVHD làm hồ sơ', 
-        dataIndex: 'dvhd_ho_so', 
-        key: 'dvhd_ho_so', 
+      {
+        title: 'ĐVHD làm hồ sơ',
+        dataIndex: 'dvhd_ho_so',
+        key: 'dvhd_ho_so',
         width: 180,
         ...getColumnSearchProps('dvhd_ho_so', 'ĐVHD làm hồ sơ')
       },
-      { 
-        title: 'Lớp Đảng viên mới', 
-        dataIndex: 'hoc_lop_dv_moi', 
-        key: 'hoc_lop_dv_moi', 
+      {
+        title: 'Lớp Đảng viên mới',
+        dataIndex: 'hoc_lop_dv_moi',
+        key: 'hoc_lop_dv_moi',
         width: 150,
         filters: [
           { text: 'Đã học', value: true },
@@ -2333,13 +2363,13 @@ const DangVienDuBi = () => {
             Hồ sơ Đảng viên chính thức
           </Title>
         </div>
-        
+
         <Space>
           <Button icon={<ExportOutlined />} onClick={handleOpenExportModal} style={{ borderRadius: '6px', fontWeight: 500 }}>Xuất Excel</Button>
-          
-          <Button 
+
+          <Button
             type="dashed"
-            icon={<TableOutlined style={{ color: '#52c41a' }} />} 
+            icon={<TableOutlined style={{ color: '#52c41a' }} />}
             onClick={() => setIsAllInfoVisible(true)}
             style={{ borderRadius: '6px', fontWeight: 500, borderColor: '#52c41a', color: '#52c41a' }}
           >
@@ -2354,25 +2384,25 @@ const DangVienDuBi = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#8c8c8c', fontSize: '13px', marginRight: '4px', fontWeight: 500, flexShrink: 0 }}>
           <FilterOutlined style={{ color: '#c62828' }} /> <span>Bộ lọc:</span>
         </div>
-        
+
         <div style={{ flex: 1.5, minWidth: '200px' }}>
-          <Input 
-            placeholder="Tìm kiếm MSSV, họ tên..." 
+          <Input
+            placeholder="Tìm kiếm MSSV, họ tên..."
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
             prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-            style={{ width: '100%', borderRadius: '6px' }} 
+            style={{ width: '100%', borderRadius: '6px' }}
             allowClear
           />
         </div>
-        
+
         <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select 
+          <Select
             showSearch
-            placeholder="Chọn Khoa" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterKhoa} 
+            placeholder="Chọn Khoa"
+            style={{ width: '100%' }}
+            allowClear
+            value={filterKhoa}
             onChange={setFilterKhoa}
             optionFilterProp="children"
             dropdownStyle={{ borderRadius: '6px' }}
@@ -2382,12 +2412,12 @@ const DangVienDuBi = () => {
         </div>
 
         <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select 
+          <Select
             showSearch
-            placeholder="Chọn Lớp" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterLop} 
+            placeholder="Chọn Lớp"
+            style={{ width: '100%' }}
+            allowClear
+            value={filterLop}
             onChange={setFilterLop}
             optionFilterProp="children"
             dropdownStyle={{ borderRadius: '6px' }}
@@ -2399,11 +2429,11 @@ const DangVienDuBi = () => {
         </div>
 
         <div style={{ flex: 1, minWidth: '120px' }}>
-          <Select 
-            placeholder="Khóa" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterIntake} 
+          <Select
+            placeholder="Khóa"
+            style={{ width: '100%' }}
+            allowClear
+            value={filterIntake}
             onChange={setFilterIntake}
             dropdownStyle={{ borderRadius: '6px' }}
           >
@@ -2414,11 +2444,11 @@ const DangVienDuBi = () => {
         </div>
 
         <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select 
-            placeholder="Lớp ĐVM (Đã học / Chưa)" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterHocLop} 
+          <Select
+            placeholder="Lớp ĐVM (Đã học / Chưa)"
+            style={{ width: '100%' }}
+            allowClear
+            value={filterHocLop}
             onChange={setFilterHocLop}
             dropdownStyle={{ borderRadius: '6px' }}
           >
@@ -2428,11 +2458,11 @@ const DangVienDuBi = () => {
         </div>
 
         <div style={{ flex: 1, minWidth: '180px' }}>
-          <Select 
-            placeholder="Trạng thái hồ sơ" 
-            style={{ width: '100%' }} 
-            allowClear 
-            value={filterHanXet} 
+          <Select
+            placeholder="Trạng thái hồ sơ"
+            style={{ width: '100%' }}
+            allowClear
+            value={filterHanXet}
             onChange={setFilterHanXet}
             dropdownStyle={{ borderRadius: '6px' }}
           >
@@ -2443,12 +2473,12 @@ const DangVienDuBi = () => {
         </div>
 
         <div style={{ flex: 1, minWidth: '150px' }}>
-          <DatePicker 
+          <DatePicker
             picker="month"
-            placeholder="Tháng xét duyệt" 
-            style={{ width: '100%', borderRadius: '6px' }} 
-            allowClear 
-            value={filterThangXet} 
+            placeholder="Tháng xét duyệt"
+            style={{ width: '100%', borderRadius: '6px' }}
+            allowClear
+            value={filterThangXet}
             onChange={setFilterThangXet}
             format="MM/YYYY"
           />
@@ -2456,10 +2486,10 @@ const DangVienDuBi = () => {
 
         {(searchText || filterKhoa || filterLop || filterIntake || filterHocLop !== null || filterHanXet || filterThangXet) && (
           <div style={{ flexShrink: 0 }}>
-            <Button 
-              type="text" 
-              danger 
-              onClick={resetFilters} 
+            <Button
+              type="text"
+              danger
+              onClick={resetFilters}
               icon={<CloseOutlined />}
               style={{ display: 'flex', alignItems: 'center', fontWeight: 500 }}
               size="small"
@@ -2494,11 +2524,11 @@ const DangVienDuBi = () => {
             }
           ]}
         />
-        <Table 
+        <Table
           rowSelection={rowSelection}
-          columns={columns} 
-          dataSource={activeTabKey === 'inprogress' ? inProgressData : notStartedData} 
-          rowKey="id" 
+          columns={columns}
+          dataSource={activeTabKey === 'inprogress' ? inProgressData : notStartedData}
+          rowKey="id"
           loading={loading}
           scroll={{ x: 'max-content' }}
           pagination={{
@@ -2510,11 +2540,11 @@ const DangVienDuBi = () => {
           onRow={(record) => ({
             onClick: (e) => {
               if (
-                e.target.tagName !== 'INPUT' && 
-                e.target.tagName !== 'BUTTON' && 
-                !e.target.closest('.ant-select') && 
-                !e.target.closest('.ant-btn') && 
-                !e.target.closest('a') && 
+                e.target.tagName !== 'INPUT' &&
+                e.target.tagName !== 'BUTTON' &&
+                !e.target.closest('.ant-select') &&
+                !e.target.closest('.ant-btn') &&
+                !e.target.closest('a') &&
                 e.target.type !== 'checkbox' &&
                 !e.target.closest('.ant-table-selection-column')
               ) {
@@ -2549,9 +2579,9 @@ const DangVienDuBi = () => {
           <span style={{ fontWeight: 800 }}>Đã chọn {selectedRowKeys.length} đồng chí</span>
           <Divider type="vertical" style={{ borderColor: 'rgba(255,255,255,0.3)', height: 20 }} />
           <Space>
-            <Button 
-              type="text" 
-              icon={<MailOutlined />} 
+            <Button
+              type="text"
+              icon={<MailOutlined />}
               style={{ color: '#fff', fontWeight: 700 }}
               onClick={handleBulkEmail}
             >
@@ -2596,8 +2626,8 @@ const DangVienDuBi = () => {
                 Xóa
               </Button>
             </Popconfirm>
-            <Button 
-              size="small" 
+            <Button
+              size="small"
               style={{ borderRadius: '6px', fontWeight: 600 }}
               onClick={() => { setSelectedRowKeys([]); setSelectedRows([]); }}
             >
@@ -2608,38 +2638,45 @@ const DangVienDuBi = () => {
       )}
 
       {/* Excel Import Modal */}
-      <ImportExcel 
-        open={importModalVisible} 
-        onCancel={() => setImportModalVisible(false)} 
-        onSuccess={() => { setImportModalVisible(false); fetchDangVienDuBi(); }} 
+      <ImportExcel
+        open={importModalVisible}
+        onCancel={() => setImportModalVisible(false)}
+        onSuccess={() => { setImportModalVisible(false); fetchDangVienDuBi(); }}
       />
 
       {/* Drawer for View/Edit Detail */}
       <Drawer
-        title={editingRecord ? "Chi tiết Đảng viên dự bị" : "Thêm mới Đảng viên dự bị"}
-        width={720}
+        title={
+          <span style={{ fontWeight: 800, fontSize: '18px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FlagOutlined style={{ color: '#e11d48' }} /> {editingRecord ? "Chi tiết/Cập nhật Tiến độ Hồ sơ" : "Thêm mới Đảng viên dự bị"}
+          </span>
+        }
+        width={900}
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
+        bodyStyle={{ backgroundColor: '#f8fafc', padding: '24px' }}
         footer={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Space>
               {editingRecord && (
                 <>
-                  <Button 
-                    icon={<MailOutlined />} 
+                  <Button
+                    icon={<MailOutlined />}
                     onClick={() => {
                       const han = calculateHanXet(editingRecord.ngay_vao_dang);
                       handlePrepareEmail(editingRecord, han ? han.daysLeft : null, han && han.daysLeft <= 7);
                     }}
+                    style={{ borderRadius: '8px', fontWeight: 600, height: '38px' }}
                   >
                     Gửi email
                   </Button>
-                  <Button 
+                  <Button
                     icon={<CheckCircleOutlined />}
                     onClick={() => {
                       chuyenChinhThucForm.resetFields();
                       setIsChuyenChinhThucModalVisible(true);
                     }}
+                    style={{ borderRadius: '8px', fontWeight: 600, height: '38px' }}
                   >
                     Chuyển chính thức
                   </Button>
@@ -2647,92 +2684,477 @@ const DangVienDuBi = () => {
               )}
             </Space>
             <Space>
-              <Button onClick={() => setDrawerVisible(false)}>Đóng</Button>
-              <Button type="primary" onClick={handleSaveDetails} style={{ backgroundColor: '#c62828' }}>Lưu thay đổi</Button>
+              <Button onClick={() => setDrawerVisible(false)} style={{ borderRadius: '8px', fontWeight: 600, height: '38px' }}>Đóng</Button>
+              <Button type="primary" onClick={handleSaveDetails} style={{ borderRadius: '8px', fontWeight: 600, height: '38px', backgroundColor: '#e11d48', border: 'none' }}>Lưu thay đổi</Button>
             </Space>
           </div>
         }
       >
-        {editingRecord && (
-          <div style={{ 
-            marginBottom: 24, 
-            padding: '24px', 
-            background: 'linear-gradient(135deg, #ffffff 0%, #fcfcfc 100%)', 
-            borderRadius: '16px', 
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.02)'
-          }}>
-            {/* Header with Title and Current Status Badge */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: '12px' }}>
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#c62828', letterSpacing: '0.3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '4px', height: '16px', backgroundColor: '#c62828', borderRadius: '2px' }} />
-                TIẾN ĐỘ HỒ SƠ XÉT CHUYỂN CHÍNH THỨC
-              </span>
-              <Tag color="red" style={{ fontSize: 12, padding: '4px 12px', fontWeight: 700, borderRadius: '20px', border: 'none', background: '#ffeef0', color: '#c62828' }}>
-                Bước {editingRecord.ho_so_status || 1}: {SHORT_STEPS[editingRecord.ho_so_status || 1]}
-              </Tag>
-            </div>
-
-            {/* Futuristic Progress Tracker Dots */}
-            <div style={{ padding: '8px 0 24px 0' }}>
-              <Steps
-                current={(editingRecord.ho_so_status || 1) - 1}
-                size="small"
-                progressDot
-                items={Object.keys(SHORT_STEPS).map(key => ({
-                  title: <span style={{ fontWeight: 700, color: Number(key) <= (editingRecord.ho_so_status || 1) ? '#c62828' : '#bfbfbf' }}>B{key}</span>,
-                  description: <span style={{ fontSize: '11px', fontWeight: 500, color: Number(key) === (editingRecord.ho_so_status || 1) ? '#262626' : '#8c8c8c' }}>{SHORT_STEPS[key]}</span>
-                }))}
-              />
-            </div>
-
-            <Divider style={{ margin: '16px 0', borderColor: '#f0f0f0' }} />
-
-            {/* Dropdown status updater */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              flexWrap: 'wrap', 
-              gap: 16,
-              background: '#f8fafc',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              border: '1px solid #edf2f7'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 280 }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#4a5568' }}>Cập nhật trạng thái:</span>
-                <Select
-                  value={editingRecord.ho_so_status || 1}
-                  style={{ flex: 1, minWidth: 260 }}
-                  onChange={handleSelectStep}
-                  dropdownStyle={{ borderRadius: '8px' }}
-                >
-                  {Object.keys(HO_SO_STEPS).map(key => (
-                    <Select.Option key={key} value={Number(key)}>
-                      <span style={{ fontWeight: 600 }}>Bước {key}:</span> {SHORT_STEPS[key]}
-                    </Select.Option>
-                  ))}
-                </Select>
+        <Form form={form} layout="vertical" onValuesChange={onValuesChange}>
+          {/* HÀNG 1: Thông tin cá nhân & Thông tin liên hệ */}
+          <Row gutter={24} style={{ marginBottom: '24px' }}>
+            {/* Cột trái: Thông tin cá nhân & Học tập */}
+            <Col xs={24} lg={12}>
+              <div style={{
+                padding: '24px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '16px',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.015)',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <UserOutlined style={{ fontSize: '18px', color: '#e11d48' }} /> Thông tin cá nhân &amp; Học tập
+                  </span>
+                  <Tag icon={<LockOutlined />} color="warning" style={{ borderRadius: '6px', margin: 0, fontWeight: 600 }}>
+                    Chỉ đọc
+                  </Tag>
+                </div>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="mssv" label={<span style={{ fontWeight: 600, color: '#475569' }}>MSSV</span>}>
+                      <Input disabled placeholder="MSSV..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="ho_ten" label={<span style={{ fontWeight: 600, color: '#475569' }}>Họ và tên</span>}>
+                      <Input disabled placeholder="Họ và tên..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="cccd" label={<span style={{ fontWeight: 600, color: '#475569' }}>Số CCCD</span>}>
+                      <Input disabled placeholder="CCCD..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="ngay_sinh" label={<span style={{ fontWeight: 600, color: '#475569' }}>Ngày sinh</span>}>
+                      <DatePicker disabled style={{ width: '100%', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} format="DD/MM/YYYY" placeholder="Ngày sinh..." />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="khoa" label={<span style={{ fontWeight: 600, color: '#475569' }}>Khoa</span>} style={{ marginBottom: 0 }}>
+                      <Select disabled placeholder="Khoa..." style={{ borderRadius: '8px' }}>
+                        {KHOA_LIST.map(k => <Select.Option key={k} value={k}>{k}</Select.Option>)}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="lop" label={<span style={{ fontWeight: 600, color: '#475569' }}>Lớp sinh hoạt</span>} style={{ marginBottom: 0 }}>
+                      <Input disabled placeholder="Lớp..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
               </div>
+            </Col>
+
+            {/* Cột phải: Thông tin liên hệ */}
+            <Col xs={24} lg={12}>
+              <div style={{
+                padding: '24px',
+                border: '1px solid #e2e8f0',
+                borderRadius: '16px',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.015)',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                  <PhoneOutlined style={{ fontSize: '18px', color: '#e11d48' }} />
+                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Thông tin liên hệ</span>
+                </div>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="so_dien_thoai" label={<span style={{ fontWeight: 600, color: '#475569' }}>Số điện thoại</span>} rules={[{ pattern: /^[0-9]+$/, message: 'SĐT không hợp lệ' }]}>
+                      <Input placeholder="Nhập số điện thoại..." style={{ borderRadius: '8px' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="facebook" label={<span style={{ fontWeight: 600, color: '#475569' }}>Facebook</span>}>
+                      <Input placeholder="Nhập link Facebook..." style={{ borderRadius: '8px' }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item name="email" label={<span style={{ fontWeight: 600, color: '#475569' }}>Email cá nhân</span>} rules={[{ type: 'email', message: 'Email không hợp lệ' }]}>
+                      <Input placeholder="Nhập địa chỉ email liên hệ..." style={{ borderRadius: '8px' }} />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item name="email_sv" label={<span style={{ fontWeight: 600, color: '#475569' }}>Email SV</span>} rules={[{ type: 'email', message: 'Email không hợp lệ' }]} style={{ marginBottom: 0 }}>
+                      <Input placeholder="Nhập email sinh viên..." style={{ borderRadius: '8px' }} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+            </Col>
+          </Row>
+
+          {/* HÀNG 2: Địa chỉ */}
+          <div style={{
+            padding: '24px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.015)',
+            marginBottom: '24px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+              <EnvironmentOutlined style={{ fontSize: '18px', color: '#e11d48' }} />
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Địa chỉ</span>
             </div>
-            
-            {/* Elegant Step History Timeline/Cards */}
-            {editingRecord.ho_so_history && editingRecord.ho_so_history.length > 0 && (
-              <div style={{ marginTop: 20 }}>
+
+            {/* Quê quán & Quê quán cũ */}
+            <Row gutter={24} style={{ marginBottom: '20px' }}>
+              <Col span={12}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd', height: '100%' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span>🏡 Quê quán</span>
+                  </div>
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.Item name="tinh_tp_qq" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/Thành phố</span>} style={{ marginBottom: 0 }}>
+                        <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="xa_phuong_qq" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                        <AddressWardSelect province={watchTinhTpQq} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+
+              <Col span={12}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd', height: '100%' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span>🏡 Quê quán cũ (nếu có)</span>
+                  </div>
+                  <Row gutter={12}>
+                    <Col span={8}>
+                      <Form.Item name="tinh_tp_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/TP</span>} style={{ marginBottom: 0 }}>
+                        <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item name="quan_huyen_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Quận/Huyện</span>} style={{ marginBottom: 0 }}>
+                        <AddressDistrictSelect province={watchTinhTpQqCu} onChange={() => form.setFieldsValue({ xa_phuong_qq_cu: undefined })} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item name="xa_phuong_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                        <AddressWardSelect isOld={true} province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+            </Row>
+
+            {/* Hộ khẩu thường trú & Thường trú cũ */}
+            <Row gutter={24} style={{ marginBottom: '20px' }}>
+              <Col span={12}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd', height: '100%' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span>🏠 Hộ khẩu thường trú</span>
+                  </div>
+                  <Form.Item name="chi_tiet_dc" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Số nhà, tên đường, tổ, thôn...</span>} style={{ marginBottom: '12px' }}>
+                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '8px' }} />
+                  </Form.Item>
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.Item name="tinh_tp_tt" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/Thành phố</span>} style={{ marginBottom: 0 }}>
+                        <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="xa_phuong_tt" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                        <AddressWardSelect province={watchTinhTpTt} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+
+              <Col span={12}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd', height: '100%' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span>🏠 Thường trú cũ (nếu có)</span>
+                  </div>
+                  <Form.Item name="chi_tiet_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Số nhà, tên đường, tổ, thôn cũ...</span>} style={{ marginBottom: '12px' }}>
+                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." style={{ borderRadius: '8px' }} />
+                  </Form.Item>
+                  <Row gutter={12}>
+                    <Col span={8}>
+                      <Form.Item name="tinh_tp_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/TP</span>} style={{ marginBottom: 0 }}>
+                        <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item name="quan_huyen_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Quận/Huyện</span>} style={{ marginBottom: 0 }}>
+                        <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item name="xa_phuong_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                        <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+            </Row>
+
+            {/* Địa chỉ tạm trú */}
+            <Row gutter={24}>
+              <Col span={12}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
+                    <span>📍 Địa chỉ tạm trú</span>
+                  </div>
+                  <Form.Item name="chi_tiet_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Số nhà, tên đường, tổ, thôn...</span>} style={{ marginBottom: '12px' }}>
+                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '8px' }} />
+                  </Form.Item>
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.Item name="tinh_tp_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/Thành phố</span>} style={{ marginBottom: 0 }}>
+                        <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name="xa_phuong_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                        <AddressWardSelect province={watchTinhTpTamTru} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </div>
+              </Col>
+            </Row>
+          </div>
+
+          {/* HÀNG 3: Quy trình & Tiến độ hồ sơ */}
+          <div style={{
+            padding: '24px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.015)',
+            marginBottom: '10px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+              <FlagOutlined style={{ fontSize: '18px', color: '#e11d48' }} />
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>QUY TRÌNH &amp; TIẾN ĐỘ HỒ SƠ</span>
+            </div>
+
+            {editingRecord && (
+              <>
+                {/* 1. Progress Tracker dots */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  borderRadius: '16px',
+                  border: '1px solid #e2e8f0',
+                  padding: '20px',
+                  marginBottom: '24px',
+                  boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tiến độ các bước hồ sơ:</span>
+                    <Tag color="red" style={{ fontSize: 11, padding: '4px 12px', fontWeight: 700, borderRadius: '20px', border: 'none', background: '#ffeef0', color: '#c62828' }}>
+                      Bước {editingRecord.ho_so_status || 1}: {SHORT_STEPS[editingRecord.ho_so_status || 1]}
+                    </Tag>
+                  </div>
+                  <div style={{ padding: '8px 0 8px 0' }}>
+                    <Steps
+                      current={(editingRecord.ho_so_status || 1) - 1}
+                      size="small"
+                      progressDot
+                      items={Object.keys(SHORT_STEPS).map(key => ({
+                        title: <span style={{ fontWeight: 700, color: Number(key) <= (editingRecord.ho_so_status || 1) ? '#c62828' : '#bfbfbf' }}>B{key}</span>,
+                        description: <span style={{ fontSize: '11px', fontWeight: 500, color: Number(key) === (editingRecord.ho_so_status || 1) ? '#262626' : '#8c8c8c' }}>{SHORT_STEPS[key]}</span>
+                      }))}
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Dropdown Status Updater & Inputs Grid */}
+                <Row gutter={16} style={{ marginBottom: '20px' }}>
+                  <Col span={8}>
+                    <Form.Item label={<span style={{ fontWeight: 600, color: '#475569' }}>Trạng thái hiện tại</span>} required style={{ marginBottom: 0 }}>
+                      <Select
+                        value={editingRecord.ho_so_status || 1}
+                        style={{ width: '100%', borderRadius: '8px' }}
+                        onChange={handleSelectStep}
+                        dropdownStyle={{ borderRadius: '8px' }}
+                      >
+                        {Object.keys(HO_SO_STEPS).map(key => (
+                          <Select.Option key={key} value={Number(key)}>
+                            <span style={{ fontWeight: 600 }}>Bước {key}:</span> {SHORT_STEPS[key]}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="ngay_vao_dang" label={<span style={{ fontWeight: 600, color: '#475569' }}>Ngày vào Đảng</span>} rules={[{ required: true, message: 'Vui lòng chọn ngày vào Đảng!' }]} style={{ marginBottom: 0 }}>
+                      <DatePicker style={{ width: '100%', borderRadius: '8px' }} format="DD/MM/YYYY" placeholder="Chọn ngày vào Đảng..." />
+                    </Form.Item>
+                  </Col>
+                  <Col span={8}>
+                    <Form.Item name="hoc_lop_dv_moi" label={<span style={{ fontWeight: 600, color: '#475569' }}>Học lớp Đảng viên mới</span>} style={{ marginBottom: 0 }}>
+                      <Select style={{ width: '100%', borderRadius: '8px' }}>
+                        <Select.Option value={true}>Đã học</Select.Option>
+                        <Select.Option value={false}>Chưa học</Select.Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </>
+            )}
+
+            {!editingRecord && (
+              <Row gutter={16} style={{ marginBottom: '20px' }}>
+                <Col span={12}>
+                  <Form.Item name="ngay_vao_dang" label={<span style={{ fontWeight: 600, color: '#475569' }}>Ngày vào Đảng</span>} rules={[{ required: true, message: 'Vui lòng chọn ngày vào Đảng!' }]} style={{ marginBottom: 0 }}>
+                    <DatePicker style={{ width: '100%', borderRadius: '8px' }} format="DD/MM/YYYY" placeholder="Chọn ngày vào Đảng..." />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="hoc_lop_dv_moi" label={<span style={{ fontWeight: 600, color: '#475569' }}>Học lớp Đảng viên mới</span>} style={{ marginBottom: 0 }}>
+                    <Select style={{ width: '100%', borderRadius: '8px' }}>
+                      <Select.Option value={true}>Đã học</Select.Option>
+                      <Select.Option value={false}>Chưa học</Select.Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+            )}
+
+            <Row gutter={16} style={{ marginBottom: '20px', marginTop: editingRecord ? '20px' : 0 }}>
+              <Col span={12}>
+                <Form.Item name="dvhd_theo_doi" label={<span style={{ fontWeight: 600, color: '#475569' }}>ĐVHD theo dõi (từ lúc vào chi bộ)</span>} style={{ marginBottom: 0 }}>
+                  <Select
+                    showSearch
+                    placeholder="Chọn Đảng viên hướng dẫn"
+                    optionFilterProp="children"
+                    allowClear
+                    style={{ width: '100%', borderRadius: '8px' }}
+                  >
+                    {allOfficialMembers.map(member => (
+                      <Select.Option key={member.id} value={member.ho_ten}>
+                        {member.ho_ten} ({member.lop || member.khoa || 'Chính thức'})
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="dvhd_ho_so" label={<span style={{ fontWeight: 600, color: '#475569' }}>ĐVHD làm hồ sơ công nhận ĐVCT</span>} style={{ marginBottom: 0 }}>
+                  <Select
+                    showSearch
+                    placeholder="Chọn Đảng viên hướng dẫn làm hồ sơ"
+                    optionFilterProp="children"
+                    allowClear
+                    style={{ width: '100%', borderRadius: '8px' }}
+                  >
+                    {allOfficialMembers.map(member => (
+                      <Select.Option key={member.id} value={member.ho_ten}>
+                        {member.ho_ten} ({member.lop || member.khoa || 'Chính thức'})
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            {/* Section: GCN Đảng viên mới - chỉ hiện khi đã học lớp ĐVM */}
+            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.hoc_lop_dv_moi !== curr.hoc_lop_dv_moi}>
+              {({ getFieldValue }) =>
+                getFieldValue('hoc_lop_dv_moi') === true ? (
+                  <div style={{
+                    padding: '20px',
+                    border: '1px solid #d6e4ff',
+                    borderRadius: '12px',
+                    backgroundColor: '#f0f5ff',
+                    marginTop: '20px',
+                    marginBottom: '20px',
+                    boxShadow: '0 2px 6px rgba(24,144,255,0.04)'
+                  }}>
+                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#1d39c4', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #d6e4ff', paddingBottom: '6px' }}>
+                      📄 Giấy chứng nhận Đảng viên mới (GCN)
+                    </span>
+                    <Row gutter={16}>
+                      <Col span={8}>
+                        <Form.Item
+                          name="ngay_cap_gcn"
+                          label={<span style={{ fontWeight: 600, color: '#1d39c4', fontSize: '12px' }}>Ngày cấp GCN</span>}
+                          tooltip="Ngày Chi bộ/Đảng ủy cấp Giấy chứng nhận hoàn thành lớp bồi dưỡng Đảng viên mới"
+                          style={{ marginBottom: 0 }}
+                        >
+                          <DatePicker
+                            style={{ width: '100%', borderRadius: '8px' }}
+                            format="DD/MM/YYYY"
+                            placeholder="Chọn ngày cấp GCN..."
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          name="so_gcn"
+                          label={<span style={{ fontWeight: 600, color: '#1d39c4', fontSize: '12px' }}>Số GCN (nếu có)</span>}
+                          tooltip="Số Giấy chứng nhận hoàn thành lớp bồi dưỡng Đảng viên mới"
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input placeholder="Nhập số GCN..." style={{ borderRadius: '8px' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={8}>
+                        <Form.Item
+                          name="noi_cap_gcn"
+                          label={<span style={{ fontWeight: 600, color: '#1d39c4', fontSize: '12px' }}>Nơi cấp GCN</span>}
+                          tooltip="Chi bộ hoặc Đảng ủy cấp Giấy chứng nhận"
+                          style={{ marginBottom: 0 }}
+                        >
+                          <Input placeholder="Nơi cấp GCN..." style={{ borderRadius: '8px' }} />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                ) : null
+              }
+            </Form.Item>
+
+            <Row gutter={16} style={{ marginTop: '20px' }}>
+              <Col span={24}>
+                <Form.Item name="ghi_chu" label={<span style={{ fontWeight: 600, color: '#475569' }}>Ghi chú hồ sơ</span>} style={{ marginBottom: 0 }}>
+                  <Input.TextArea rows={3} placeholder="Ghi chú về tiến độ hồ sơ, các giấy tờ còn thiếu, v.v..." style={{ borderRadius: '8px' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            {/* History logs inside this unified card */}
+            {editingRecord && editingRecord.ho_so_history && editingRecord.ho_so_history.length > 0 && (
+              <div style={{ marginTop: 24, borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
                 <span style={{ fontSize: 13, fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                  📜 Lịch sử chuyển bước & Ghi chú:
+                  📜 Lịch sử chuyển bước &amp; Ghi chú:
                 </span>
-                
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
                   {editingRecord.ho_so_history.map((log, idx) => (
-                    <div 
+                    <div
                       key={idx}
                       style={{
-                        background: '#ffffff',
+                        background: '#f8fafc',
                         border: '1px solid #e2e8f0',
-                        borderRadius: '10px',
-                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        padding: '16px 20px',
                         boxShadow: '0 2px 6px rgba(0,0,0,0.01)',
                         position: 'relative'
                       }}
@@ -2750,17 +3172,17 @@ const DangVienDuBi = () => {
                           {dayjs(log.time).format('DD/MM/YYYY HH:mm')}
                         </span>
                       </div>
-                      
                       {log.note ? (
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#334155', 
-                          background: '#f8fafc', 
-                          padding: '8px 12px', 
-                          borderRadius: '6px', 
-                          borderLeft: '3px solid #c62828',
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#334155',
+                          background: '#ffffff',
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          borderLeft: '4px solid #be123c',
                           marginTop: 6,
-                          fontStyle: 'italic'
+                          fontStyle: 'italic',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                         }}>
                           "{log.note}"
                         </div>
@@ -2775,367 +3197,6 @@ const DangVienDuBi = () => {
               </div>
             )}
           </div>
-        )}
-
-        <Form form={form} layout="vertical">
-          {/* Section: Thông tin cá nhân & Học tập - CHỈ ĐỌC */}
-          <div style={{ 
-            padding: '16px', 
-            border: '1px solid #e8e8e8', 
-            borderRadius: '12px', 
-            backgroundColor: '#fafafa', 
-            marginBottom: '20px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-            position: 'relative'
-          }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <UserOutlined style={{ fontSize: '16px' }} /> Thông tin cá nhân &amp; Học tập
-              <span style={{ marginLeft: 'auto', fontSize: '11px', fontWeight: 400, color: '#8c8c8c', backgroundColor: '#f5f5f5', padding: '2px 8px', borderRadius: '10px', border: '1px solid #e0e0e0' }}>🔒 Chỉ đọc — sửa tại hồ sơ đang sinh hoạt</span>
-            </span>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="mssv" label="MSSV">
-                  <Input disabled placeholder="MSSV..." style={{ borderRadius: '6px', backgroundColor: '#f5f5f5' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="ho_ten" label="Họ và tên">
-                  <Input disabled placeholder="Họ và tên..." style={{ borderRadius: '6px', backgroundColor: '#f5f5f5' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="cccd" label="Số CCCD">
-                  <Input disabled placeholder="CCCD..." style={{ borderRadius: '6px', backgroundColor: '#f5f5f5' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="ngay_sinh" label="Ngày sinh">
-                  <DatePicker disabled style={{ width: '100%', borderRadius: '6px', backgroundColor: '#f5f5f5' }} format="DD/MM/YYYY" placeholder="Ngày sinh..." />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="khoa" label="Khoa" style={{ marginBottom: 0 }}>
-                  <Select disabled placeholder="Khoa..." style={{ borderRadius: '6px' }}>
-                    {KHOA_LIST.map(k => <Option key={k} value={k}>{k}</Option>)}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="lop" label="Lớp sinh hoạt" style={{ marginBottom: 0 }}>
-                  <Input disabled placeholder="Lớp..." style={{ borderRadius: '6px', backgroundColor: '#f5f5f5' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
-
-          {/* Section: Liên hệ */}
-          <div style={{ 
-            padding: '16px', 
-            border: '1px solid #e8e8e8', 
-            borderRadius: '12px', 
-            backgroundColor: '#fbfbfb', 
-            marginBottom: '20px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-          }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <PhoneOutlined style={{ fontSize: '16px' }} /> Thông tin liên hệ
-            </span>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="so_dien_thoai" label="Số điện thoại" rules={[{ pattern: /^[0-9]+$/, message: 'SĐT không hợp lệ' }]}>
-                  <Input placeholder="Nhập số điện thoại..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="facebook" label="Facebook">
-                  <Input placeholder="Nhập link Facebook..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="email" label="Email cá nhân" rules={[{ type: 'email', message: 'Email không hợp lệ' }]}>
-                  <Input placeholder="Nhập địa chỉ email liên hệ..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="email_sv" label="Email SV" rules={[{ type: 'email', message: 'Email không hợp lệ' }]} style={{ marginBottom: 0 }}>
-                  <Input placeholder="Nhập email sinh viên..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
-
-          {/* Section: Địa chỉ (gộp quê quán + thường trú + tạm trú) */}
-          <div style={{ 
-            padding: '16px', 
-            border: '1px solid #e8e8e8', 
-            borderRadius: '12px', 
-            backgroundColor: '#fbfbfb', 
-            marginBottom: '20px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-          }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <EnvironmentOutlined style={{ fontSize: '16px' }} /> Địa chỉ
-            </span>
-
-            {/* Quê quán */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏡 Quê quán</div>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="tinh_tp_qq" label="Tỉnh/Thành phố quê quán" style={{ marginBottom: 0 }}>
-                    <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="xa_phuong_qq" label="Xã/Phường quê quán" style={{ marginBottom: 0 }}>
-                    <AddressWardSelect province={watchTinhTpQq} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
-
-            <Divider style={{ margin: '12px 0' }} />
-
-            {/* Quê quán cũ (nếu có) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏡 Quê quán cũ (nếu có)</div>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item name="tinh_tp_qq_cu" label="Tỉnh/TP quê quán cũ" style={{ marginBottom: 0 }}>
-                    <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="quan_huyen_qq_cu" label="Quận/Huyện quê quán cũ" style={{ marginBottom: 0 }}>
-                    <AddressDistrictSelect province={watchTinhTpQqCu} onChange={() => form.setFieldsValue({ xa_phuong_qq_cu: undefined })} />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="xa_phuong_qq_cu" label="Xã/Phường quê quán cũ" style={{ marginBottom: 0 }}>
-                    <AddressWardSelect isOld={true} province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
-
-            <Divider style={{ margin: '12px 0' }} />
-
-            {/* Hộ khẩu thường trú */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏠 Hộ khẩu thường trú</div>
-              <Row gutter={16}>
-                <Col span={24}>
-                  <Form.Item name="chi_tiet_dc" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
-                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '6px' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="tinh_tp_tt" label="Tỉnh/Thành phố thường trú" style={{ marginBottom: 0 }}>
-                    <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="xa_phuong_tt" label="Xã/Phường thường trú" style={{ marginBottom: 0 }}>
-                    <AddressWardSelect province={watchTinhTpTt} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
-
-            <Divider style={{ margin: '12px 0' }} />
-
-            {/* Thường trú cũ (nếu có) */}
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>🏠 Thường trú cũ (nếu có)</div>
-              <Row gutter={16}>
-                <Col span={24}>
-                  <Form.Item name="chi_tiet_tt_cu" label="Số nhà, tên đường, tổ dân phố, thôn, xóm cũ...">
-                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." style={{ borderRadius: '6px' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={8}>
-                  <Form.Item name="tinh_tp_tt_cu" label="Tỉnh/TP thường trú cũ" style={{ marginBottom: 0 }}>
-                    <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="quan_huyen_tt_cu" label="Quận/Huyện thường trú cũ" style={{ marginBottom: 0 }}>
-                    <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} />
-                  </Form.Item>
-                </Col>
-                <Col span={8}>
-                  <Form.Item name="xa_phuong_tt_cu" label="Xã/Phường thường trú cũ" style={{ marginBottom: 0 }}>
-                    <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
-
-            <Divider style={{ margin: '12px 0' }} />
-
-            {/* Tạm trú */}
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: '#595959', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>📍 Địa chỉ tạm trú</div>
-              <Row gutter={16}>
-                <Col span={24}>
-                  <Form.Item name="chi_tiet_tam_tru" label="Số nhà, tên đường, tổ dân phố, thôn, xóm...">
-                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '6px' }} />
-                  </Form.Item>
-                </Col>
-              </Row>
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="tinh_tp_tam_tru" label="Tỉnh/Thành phố tạm trú" style={{ marginBottom: 0 }}>
-                    <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} />
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="xa_phuong_tam_tru" label="Xã/Phường tạm trú" style={{ marginBottom: 0 }}>
-                    <AddressWardSelect province={watchTinhTpTamTru} />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </div>
-          </div>
-
-          {/* Section: Thông tin Đảng */}
-          <div style={{ 
-            padding: '16px', 
-            border: '1px solid #e8e8e8', 
-            borderRadius: '12px', 
-            backgroundColor: '#fbfbfb', 
-            marginBottom: '10px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.02)'
-          }}>
-            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#b71c1c', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #f0f0f0', paddingBottom: '6px' }}>
-              <FlagOutlined style={{ fontSize: '16px' }} /> Thông tin Đảng
-            </span>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="ngay_vao_dang" label="Ngày vào Đảng" rules={[{ required: true, message: 'Vui lòng chọn ngày vào Đảng!' }]}>
-                  <DatePicker style={{ width: '100%', borderRadius: '6px' }} format="DD/MM/YYYY" placeholder="Chọn ngày vào Đảng..." />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="hoc_lop_dv_moi" label="Học lớp Đảng viên mới">
-                  <Select style={{ width: '100%', borderRadius: '6px' }}>
-                    <Option value={true}>Đã học</Option>
-                    <Option value={false}>Chưa học</Option>
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="dvhd_theo_doi" label="ĐVHD theo dõi (từ lúc vào chi bộ)">
-                  <Select
-                    showSearch
-                    placeholder="Chọn Đảng viên hướng dẫn"
-                    optionFilterProp="children"
-                    allowClear
-                    style={{ width: '100%', borderRadius: '6px' }}
-                  >
-                    {allOfficialMembers.map(member => (
-                      <Option key={member.id} value={member.ho_ten}>
-                        {member.ho_ten} ({member.lop || member.khoa || 'Chính thức'})
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="dvhd_ho_so" label="ĐVHD làm hồ sơ công nhận ĐVCT">
-                  <Select
-                    showSearch
-                    placeholder="Chọn Đảng viên hướng dẫn làm hồ sơ"
-                    optionFilterProp="children"
-                    allowClear
-                    style={{ width: '100%', borderRadius: '6px' }}
-                  >
-                    {allOfficialMembers.map(member => (
-                      <Option key={member.id} value={member.ho_ten}>
-                        {member.ho_ten} ({member.lop || member.khoa || 'Chính thức'})
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-            <Row gutter={16} style={{ marginTop: '16px' }}>
-              <Col span={24}>
-                <Form.Item name="ghi_chu" label="Ghi chú hồ sơ" style={{ marginBottom: 0 }}>
-                  <Input.TextArea rows={3} placeholder="Ghi chú về tiến độ hồ sơ, các giấy tờ còn thiếu, v.v..." style={{ borderRadius: '6px' }} />
-                </Form.Item>
-              </Col>
-            </Row>
-          </div>
-
-          {/* Section: GCN Đảng viên mới - chỉ hiện khi đã học lớp ĐVM */}
-          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.hoc_lop_dv_moi !== curr.hoc_lop_dv_moi}>
-            {({ getFieldValue }) =>
-              getFieldValue('hoc_lop_dv_moi') === true ? (
-                <div style={{ 
-                  padding: '16px', 
-                  border: '1px solid #d6e4ff', 
-                  borderRadius: '12px', 
-                  backgroundColor: '#f0f5ff', 
-                  marginBottom: '10px',
-                  boxShadow: '0 2px 6px rgba(24,144,255,0.06)'
-                }}>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1d39c4', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', borderBottom: '1px solid #d6e4ff', paddingBottom: '6px' }}>
-                    📄 Giấy chứng nhận Đảng viên mới (GCN)
-                  </span>
-                  <Row gutter={16}>
-                    <Col span={12}>
-                      <Form.Item
-                        name="ngay_cap_gcn"
-                        label="Ngày cấp GCN"
-                        tooltip="Ngày Chi bộ/Đảng ủy cấp Giấy chứng nhận hoàn thành lớp bồi dưỡng Đảng viên mới"
-                      >
-                        <DatePicker 
-                          style={{ width: '100%', borderRadius: '6px' }} 
-                          format="DD/MM/YYYY" 
-                          placeholder="Chọn ngày cấp GCN..."
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name="so_gcn"
-                        label="Số GCN (nếu có)"
-                        tooltip="Số Giấy chứng nhận hoàn thành lớp bồi dưỡng Đảng viên mới"
-                      >
-                        <Input placeholder="Nhập số GCN (nếu có)..." style={{ borderRadius: '6px' }} />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                  <Row gutter={16}>
-                    <Col span={24}>
-                      <Form.Item
-                        name="noi_cap_gcn"
-                        label="Nơi cấp GCN"
-                        tooltip="Chi bộ hoặc Đảng ủy cấp Giấy chứng nhận"
-                        style={{ marginBottom: 0 }}
-                      >
-                        <Input placeholder="Nhập tên Chi bộ / Đảng ủy cấp GCN..." style={{ borderRadius: '6px' }} />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </div>
-              ) : null
-            }
-          </Form.Item>
-
         </Form>
       </Drawer>
 
@@ -3150,16 +3211,16 @@ const DangVienDuBi = () => {
         okButtonProps={{ style: { backgroundColor: '#c62828' } }}
       >
         <Form form={chuyenChinhThucForm} layout="vertical">
-          <Form.Item 
-            name="ngay_ky_quyet_dinh_dvct" 
-            label="Ngày ký quyết định" 
+          <Form.Item
+            name="ngay_ky_quyet_dinh_dvct"
+            label="Ngày ký quyết định"
             rules={[{ required: true, message: 'Phải nhập ngày ký quyết định' }]}
           >
             <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
           </Form.Item>
-          <Form.Item 
-            name="so_quyet_dinh_dvct" 
-            label="Số quyết định" 
+          <Form.Item
+            name="so_quyet_dinh_dvct"
+            label="Số quyết định"
             rules={[{ required: true, message: 'Phải nhập số quyết định' }]}
           >
             <Input placeholder="Nhập số quyết định..." />
@@ -3183,30 +3244,30 @@ const DangVienDuBi = () => {
       >
         <div style={{ marginBottom: 12 }}>
           {selectedTargetStep === 4 && (
-            <Alert 
-              message="Lưu ý khi chuyển sang Bước 4" 
-              description="Đảm bảo bạn đã nhận được Nhận xét cư trú của Đảng viên này và đã chuẩn bị các bản tự kiểm điểm liên quan." 
-              type="info" 
-              showIcon 
+            <Alert
+              message="Lưu ý khi chuyển sang Bước 4"
+              description="Đảm bảo bạn đã nhận được Nhận xét cư trú của Đảng viên này và đã chuẩn bị các bản tự kiểm điểm liên quan."
+              type="info"
+              showIcon
               style={{ marginBottom: 12 }}
             />
           )}
           {selectedTargetStep === 6 && (
-            <Alert 
-              message="Lưu ý khi chuyển sang Bước 6" 
-              description="Đảm bảo đã có đầy đủ Biên nhận / Minh chứng nộp hồ sơ lên VPĐU Trường trước khi chuyển tiếp." 
-              type="warning" 
-              showIcon 
+            <Alert
+              message="Lưu ý khi chuyển sang Bước 6"
+              description="Đảm bảo đã có đầy đủ Biên nhận / Minh chứng nộp hồ sơ lên VPĐU Trường trước khi chuyển tiếp."
+              type="warning"
+              showIcon
               style={{ marginBottom: 12 }}
             />
           )}
           <p>Nhập ghi chú cho bước chuyển này (không bắt buộc):</p>
         </div>
-        <Input.TextArea 
-          rows={3} 
-          placeholder="Nhập ghi chú chi tiết..." 
-          value={nextStepNote} 
-          onChange={e => setNextStepNote(e.target.value)} 
+        <Input.TextArea
+          rows={3}
+          placeholder="Nhập ghi chú chi tiết..."
+          value={nextStepNote}
+          onChange={e => setNextStepNote(e.target.value)}
           style={{ borderRadius: '6px' }}
         />
       </Modal>
@@ -3246,21 +3307,21 @@ const DangVienDuBi = () => {
                   </Col>
                 </Row>
               </div>
-              
+
               {/* Compose Inputs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
                   <label style={{ fontWeight: 'bold', display: 'block', marginBottom: 6 }}>Tiêu đề email:</label>
-                  <Input 
-                    value={emailSubject} 
-                    onChange={e => setEmailSubject(e.target.value)} 
-                    placeholder="Nhập tiêu đề email..." 
+                  <Input
+                    value={emailSubject}
+                    onChange={e => setEmailSubject(e.target.value)}
+                    placeholder="Nhập tiêu đề email..."
                   />
                 </div>
                 <div>
                   <label style={{ fontWeight: 'bold', display: 'block', marginBottom: 6 }}>Nội dung email:</label>
                   <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid #d9d9d9', borderRadius: '6px', overflow: 'hidden' }}>
-                    <div 
+                    <div
                       style={{
                         padding: '8px',
                         backgroundColor: '#f5f5f5',
@@ -3377,7 +3438,7 @@ const DangVienDuBi = () => {
                 </div>
               </div>
             </Tabs.TabPane>
-            
+
             <Tabs.TabPane tab={<span><EyeOutlined />Xem trước email gửi đi thực tế</span>} key="preview">
               <div style={{ border: '1px solid #d9d9d9', borderRadius: 8, padding: 16, backgroundColor: '#f4f6f8', maxHeight: '500px', overflowY: 'auto' }}>
                 {/* Visual HTML Email Preview Box */}
@@ -3387,13 +3448,13 @@ const DangVienDuBi = () => {
                     <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '0.5px' }}>CHI BỘ SINH VIÊN</h2>
                     <div style={{ fontSize: 12, marginTop: 4, opacity: 0.8, fontWeight: 500 }}>TRƯỜNG ĐẠI HỌC KINH TẾ - ĐHĐN</div>
                   </div>
-                  
+
                   {/* Email Body Content */}
-                  <div 
+                  <div
                     style={{ padding: '30px 24px', lineHeight: '1.8', color: '#333333', fontSize: '14px', fontFamily: '-apple-system, BlinkMacSystemFont, Arial, sans-serif', textAlign: 'justify' }}
                     dangerouslySetInnerHTML={{ __html: emailBodyText }}
                   />
-                  
+
                   {/* Email Footer */}
                   <div style={{ backgroundColor: '#fafafa', padding: '20px 24px', borderTop: '1px solid #eeeeee', textAlign: 'center', color: '#888888', fontSize: '12px' }}>
                     Đây là email tự động nhắc nhở quy trình quản lý hồ sơ của Chi bộ Sinh viên.<br />
@@ -3458,10 +3519,10 @@ const DangVienDuBi = () => {
           <div style={{ fontWeight: 700, fontSize: '14px', color: '#262626', marginBottom: 12 }}>
             1. Chọn Phạm vi Dữ liệu xuất:
           </div>
-          <Radio.Group 
-            value={exportRange} 
-            onChange={e => setExportRange(e.target.value)} 
-            size="large" 
+          <Radio.Group
+            value={exportRange}
+            onChange={e => setExportRange(e.target.value)}
+            size="large"
             style={{ marginBottom: 24, width: '100%' }}
           >
             <Row gutter={16}>
@@ -3476,9 +3537,9 @@ const DangVienDuBi = () => {
                 </Radio.Button>
               </Col>
               <Col span={8}>
-                <Radio.Button 
-                  value="selected" 
-                  disabled={selectedRowKeys.length === 0} 
+                <Radio.Button
+                  value="selected"
+                  disabled={selectedRowKeys.length === 0}
                   style={{ width: '100%', textAlign: 'center', borderRadius: '6px', height: '42px', lineHeight: '40px', fontWeight: 600 }}
                 >
                   Dòng đã chọn ({selectedRowKeys.length} dòng)
@@ -3502,10 +3563,10 @@ const DangVienDuBi = () => {
                   <span>Cấu hình Bộ Lọc Dữ Liệu Xuất (Thay đổi sẽ cập nhật trực tiếp):</span>
                 </div>
                 {(searchText || filterKhoa || filterLop || filterIntake || filterHocLop !== null || filterHanXet || filterThangXet) && (
-                  <Button 
-                    type="text" 
-                    danger 
-                    onClick={resetFilters} 
+                  <Button
+                    type="text"
+                    danger
+                    onClick={resetFilters}
                     icon={<CloseOutlined />}
                     style={{ display: 'flex', alignItems: 'center', fontWeight: 500, padding: 0, height: 'auto' }}
                     size="small"
@@ -3517,21 +3578,21 @@ const DangVienDuBi = () => {
               <Row gutter={[12, 12]}>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Tìm kiếm từ khóa:</div>
-                  <Input 
-                    placeholder="MSSV, Họ tên..." 
-                    value={searchText} 
-                    onChange={e => setSearchText(e.target.value)} 
+                  <Input
+                    placeholder="MSSV, Họ tên..."
+                    value={searchText}
+                    onChange={e => setSearchText(e.target.value)}
                     style={{ borderRadius: '6px' }}
                     allowClear
                   />
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khoa:</div>
-                  <Select 
+                  <Select
                     showSearch
-                    placeholder="Chọn Khoa" 
-                    value={filterKhoa} 
-                    onChange={setFilterKhoa} 
+                    placeholder="Chọn Khoa"
+                    value={filterKhoa}
+                    onChange={setFilterKhoa}
                     style={{ width: '100%' }}
                     allowClear
                     optionFilterProp="children"
@@ -3542,11 +3603,11 @@ const DangVienDuBi = () => {
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Lớp:</div>
-                  <Select 
+                  <Select
                     showSearch
-                    placeholder="Chọn Lớp" 
-                    value={filterLop} 
-                    onChange={setFilterLop} 
+                    placeholder="Chọn Lớp"
+                    value={filterLop}
+                    onChange={setFilterLop}
                     style={{ width: '100%' }}
                     allowClear
                     optionFilterProp="children"
@@ -3559,10 +3620,10 @@ const DangVienDuBi = () => {
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Khóa:</div>
-                  <Select 
-                    placeholder="Chọn Khóa" 
-                    value={filterIntake} 
-                    onChange={setFilterIntake} 
+                  <Select
+                    placeholder="Chọn Khóa"
+                    value={filterIntake}
+                    onChange={setFilterIntake}
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
@@ -3574,10 +3635,10 @@ const DangVienDuBi = () => {
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Lớp ĐVM:</div>
-                  <Select 
-                    placeholder="Đã học / Chưa học" 
-                    value={filterHocLop} 
-                    onChange={setFilterHocLop} 
+                  <Select
+                    placeholder="Đã học / Chưa học"
+                    value={filterHocLop}
+                    onChange={setFilterHocLop}
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
@@ -3588,10 +3649,10 @@ const DangVienDuBi = () => {
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Trạng thái hồ sơ:</div>
-                  <Select 
-                    placeholder="Chọn Trạng thái" 
-                    value={filterHanXet} 
-                    onChange={setFilterHanXet} 
+                  <Select
+                    placeholder="Chọn Trạng thái"
+                    value={filterHanXet}
+                    onChange={setFilterHanXet}
                     style={{ width: '100%' }}
                     allowClear
                     dropdownStyle={{ borderRadius: '6px' }}
@@ -3603,12 +3664,12 @@ const DangVienDuBi = () => {
                 </Col>
                 <Col span={8}>
                   <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Tháng xét duyệt:</div>
-                  <DatePicker 
+                  <DatePicker
                     picker="month"
-                    placeholder="Tháng xét duyệt" 
-                    style={{ width: '100%', borderRadius: '6px' }} 
-                    allowClear 
-                    value={filterThangXet} 
+                    placeholder="Tháng xét duyệt"
+                    style={{ width: '100%', borderRadius: '6px' }}
+                    allowClear
+                    value={filterThangXet}
                     onChange={setFilterThangXet}
                     format="MM/YYYY"
                   />
@@ -3622,16 +3683,16 @@ const DangVienDuBi = () => {
               2. Chọn các Trường Thông tin cần xuất:
             </div>
             <Space>
-              <Button 
-                size="small" 
+              <Button
+                size="small"
                 onClick={() => setSelectedExportFields(EXPORT_FIELDS.map(f => f.key))}
                 style={{ borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}
               >
                 Chọn tất cả
               </Button>
-              <Button 
-                size="small" 
-                danger 
+              <Button
+                size="small"
+                danger
                 onClick={() => setSelectedExportFields([])}
                 style={{ borderRadius: '4px', fontSize: '12px', fontWeight: 600 }}
               >
@@ -3645,38 +3706,38 @@ const DangVienDuBi = () => {
               {Object.keys(FIELD_GROUPS).map(groupKey => {
                 const groupFields = EXPORT_FIELDS.filter(f => f.group === groupKey);
                 const allSelected = groupFields.map(f => f.key).every(k => selectedExportFields.includes(k));
-                
+
                 return (
                   <Col span={24} key={groupKey}>
-                    <Card 
-                      size="small" 
-                      style={{ 
-                        borderRadius: '8px', 
+                    <Card
+                      size="small"
+                      style={{
+                        borderRadius: '8px',
                         boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                         border: '1px solid #f0f0f0'
                       }}
-                      headStyle={{ 
-                        backgroundColor: '#fafafa', 
+                      headStyle={{
+                        backgroundColor: '#fafafa',
                         borderBottom: '1px solid #f0f0f0',
                         fontWeight: 700,
                         fontSize: '13px'
                       }}
                       title={
                         <Space>
-                          <span style={{ 
-                            display: 'inline-block', 
-                            width: '3px', 
-                            height: '12px', 
-                            backgroundColor: '#c62828', 
-                            borderRadius: '1px' 
+                          <span style={{
+                            display: 'inline-block',
+                            width: '3px',
+                            height: '12px',
+                            backgroundColor: '#c62828',
+                            borderRadius: '1px'
                           }} />
                           {FIELD_GROUPS[groupKey].label}
                         </Space>
                       }
                       extra={
-                        <Button 
-                          type="link" 
-                          size="small" 
+                        <Button
+                          type="link"
+                          size="small"
                           onClick={() => {
                             const keys = groupFields.map(f => f.key);
                             if (allSelected) {
@@ -3694,7 +3755,7 @@ const DangVienDuBi = () => {
                       <Row gutter={[12, 12]}>
                         {groupFields.map(field => (
                           <Col xs={12} sm={8} key={field.key}>
-                            <Checkbox 
+                            <Checkbox
                               checked={selectedExportFields.includes(field.key)}
                               onChange={e => {
                                 if (e.target.checked) {
@@ -3768,11 +3829,11 @@ const DangVienDuBi = () => {
         />
       </Modal>
 
-      <ProfileDrawer 
-        open={isDetailVisible} 
-        onClose={() => setIsDetailVisible(false)} 
-        data={selectedRecord} 
-        onUpdate={fetchDangVienDuBi} 
+      <ProfileDrawer
+        open={isDetailVisible}
+        onClose={() => setIsDetailVisible(false)}
+        data={selectedRecord}
+        onUpdate={fetchDangVienDuBi}
       />
 
     </div>

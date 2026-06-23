@@ -952,7 +952,7 @@ const DangVien = () => {
         const dshDoc = await findDocByMssv("dang_vien_dang_sinh_hoat", mssvStr);
         if (dshDoc) {
           await updateDoc(doc(db, "dang_vien_dang_sinh_hoat", dshDoc.id), {
-            so_qd: cccdVal,
+            so_the_dang: cccdVal,
             updated_at: new Date().toISOString()
           });
         }
@@ -2512,7 +2512,7 @@ const DangVien = () => {
               so_dien_thoai: values.so_dien_thoai || '',
               facebook: values.facebook || '',
               ngay_vao_dang: values.ngay_vao_dang || null,
-              so_qd: values.so_the_dang || '',
+              so_the_dang: values.so_the_dang || '',
               ngay_ki_qd: null,
               dang_vien_huong_dan: values.dvhd || '',
               created_at: new Date().toISOString()
