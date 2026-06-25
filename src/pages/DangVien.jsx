@@ -574,8 +574,9 @@ const DangVien = () => {
             chi_tiet_dc: item.chi_tiet_dc || item.chi_tiet_tt_cu || '',
             soqd: item.soqd || item.so_qd || '',
             ngaykiqd: item.ngaykiqd || item.ngay_ki_qd || null,
-            so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || '',
-            ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || null,
+            so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || item.soqd_chinh_thuc || item.so_qd_chinh_thuc || '',
+            ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || item.ngayqd_chinh_thuc || item.ngay_ky_qd_chinh_thuc || null,
+            ngay_chinh_thuc: item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || item.ngaychinhthuc || null,
           };
           const row = { 'STT': index + 1 };
           EXPORT_FIELDS.forEach(field => {

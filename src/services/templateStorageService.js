@@ -95,6 +95,8 @@ export const VALID_PLACEHOLDERS = [
   { key: '{{chi_bo_ket_nap}}', desc: 'Chi bộ kết nạp' },
   { key: '{{chi_bo_sinh_hoat}}', desc: 'Chi bộ đang sinh hoạt' },
   { key: '{{co_quan_cong_tac}}', desc: 'Cơ quan / đơn vị công tác' },
+  { key: '{{so_quyet_dinh_dvct}}', desc: 'Số quyết định chính thức' },
+  { key: '{{ngay_ky_quyet_dinh_dvct_formatted}}', desc: 'Ngày ký quyết định chính thức' },
   // Tự kiểm điểm
   { key: '{{uu_diem}}', desc: 'Ưu điểm (hỗ trợ xuống dòng)' },
   { key: '{{khuyet_diem}}', desc: 'Khuyết điểm (hỗ trợ xuống dòng)' },

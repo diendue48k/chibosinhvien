@@ -133,7 +133,10 @@ const prepareTemplateData = (data, docType) => {
     ngay_sinh_formatted: safeParse(data.ngay_sinh) ? safeParse(data.ngay_sinh).format('DD/MM/YYYY') : '....................',
     ngay_chinh_thuc_formatted: (data.dang_vien_du_bi === true || data.loai_dang_vien === 'Dự bị' || data.loai_dang_vien === 'dubi')
       ? '....................'
-      : (safeParse(data.ngay_chinh_thuc) ? safeParse(data.ngay_chinh_thuc).format('DD/MM/YYYY') : '....................'),
+      : (safeParse(data.ngay_chinh_thuc || data.ngay_cong_nhan_dvct || data.ngaychinhthuc) ? safeParse(data.ngay_chinh_thuc || data.ngay_cong_nhan_dvct || data.ngaychinhthuc).format('DD/MM/YYYY') : '....................'),
+    ngay_ky_quyet_dinh_dvct_formatted: safeParse(data.ngay_ky_quyet_dinh_dvct || data.ngayqd_chinh_thuc || data.ngay_ky_qd_chinh_thuc)
+      ? safeParse(data.ngay_ky_quyet_dinh_dvct || data.ngayqd_chinh_thuc || data.ngay_ky_qd_chinh_thuc).format('DD/MM/YYYY')
+      : '....................',
     nam_sinh: safeParse(data.ngay_sinh) ? safeParse(data.ngay_sinh).format('YYYY') : '........',
     ngay_vao_dang_formatted_vietnamese: formatVietnameseDate(data.ngay_vao_dang),
     ngay_chinh_thuc_formatted_vietnamese: formatVietnameseDate(data.ngay_chinh_thuc),
@@ -183,6 +186,8 @@ const prepareTemplateData = (data, docType) => {
     'Ngày chính thức nếu có': baseData.ngay_chinh_thuc_formatted,
     'Ngày chính thức': baseData.ngay_chinh_thuc_formatted,
     'Ngày chính thức của Đảng viên nếu có': baseData.ngay_chinh_thuc_formatted,
+    'Số quyết định chính thức': data.so_quyet_dinh_dvct || data.soqd_chinh_thuc || data.so_qd_chinh_thuc || '',
+    'Ngày ký quyết định chính thức': baseData.ngay_ky_quyet_dinh_dvct_formatted,
     'Nhiệm vụ Đảng được giao': data.nhiem_vu_dang,
     'Giới tính': data.gioi_tinh,
     'Giới tính của Đảng viên': data.gioi_tinh,
