@@ -576,7 +576,19 @@ const DangVien = () => {
             ngaykiqd: item.ngaykiqd || item.ngay_ki_qd || null,
             so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || item.soqd_chinh_thuc || item.so_qd_chinh_thuc || '',
             ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || item.ngayqd_chinh_thuc || item.ngay_ky_qd_chinh_thuc || null,
-            ngay_chinh_thuc: item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || item.ngaychinhthuc || null,
+            ngay_chinh_thuc: (() => {
+              const clean = (v) => (!v || (typeof v === 'string' && (v.includes('Chưa') || v.includes('chua')))) ? null : v;
+              const hasDecision = clean(item.so_quyet_dinh_dvct) || clean(item.so_qd) || clean(item.soqd_chinh_thuc) || clean(item.so_qd_chinh_thuc) ||
+                                  clean(item.ngay_ky_quyet_dinh_dvct) || clean(item.ngayqd_chinh_thuc) || clean(item.ngay_ky_qd_chinh_thuc);
+              let d = clean(item.ngay_chinh_thuc) || clean(item.ngay_cong_nhan_dvct) || clean(item.ngaychinhthuc) || null;
+              if ((hasDecision || !d) && item.ngay_vao_dang) {
+                const vao = safeDayjs(item.ngay_vao_dang);
+                if (vao && vao.isValid()) {
+                  return vao.add(1, 'year').format('YYYY-MM-DD');
+                }
+              }
+              return d;
+            })(),
           };
           const row = { 'STT': index + 1 };
           EXPORT_FIELDS.forEach(field => {
@@ -1939,10 +1951,25 @@ const DangVien = () => {
     },
     {
       title: 'Ngày chính thức',
-      dataIndex: 'ngay_chinh_thuc',
       key: 'ngay_chinh_thuc',
       width: 130,
-      render: (text) => text ? dayjs(text).format('DD/MM/YYYY') : '--'
+      render: (_, record) => {
+        const clean = (v) => (!v || (typeof v === 'string' && (v.includes('Chưa') || v.includes('chua')))) ? null : v;
+        const hasDecision = clean(record.so_quyet_dinh_dvct) || clean(record.so_qd) || clean(record.soqd_chinh_thuc) || clean(record.so_qd_chinh_thuc) ||
+                            clean(record.ngay_ky_quyet_dinh_dvct) || clean(record.ngayqd_chinh_thuc) || clean(record.ngay_ky_qd_chinh_thuc);
+        let d = clean(record.ngay_chinh_thuc) || clean(record.ngay_cong_nhan_dvct);
+        if ((hasDecision || !d) && record.ngay_vao_dang) {
+          const vao = safeDayjs(record.ngay_vao_dang);
+          if (vao && vao.isValid()) {
+            return vao.add(1, 'year').format('DD/MM/YYYY');
+          }
+        }
+        if (d) {
+          const parsed = dayjs(d);
+          if (parsed.isValid()) return parsed.format('DD/MM/YYYY');
+        }
+        return '--';
+      }
     },
     {
       title: 'Ngày chuyển vào',

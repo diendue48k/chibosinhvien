@@ -737,16 +737,19 @@ const HoSoDaChinhThuc = () => {
         key: 'ngay_chinh_thuc',
         width: 130,
         render: (text, record) => {
-          const raw = record.ngay_cong_nhan_dvct || record.ngay_chinh_thuc || text;
-          if (raw && raw !== "Invalid Date") {
-            const d = safeDayjs(raw);
-            if (d && d.isValid()) return d.format('DD/MM/YYYY');
-          }
-          if (record.ngay_vao_dang) {
+          const clean = (v) => (!v || (typeof v === 'string' && (v.includes('Chưa') || v.includes('chua')))) ? null : v;
+          const hasDecision = clean(record.so_quyet_dinh_dvct) || clean(record.so_qd) || clean(record.soqd_chinh_thuc) || clean(record.so_qd_chinh_thuc) ||
+                              clean(record.ngay_ky_quyet_dinh_dvct) || clean(record.ngayqd_chinh_thuc) || clean(record.ngay_ky_qd_chinh_thuc);
+          let d = clean(record.ngay_cong_nhan_dvct) || clean(record.ngay_chinh_thuc) || clean(text);
+          if ((hasDecision || !d) && record.ngay_vao_dang) {
             const vao = safeDayjs(record.ngay_vao_dang);
             if (vao && vao.isValid()) {
               return vao.add(1, 'year').format('DD/MM/YYYY');
             }
+          }
+          if (d && d !== "Invalid Date") {
+            const parsed = safeDayjs(d);
+            if (parsed && parsed.isValid()) return parsed.format('DD/MM/YYYY');
           }
           return '--';
         },
@@ -1025,7 +1028,8 @@ const HoSoDaChinhThuc = () => {
     }
 
     const mappedData = dataToExport.map(item => {
-      let ngayChinhThuc = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || null;
+      const clean = (v) => (!v || (typeof v === 'string' && (v.includes('Chưa') || v.includes('chua')))) ? null : v;
+      let ngayChinhThuc = clean(item.ngay_chinh_thuc) || clean(item.ngay_cong_nhan_dvct) || null;
       if (ngayChinhThuc === "Invalid Date") {
         ngayChinhThuc = null;
       }
@@ -1488,10 +1492,19 @@ const HoSoDaChinhThuc = () => {
       key: 'ngay_chinh_thuc_col',
       width: 130,
       render: (_, record) => {
-        const d = record.ngay_cong_nhan_dvct || record.ngay_chinh_thuc;
-        if (d) return dayjs(d).format('DD/MM/YYYY');
-        if (record.ngay_vao_dang) {
-          return dayjs(record.ngay_vao_dang).add(1, 'year').format('DD/MM/YYYY');
+        const clean = (v) => (!v || (typeof v === 'string' && (v.includes('Chưa') || v.includes('chua')))) ? null : v;
+        const hasDecision = clean(record.so_quyet_dinh_dvct) || clean(record.so_qd) || clean(record.soqd_chinh_thuc) || clean(record.so_qd_chinh_thuc) ||
+                            clean(record.ngay_ky_quyet_dinh_dvct) || clean(record.ngayqd_chinh_thuc) || clean(record.ngay_ky_qd_chinh_thuc);
+        let d = clean(record.ngay_cong_nhan_dvct) || clean(record.ngay_chinh_thuc);
+        if ((hasDecision || !d) && record.ngay_vao_dang) {
+          const vao = safeDayjs(record.ngay_vao_dang);
+          if (vao && vao.isValid()) {
+            return vao.add(1, 'year').format('DD/MM/YYYY');
+          }
+        }
+        if (d) {
+          const parsed = dayjs(d);
+          if (parsed.isValid()) return parsed.format('DD/MM/YYYY');
         }
         return '--';
       }

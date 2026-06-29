@@ -1805,7 +1805,10 @@ const HoSoDaKetNap = () => {
           ngay_vao_dang: item.ngay_vao_dang || item.ngayvaodang || null,
           dvhd: item.dvhd || item.dangvienhuongdan || '',
           so_the_dang: item.soqd || item.so_the_dang || '',
-          ngay_chinh_thuc: item.ngaykiqd || item.ngay_chinh_thuc || null,
+          ngay_chinh_thuc: (() => {
+            const clean = (v) => (!v || (typeof v === 'string' && (v.includes('Chưa') || v.includes('chua')))) ? null : v;
+            return clean(item.ngay_chinh_thuc) || null;
+          })(),
           dang_vien_du_bi: item.dang_vien_du_bi !== undefined ? item.dang_vien_du_bi : true,
           trang_thai: item.trang_thai || 'dang_sinh_hoat',
           facebook: item.facebook || item.link_fb || '',

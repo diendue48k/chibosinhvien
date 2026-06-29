@@ -239,7 +239,8 @@ const ChuyenSinhHoat = () => {
                         item.loai_dang_vien === 'Dự bị' || 
                         item.loai_dang_vien === 'dubi';
 
-      let calculatedNgayChinhThuc = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || item.ngaychinhthuc || null;
+      const clean = (v) => (!v || (typeof v === 'string' && (v.includes('Chưa') || v.includes('chua')))) ? null : v;
+      let calculatedNgayChinhThuc = clean(item.ngay_chinh_thuc) || clean(item.ngay_cong_nhan_dvct) || clean(item.ngaychinhthuc) || null;
       if (!calculatedNgayChinhThuc && !isReserve) {
         const ngayVao = item.ngay_vao_dang || item.ngayvaodang || item.ngay_ket_nap;
         if (ngayVao) {

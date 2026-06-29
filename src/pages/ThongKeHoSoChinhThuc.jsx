@@ -187,34 +187,10 @@ const ThongKeHoSoChinhThuc = () => {
         return false;
       }
       
-      const isOfficial = !checkIsDuBi(item) && item.so_quyet_dinh_dvct && item.ngay_ky_quyet_dinh_dvct;
-      let dateStr = null;
-      if (isOfficial) {
-        dateStr = item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct;
-        if (!dateStr && item.ngay_vao_dang) {
-          const d = safeDayjs(item.ngay_vao_dang);
-          if (d && d.isValid()) {
-            dateStr = d.add(1, 'year').toISOString();
-          }
-        }
-      } else {
-        if (item.ngay_vao_dang) {
-          const d = safeDayjs(item.ngay_vao_dang);
-          if (d && d.isValid()) {
-            dateStr = d.add(1, 'year').toISOString();
-          }
-        }
-      }
-      dateStr = dateStr || item.created_at;
-
-      if (dateStr) {
-        const d = safeDayjs(dateStr);
-        if (d && d.isValid()) {
-          const itemYear = d.format('YYYY');
-          if (filterYear && itemYear !== filterYear) {
-            return false;
-          }
-        } else {
+      const d = getOfficialDateVal(item);
+      if (d && d.isValid()) {
+        const itemYear = d.format('YYYY');
+        if (filterYear && itemYear !== filterYear) {
           return false;
         }
       } else {
@@ -235,7 +211,7 @@ const ThongKeHoSoChinhThuc = () => {
       if (!ngayVao || !ngayVao.isValid()) return false;
       const deadline = ngayVao.add(12, 'month');
       const daysLeft = deadline.diff(dayjs(), 'day');
-      return daysLeft <= 90 || (item.ho_so_status && Number(item.ho_so_status) > 1);
+      return daysLeft <= 30 || (item.ho_so_status && Number(item.ho_so_status) > 1);
     };
 
     const checkIsOfficial = (member) => {

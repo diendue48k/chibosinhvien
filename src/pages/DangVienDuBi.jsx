@@ -11,7 +11,8 @@ import {
   ExportOutlined, DeleteOutlined, DownloadOutlined, UploadOutlined, FilterOutlined, SearchOutlined, CloseOutlined,
   TableOutlined, FullscreenOutlined, FullscreenExitOutlined, SettingOutlined,
   BoldOutlined, ItalicOutlined, UnderlineOutlined, LinkOutlined, DisconnectOutlined,
-  UnorderedListOutlined, OrderedListOutlined, FileZipOutlined, LockOutlined
+  UnorderedListOutlined, OrderedListOutlined, FileZipOutlined, LockOutlined,
+  IdcardOutlined, FacebookOutlined, FileTextOutlined, ClockCircleOutlined
 } from '@ant-design/icons';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { dbMain as db } from '../firebase';
@@ -315,10 +316,92 @@ const KHOA_LIST = [
   "Thương mại điện tử", "Kinh doanh quốc tế", "Lý luận chính trị", "Khác"
 ];
 
+// Premium SVG Icons
+const SvgFlag = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+    <line x1="4" y1="22" x2="4" y2="15"></line>
+  </svg>
+);
+
+const SvgUser = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+  </svg>
+);
+
+const SvgPhone = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+  </svg>
+);
+
+const SvgAddress = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"></path>
+    <circle cx="12" cy="10" r="3"></circle>
+  </svg>
+);
+
+const SvgIdcard = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+    <line x1="16" y1="2" x2="16" y2="4"></line>
+    <line x1="8" y1="2" x2="8" y2="4"></line>
+    <line x1="3" y1="10" x2="21" y2="10"></line>
+  </svg>
+);
+
+const SvgCccd = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    <line x1="16" y1="13" x2="8" y2="13"></line>
+    <line x1="16" y1="17" x2="8" y2="17"></line>
+  </svg>
+);
+
+const SvgHome = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+  </svg>
+);
+
+const SvgFacebook = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+  </svg>
+);
+
+const SvgMail = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+    <polyline points="22,6 12,13 2,6"></polyline>
+  </svg>
+);
+
+const SvgLock = ({ size = 16, strokeWidth = 2, color = 'currentColor', style }) => (
+  <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', ...style }}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+  </svg>
+);
+
 const DangVienDuBi = () => {
   const { currentUser } = useAuth();
   const [data, setData] = useState([]);
   const [allOfficialMembers, setAllOfficialMembers] = useState([]);
+  const guidesForHoSo = useMemo(() => {
+    return [...allOfficialMembers].sort((a, b) => {
+      const aIsMatch = a.nhom === 'Hồ sơ sinh hoạt Đảng';
+      const bIsMatch = b.nhom === 'Hồ sơ sinh hoạt Đảng';
+      if (aIsMatch && !bIsMatch) return -1;
+      if (!aIsMatch && bIsMatch) return 1;
+      return (a.ho_ten || '').localeCompare(b.ho_ten || '');
+    });
+  }, [allOfficialMembers]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
 
@@ -769,7 +852,19 @@ const DangVienDuBi = () => {
         ngaykiqd: item.ngaykiqd || item.ngay_ki_qd || null,
         so_quyet_dinh_dvct: item.so_quyet_dinh_dvct || item.soqd_chinh_thuc || item.so_qd_chinh_thuc || '',
         ngay_ky_quyet_dinh_dvct: item.ngay_ky_quyet_dinh_dvct || item.ngayqd_chinh_thuc || item.ngay_ky_qd_chinh_thuc || null,
-        ngay_chinh_thuc: item.ngay_chinh_thuc || item.ngay_cong_nhan_dvct || item.ngaychinhthuc || null,
+        ngay_chinh_thuc: (() => {
+          const clean = (v) => (!v || (typeof v === 'string' && (v.includes('Chưa') || v.includes('chua')))) ? null : v;
+          const hasDecision = clean(item.so_quyet_dinh_dvct) || clean(item.so_qd) || clean(item.soqd_chinh_thuc) || clean(item.so_qd_chinh_thuc) ||
+                              clean(item.ngay_ky_quyet_dinh_dvct) || clean(item.ngayqd_chinh_thuc) || clean(item.ngay_ky_qd_chinh_thuc);
+          let d = clean(item.ngay_chinh_thuc) || clean(item.ngay_cong_nhan_dvct) || clean(item.ngaychinhthuc) || null;
+          if ((hasDecision || !d) && item.ngay_vao_dang) {
+            const vao = safeDayjs(item.ngay_vao_dang);
+            if (vao && vao.isValid()) {
+              return vao.add(1, 'year').format('YYYY-MM-DD');
+            }
+          }
+          return d;
+        })(),
         so_the_dang: item.so_the_dang || '',
         noi_chuyen_di: item.noi_chuyen_di || '',
         ngay_chuyen_vao: item.ngay_chuyen_vao || null,
@@ -1141,7 +1236,6 @@ const DangVienDuBi = () => {
             newVal: status ? "Đã học" : "Chưa học"
           }]
         });
-
         count++;
       }
       message.success(`Đã cập nhật lớp Đảng viên mới thành công cho ${count} đồng chí!`);
@@ -1220,12 +1314,12 @@ const DangVienDuBi = () => {
       render: (_, record) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <a
-            style={{ fontWeight: 500, color: '#1890ff' }}
             onClick={() => handleOpenEditDrawer(record)}
+            className="table-member-name"
           >
             {record.ho_ten}
           </a>
-          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.mssv}</span>
+          <span style={{ fontSize: '11px', color: '#64748b', marginTop: '2px', fontWeight: 500 }}>{record.mssv}</span>
         </div>
       )
     },
@@ -1234,8 +1328,8 @@ const DangVienDuBi = () => {
       key: 'chi_doan',
       render: (_, record) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 500 }}>{record.lop}</span>
-          <span style={{ fontSize: '12px', color: '#8c8c8c' }}>{record.khoa}</span>
+          <span style={{ fontWeight: 600, color: '#334155' }}>{record.lop}</span>
+          <span style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>{record.khoa}</span>
         </div>
       )
     },
@@ -1250,24 +1344,30 @@ const DangVienDuBi = () => {
       title: 'Lớp ĐVM',
       dataIndex: 'hoc_lop_dv_moi',
       key: 'hoc_lop_dv_moi',
-      render: (val) => val ? <Badge status="success" text="Đã học" /> : <Badge status="error" text="Chưa học" />
+      render: (val) => val ? (
+        <Tag style={{ border: 'none', background: '#dcfce7', color: '#15803d', fontWeight: 700, borderRadius: '6px', padding: '2px 8px', fontSize: '11.5px' }}>Đã học</Tag>
+      ) : (
+        <Tag style={{ border: 'none', background: '#fee2e2', color: '#b91c1c', fontWeight: 700, borderRadius: '6px', padding: '2px 8px', fontSize: '11.5px' }}>Chưa học</Tag>
+      )
     },
     {
       title: 'Trạng thái & Hạn xét',
       key: 'trang_thai_han_xet',
       render: (_, record) => {
         const status = record.ho_so_status || 1;
-        let badgeColor = '#bfbfbf'; // Xám
-        if (status === 1 || status === 2) badgeColor = '#1890ff'; // Xanh nhạt
-        if (status === 3 || status === 4) badgeColor = '#faad14'; // Vàng
-        if (status === 5 || status === 6) badgeColor = '#52c41a'; // Xanh lá
+        let tagStyle = { background: '#f1f5f9', color: '#475569' };
+        if (status === 1 || status === 2) tagStyle = { background: '#dbeafe', color: '#1d4ed8' };
+        if (status === 3 || status === 4) tagStyle = { background: '#fef3c7', color: '#b45309' };
+        if (status === 5 || status === 6) tagStyle = { background: '#dcfce7', color: '#15803d' };
 
         const han = calculateHanXet(record.ngay_vao_dang);
         const daysLeft = han ? han.daysLeft : null;
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <div>
-              <Badge color={badgeColor} text={`B${status}: ${SHORT_STEPS[status]}`} />
+              <Tag style={{ ...tagStyle, border: 'none', fontWeight: 700, borderRadius: '6px', padding: '2px 8px', fontSize: '11.5px' }}>
+                B{status}: {SHORT_STEPS[status]}
+              </Tag>
             </div>
             {han && (
               <div>
@@ -1291,28 +1391,20 @@ const DangVienDuBi = () => {
           const d = safeDayjs(date);
           if (d && d.isAfter(dayjs(), 'day')) {
             return (
-              <Tag color="cyan" style={{ fontWeight: 600, padding: '4px 8px', borderRadius: '4px' }}>
-                Đã duyệt (Chờ ngày HL)
+              <Tag style={{ border: 'none', background: '#e0f7fa', color: '#00838f', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px' }}>
+                Đã duyệt (Chờ HL)
               </Tag>
             );
           }
         }
 
-        let isWithin2M = false;
-        if (record.ngay_vao_dang) {
-          const ngayVao = safeDayjs(record.ngay_vao_dang);
-          if (ngayVao.isValid()) {
-            const deadline = ngayVao.add(12, 'month');
-            const daysLeft = deadline.diff(dayjs(), 'day');
-            isWithin2M = daysLeft <= 60;
-          }
-        }
-        return isWithin2M ? (
-          <Tag color="success" style={{ fontWeight: 600, padding: '4px 8px', borderRadius: '4px' }}>
-            Đang làm HS
+        const isProgressing = checkIsInProgress(record);
+        return isProgressing ? (
+          <Tag style={{ border: 'none', background: '#fee2e2', color: '#dc2626', fontWeight: 700, padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px' }}>
+            Còn ≤ 1 tháng
           </Tag>
         ) : (
-          <Tag color="default" style={{ fontWeight: 500, padding: '4px 8px', borderRadius: '4px' }}>
+          <Tag style={{ border: 'none', background: '#f1f5f9', color: '#475569', fontWeight: 600, padding: '4px 10px', borderRadius: '6px', fontSize: '11.5px' }}>
             Chưa đến hạn
           </Tag>
         );
@@ -1699,10 +1791,12 @@ const DangVienDuBi = () => {
       if (!editingRecord) return;
 
       const vaoDang = safeDayjs(editingRecord.ngay_vao_dang);
+      const calculatedDate = vaoDang.isValid() ? vaoDang.add(1, 'year').format('YYYY-MM-DD') : null;
       const formatted = {
         loai_dang_vien: "Chính thức",
         dang_vien_du_bi: false,
-        ngay_cong_nhan_dvct: vaoDang.isValid() ? vaoDang.add(1, 'year').format('YYYY-MM-DD') : null,
+        ngay_chinh_thuc: calculatedDate,
+        ngay_cong_nhan_dvct: calculatedDate,
         ngay_ky_quyet_dinh_dvct: values.ngay_ky_quyet_dinh_dvct.format('YYYY-MM-DD'),
         so_quyet_dinh_dvct: values.so_quyet_dinh_dvct,
         updated_at: new Date().toISOString()
@@ -1874,7 +1968,7 @@ const DangVienDuBi = () => {
     const deadline = ngayVao.add(12, 'month');
     const today = dayjs();
     const daysLeft = deadline.diff(today, 'day');
-    return daysLeft <= 90 || (item.ho_so_status && Number(item.ho_so_status) > 1);
+    return daysLeft <= 30 || (item.ho_so_status && Number(item.ho_so_status) > 1);
   };
 
   const inProgressData = useMemo(() => {
@@ -2356,175 +2450,413 @@ const DangVienDuBi = () => {
   }, [filteredData, editingCell, editValue]);
 
   return (
-    <div style={{ padding: '4px', position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '4px', height: '24px', backgroundColor: '#c62828', borderRadius: '2px' }} />
-          <Title level={4} style={{ margin: 0, fontWeight: 700, letterSpacing: '-0.3px' }}>
-            Hồ sơ Đảng viên chính thức
-          </Title>
+    <div className="dang-vien-dubi-wrapper" style={{ padding: '4px', position: 'relative' }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .dang-vien-dubi-wrapper {
+          padding: 4px 8px;
+          background-color: transparent;
+        }
+        .premium-header-card {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 12px 20px;
+          border: 1px solid #e2e8f0;
+          box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.02);
+          margin-bottom: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .header-title-section {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .header-accent-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          background-color: #fee2e2;
+          color: #c62828;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(198, 40, 40, 0.06);
+        }
+        .header-title-text h1 {
+          margin: 0 !important;
+          font-size: 18px !important;
+          font-weight: 800 !important;
+          color: #0f172a !important;
+          letter-spacing: -0.4px;
+        }
+        .header-title-text span {
+          font-size: 12px;
+          color: #64748b;
+          margin-top: 1px;
+          display: block;
+        }
+        .premium-dashboard-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.02);
+          margin-bottom: 20px;
+        }
+        .filter-header-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 12px;
+          border-bottom: 1.5px solid #f8fafc;
+          padding-bottom: 8px;
+        }
+        .filter-header-title {
+          font-size: 13px;
+          font-weight: 800;
+          color: #1e293b;
+          letter-spacing: 0.3px;
+        }
+        .filter-card-input-group .ant-input-affine-wrapper,
+        .filter-card-input-group .ant-select-selector,
+        .filter-card-input-group .ant-picker {
+          border-radius: 6px !important;
+          border-color: #cbd5e1 !important;
+          height: 34px !important;
+          padding: 4px 10px !important;
+        }
+        .filter-card-input-group .ant-input-affine-wrapper:hover,
+        .filter-card-input-group .ant-select-selector:hover,
+        .filter-card-input-group .ant-picker:hover {
+          border-color: #94a3b8 !important;
+        }
+        .filter-card-input-group .ant-input-affine-wrapper-focused,
+        .filter-card-input-group .ant-select-focused .ant-select-selector,
+        .filter-card-input-group .ant-picker-focused {
+          border-color: #c62828 !important;
+          box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.08) !important;
+        }
+        .premium-dashboard-card .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #475569 !important;
+          font-weight: 700 !important;
+          border-bottom: 1.5px solid #cbd5e1 !important;
+          font-size: 12.5px;
+          padding: 12px 14px !important;
+        }
+        .premium-dashboard-card .ant-table-tbody > tr > td {
+          border-bottom: 1px solid #f1f5f9 !important;
+          padding: 12px 14px !important;
+        }
+        .premium-dashboard-card .ant-table-row:hover > td {
+          background-color: #fff8f8 !important;
+        }
+        .action-button-custom {
+          border-radius: 6px !important;
+          font-weight: 600 !important;
+          height: 34px !important;
+          padding: 0 12px !important;
+          font-size: 13px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 4px !important;
+          transition: all 0.2s ease !important;
+        }
+        .action-button-secondary {
+          border: 1px solid #cbd5e1 !important;
+          color: #475569 !important;
+          background: #ffffff !important;
+        }
+        .action-button-secondary:hover {
+          border-color: #94a3b8 !important;
+          color: #0f172a !important;
+          background: #f8fafc !important;
+          transform: translateY(-1px);
+        }
+        .action-button-primary {
+          background-color: #c62828 !important;
+          border-color: #c62828 !important;
+          color: #ffffff !important;
+          box-shadow: 0 2px 8px rgba(198, 40, 40, 0.12) !important;
+        }
+        .action-button-primary:hover {
+          background-color: #b91c1c !important;
+          border-color: #b91c1c !important;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(198, 40, 40, 0.2) !important;
+        }
+        .action-button-custom:active {
+          transform: translateY(0);
+        }
+        .table-member-name {
+          font-weight: 700;
+          color: #c62828;
+          transition: color 0.15s ease;
+        }
+        .table-member-name:hover {
+          color: #dc2626;
+          text-decoration: underline;
+        }
+      `}} />
+
+      <div className="premium-header-card">
+        <div className="header-title-section">
+          <div className="header-accent-icon">
+            <SvgFlag size={20} color="#c62828" strokeWidth={2.2} />
+          </div>
+          <div className="header-title-text">
+            <h1>Hồ sơ Đảng viên chính thức</h1>
+            <span>Theo dõi, cập nhật tiến độ và xét công nhận Đảng viên chính thức cho các Đảng viên dự bị</span>
+          </div>
         </div>
 
-        <Space>
-          <Button icon={<ExportOutlined />} onClick={handleOpenExportModal} style={{ borderRadius: '6px', fontWeight: 500 }}>Xuất Excel</Button>
+        <Space size="middle" wrap>
+          <Button
+            icon={<ExportOutlined style={{ color: '#10b981' }} />}
+            onClick={handleOpenExportModal}
+            className="action-button-custom action-button-secondary"
+          >
+            Xuất Excel
+          </Button>
 
           <Button
-            type="dashed"
-            icon={<TableOutlined style={{ color: '#52c41a' }} />}
+            icon={<TableOutlined style={{ color: '#3b82f6' }} />}
             onClick={() => setIsAllInfoVisible(true)}
-            style={{ borderRadius: '6px', fontWeight: 500, borderColor: '#52c41a', color: '#52c41a' }}
+            className="action-button-custom action-button-secondary"
           >
             Xem toàn bộ thông tin
           </Button>
 
-          <Button type="primary" ghost icon={<UploadOutlined />} onClick={() => setImportModalVisible(true)} style={{ borderRadius: '6px', fontWeight: 500, borderColor: '#c62828', color: '#c62828' }}>Nhập & Cập nhật từ Excel</Button>
-          <Button type="primary" icon={<PlusOutlined />} style={{ backgroundColor: '#c62828', borderRadius: '6px', fontWeight: 500 }} onClick={() => { setEditingRecord(null); form.resetFields(); form.setFieldsValue({ tinh_tp_tam_tru: 'Thành phố Đà Nẵng' }); setDrawerVisible(true); }}>Thêm Đảng viên</Button>
+          <Button
+            icon={<UploadOutlined style={{ color: '#f59e0b' }} />}
+            onClick={() => setImportModalVisible(true)}
+            className="action-button-custom action-button-secondary"
+          >
+            Nhập &amp; Cập nhật từ Excel
+          </Button>
+
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            className="action-button-custom action-button-primary"
+            onClick={() => { setEditingRecord(null); form.resetFields(); form.setFieldsValue({ tinh_tp_tam_tru: 'Thành phố Đà Nẵng' }); setDrawerVisible(true); }}
+          >
+            Thêm Đảng viên
+          </Button>
         </Space>
       </div>
-      <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', backgroundColor: '#fff', padding: '12px 16px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#8c8c8c', fontSize: '13px', marginRight: '4px', fontWeight: 500, flexShrink: 0 }}>
-          <FilterOutlined style={{ color: '#c62828' }} /> <span>Bộ lọc:</span>
+
+      {/* Bộ Lọc Tìm Kiếm & Bảng Số Liệu */}
+      <div className="premium-dashboard-card">
+        <div className="filter-header-row">
+          <FilterOutlined style={{ color: '#c62828', fontSize: '15px' }} />
+          <span className="filter-header-title">BỘ LỌC TÌM KIẾM</span>
         </div>
 
-        <div style={{ flex: 1.5, minWidth: '200px' }}>
-          <Input
-            placeholder="Tìm kiếm MSSV, họ tên..."
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-            prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-            style={{ width: '100%', borderRadius: '6px' }}
-            allowClear
-          />
-        </div>
+        <Row gutter={[16, 12]} className="filter-card-input-group" style={{ marginBottom: '16px' }}>
+          <Col xs={24} sm={12} md={6}>
+            <Input
+              placeholder="Tìm kiếm MSSV, họ tên..."
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+              style={{ width: '100%', borderRadius: '8px' }}
+              allowClear
+            />
+          </Col>
 
-        <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select
-            showSearch
-            placeholder="Chọn Khoa"
-            style={{ width: '100%' }}
-            allowClear
-            value={filterKhoa}
-            onChange={setFilterKhoa}
-            optionFilterProp="children"
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            {KHOA_LIST.map(k => <Option key={k} value={k}>{k}</Option>)}
-          </Select>
-        </div>
-
-        <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select
-            showSearch
-            placeholder="Chọn Lớp"
-            style={{ width: '100%' }}
-            allowClear
-            value={filterLop}
-            onChange={setFilterLop}
-            optionFilterProp="children"
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            {[...new Set(data.map(d => d.lop).filter(Boolean))].map(lop => (
-              <Option key={lop} value={lop}>{lop}</Option>
-            ))}
-          </Select>
-        </div>
-
-        <div style={{ flex: 1, minWidth: '120px' }}>
-          <Select
-            placeholder="Khóa"
-            style={{ width: '100%' }}
-            allowClear
-            value={filterIntake}
-            onChange={setFilterIntake}
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            {uniqueIntakes.map(k => (
-              <Option key={k} value={k}>{k}</Option>
-            ))}
-          </Select>
-        </div>
-
-        <div style={{ flex: 1, minWidth: '150px' }}>
-          <Select
-            placeholder="Lớp ĐVM (Đã học / Chưa)"
-            style={{ width: '100%' }}
-            allowClear
-            value={filterHocLop}
-            onChange={setFilterHocLop}
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            <Option value={true}>Đã học</Option>
-            <Option value={false}>Chưa học</Option>
-          </Select>
-        </div>
-
-        <div style={{ flex: 1, minWidth: '180px' }}>
-          <Select
-            placeholder="Trạng thái hồ sơ"
-            style={{ width: '100%' }}
-            allowClear
-            value={filterHanXet}
-            onChange={setFilterHanXet}
-            dropdownStyle={{ borderRadius: '6px' }}
-          >
-            <Option value="quahan">Quá hạn (&lt; -30 ngày)</Option>
-            <Option value="danglam">Đang làm hồ sơ (± 30 ngày)</Option>
-            <Option value="chuadenhan">Chưa đến hạn (&gt; 30 ngày)</Option>
-          </Select>
-        </div>
-
-        <div style={{ flex: 1, minWidth: '150px' }}>
-          <DatePicker
-            picker="month"
-            placeholder="Tháng xét duyệt"
-            style={{ width: '100%', borderRadius: '6px' }}
-            allowClear
-            value={filterThangXet}
-            onChange={setFilterThangXet}
-            format="MM/YYYY"
-          />
-        </div>
-
-        {(searchText || filterKhoa || filterLop || filterIntake || filterHocLop !== null || filterHanXet || filterThangXet) && (
-          <div style={{ flexShrink: 0 }}>
-            <Button
-              type="text"
-              danger
-              onClick={resetFilters}
-              icon={<CloseOutlined />}
-              style={{ display: 'flex', alignItems: 'center', fontWeight: 500 }}
-              size="small"
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              showSearch
+              placeholder="Chọn Khoa"
+              style={{ width: '100%' }}
+              allowClear
+              value={filterKhoa}
+              onChange={setFilterKhoa}
+              optionFilterProp="children"
+              dropdownStyle={{ borderRadius: '8px' }}
             >
-              Xóa lọc
-            </Button>
-          </div>
-        )}
-      </div>
+              {KHOA_LIST.map(k => <Option key={k} value={k}>{k}</Option>)}
+            </Select>
+          </Col>
 
-      <Card bordered={false} style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-        <Tabs
-          activeKey={activeTabKey}
-          onChange={setActiveTabKey}
-          style={{ marginBottom: 16 }}
-          items={[
-            {
-              key: 'inprogress',
-              label: (
-                <span>
-                  🚀 Hồ sơ đang làm (Còn ≤ 3 tháng) <Badge count={inProgressData.length} overflowCount={999} style={{ backgroundColor: '#faad14', marginLeft: 4 }} />
-                </span>
-              ),
-            },
-            {
-              key: 'notstarted',
-              label: (
-                <span>
-                  ⏳ Đảng viên dự bị (Chưa đến hạn) <Badge count={notStartedData.length} overflowCount={999} style={{ backgroundColor: '#1890ff', marginLeft: 4 }} />
-                </span>
-              ),
-            }
-          ]}
-        />
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              showSearch
+              placeholder="Chọn Lớp"
+              style={{ width: '100%' }}
+              allowClear
+              value={filterLop}
+              onChange={setFilterLop}
+              optionFilterProp="children"
+              dropdownStyle={{ borderRadius: '8px' }}
+            >
+              {[...new Set(data.map(d => d.lop).filter(Boolean))].map(lop => (
+                <Option key={lop} value={lop}>{lop}</Option>
+              ))}
+            </Select>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              placeholder="Khóa"
+              style={{ width: '100%' }}
+              allowClear
+              value={filterIntake}
+              onChange={setFilterIntake}
+              dropdownStyle={{ borderRadius: '8px' }}
+            >
+              {uniqueIntakes.map(k => (
+                <Option key={k} value={k}>{k}</Option>
+              ))}
+            </Select>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              placeholder="Lớp ĐVM (Đã học / Chưa)"
+              style={{ width: '100%' }}
+              allowClear
+              value={filterHocLop}
+              onChange={setFilterHocLop}
+              dropdownStyle={{ borderRadius: '8px' }}
+            >
+              <Option value={true}>Đã học</Option>
+              <Option value={false}>Chưa học</Option>
+            </Select>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <Select
+              placeholder="Trạng thái hồ sơ"
+              style={{ width: '100%' }}
+              allowClear
+              value={filterHanXet}
+              onChange={setFilterHanXet}
+              dropdownStyle={{ borderRadius: '8px' }}
+            >
+              <Option value="quahan">Quá hạn (&lt; -30 ngày)</Option>
+              <Option value="danglam">Đang làm hồ sơ (± 30 ngày)</Option>
+              <Option value="chuadenhan">Chưa đến hạn (&gt; 30 ngày)</Option>
+            </Select>
+          </Col>
+
+          <Col xs={24} sm={12} md={6}>
+            <DatePicker
+              picker="month"
+              placeholder="Tháng xét duyệt"
+              style={{ width: '100%', borderRadius: '8px' }}
+              allowClear
+              value={filterThangXet}
+              onChange={setFilterThangXet}
+              format="MM/YYYY"
+            />
+          </Col>
+
+          <Col xs={24} sm={12} md={6} style={{ display: 'flex', alignItems: 'center' }}>
+            {(searchText || filterKhoa || filterLop || filterIntake || filterHocLop !== null || filterHanXet || filterThangXet) && (
+              <Button
+                type="link"
+                danger
+                onClick={resetFilters}
+                icon={<CloseOutlined />}
+                style={{ display: 'flex', alignItems: 'center', fontWeight: 600, padding: 0 }}
+              >
+                Xóa tất cả bộ lọc
+              </Button>
+            )}
+          </Col>
+        </Row>
+
+        <Divider style={{ margin: '16px 0', borderColor: '#f1f5f9' }} />
+
+        <div style={{
+          display: 'inline-flex',
+          backgroundColor: '#f1f5f9',
+          padding: '4px',
+          borderRadius: '10px',
+          marginBottom: '16px',
+          border: '1px solid #e2e8f0',
+          gap: '4px'
+        }}>
+          <div
+            onClick={() => setActiveTabKey('inprogress')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '13px',
+              transition: 'all 0.2s ease',
+              backgroundColor: activeTabKey === 'inprogress' ? '#ffffff' : 'transparent',
+              color: activeTabKey === 'inprogress' ? '#c62828' : '#475569',
+              boxShadow: activeTabKey === 'inprogress' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            <ClockCircleOutlined style={{ fontSize: '14px', color: activeTabKey === 'inprogress' ? '#c62828' : '#64748b' }} />
+            <span>Hồ sơ đang làm (Còn ≤ 1 tháng)</span>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '20px',
+              height: '20px',
+              padding: '0 6px',
+              borderRadius: '10px',
+              fontSize: '11px',
+              fontWeight: 700,
+              backgroundColor: activeTabKey === 'inprogress' ? '#fee2e2' : '#e2e8f0',
+              color: activeTabKey === 'inprogress' ? '#c62828' : '#64748b',
+              transition: 'all 0.2s ease'
+            }}>
+              {inProgressData.length}
+            </span>
+          </div>
+
+          <div
+            onClick={() => setActiveTabKey('notstarted')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '13px',
+              transition: 'all 0.2s ease',
+              backgroundColor: activeTabKey === 'notstarted' ? '#ffffff' : 'transparent',
+              color: activeTabKey === 'notstarted' ? '#1890ff' : '#475569',
+              boxShadow: activeTabKey === 'notstarted' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none',
+            }}
+          >
+            <UserOutlined style={{ fontSize: '14px', color: activeTabKey === 'notstarted' ? '#1890ff' : '#64748b' }} />
+            <span>Đảng viên dự bị (Chưa đến hạn)</span>
+            <span style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '20px',
+              height: '20px',
+              padding: '0 6px',
+              borderRadius: '10px',
+              fontSize: '11px',
+              fontWeight: 700,
+              backgroundColor: activeTabKey === 'notstarted' ? '#e0f2fe' : '#e2e8f0',
+              color: activeTabKey === 'notstarted' ? '#1890ff' : '#64748b',
+              transition: 'all 0.2s ease'
+            }}>
+              {notStartedData.length}
+            </span>
+          </div>
+        </div>
         <Table
           rowSelection={rowSelection}
           columns={columns}
@@ -2555,7 +2887,7 @@ const DangVienDuBi = () => {
             style: { cursor: 'pointer' }
           })}
         />
-      </Card>
+      </div>
 
       {/* Floating Bulk Actions Panel */}
       {selectedRowKeys.length > 0 && (
@@ -2649,7 +2981,7 @@ const DangVienDuBi = () => {
       <Drawer
         title={
           <span style={{ fontWeight: 800, fontSize: '18px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FlagOutlined style={{ color: '#e11d48' }} /> {editingRecord ? "Chi tiết/Cập nhật Tiến độ Hồ sơ" : "Thêm mới Đảng viên dự bị"}
+            <SvgFlag size={18} color="#c62828" strokeWidth={2} /> {editingRecord ? "Chi tiết/Cập nhật Tiến độ Hồ sơ" : "Thêm mới Đảng viên dự bị"}
           </span>
         }
         width={900}
@@ -2662,12 +2994,12 @@ const DangVienDuBi = () => {
               {editingRecord && (
                 <>
                   <Button
-                    icon={<MailOutlined />}
+                    icon={<SvgMail size={16} strokeWidth={1.8} />}
                     onClick={() => {
                       const han = calculateHanXet(editingRecord.ngay_vao_dang);
                       handlePrepareEmail(editingRecord, han ? han.daysLeft : null, han && han.daysLeft <= 7);
                     }}
-                    style={{ borderRadius: '8px', fontWeight: 600, height: '38px' }}
+                    style={{ borderRadius: '8px', fontWeight: 600, height: '38px', border: '1px solid #cbd5e1', color: '#475569' }}
                   >
                     Gửi email
                   </Button>
@@ -2677,7 +3009,7 @@ const DangVienDuBi = () => {
                       chuyenChinhThucForm.resetFields();
                       setIsChuyenChinhThucModalVisible(true);
                     }}
-                    style={{ borderRadius: '8px', fontWeight: 600, height: '38px' }}
+                    style={{ borderRadius: '8px', fontWeight: 600, height: '38px', backgroundColor: '#10b981', color: '#ffffff', border: 'none', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)' }}
                   >
                     Chuyển chính thức
                   </Button>
@@ -2685,149 +3017,159 @@ const DangVienDuBi = () => {
               )}
             </Space>
             <Space>
-              <Button onClick={() => setDrawerVisible(false)} style={{ borderRadius: '8px', fontWeight: 600, height: '38px' }}>Đóng</Button>
-              <Button type="primary" onClick={handleSaveDetails} style={{ borderRadius: '8px', fontWeight: 600, height: '38px', backgroundColor: '#e11d48', border: 'none' }}>Lưu thay đổi</Button>
+              <Button onClick={() => setDrawerVisible(false)} style={{ borderRadius: '8px', fontWeight: 600, height: '38px', border: '1px solid #cbd5e1', color: '#475569' }}>Đóng</Button>
+              <Button type="primary" onClick={handleSaveDetails} style={{ borderRadius: '8px', fontWeight: 600, height: '38px', backgroundColor: '#c62828', color: '#ffffff', border: 'none', boxShadow: '0 2px 4px rgba(198, 40, 40, 0.2)' }}>Lưu thay đổi</Button>
             </Space>
           </div>
         }
       >
         <Form form={form} layout="vertical" onValuesChange={onValuesChange}>
-          {/* HÀNG 1: Thông tin cá nhân & Thông tin liên hệ */}
-          <Row gutter={24} style={{ marginBottom: '24px' }}>
-            {/* Cột trái: Thông tin cá nhân & Học tập */}
-            <Col xs={24} lg={12}>
-              <div style={{
-                padding: '24px',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                backgroundColor: '#ffffff',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.015)',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <UserOutlined style={{ fontSize: '18px', color: '#e11d48' }} /> Thông tin cá nhân &amp; Học tập
-                  </span>
-                  <Tag icon={<LockOutlined />} color="warning" style={{ borderRadius: '6px', margin: 0, fontWeight: 600 }}>
-                    Chỉ đọc
-                  </Tag>
+          {/* PHẦN 1: Thông tin cá nhân, Học tập & Liên hệ */}
+          <div style={{
+            padding: '24px',
+            border: '1px solid #f1f5f9',
+            borderRadius: '16px',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.02)',
+            marginBottom: '24px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #f8fafc', paddingBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  backgroundColor: '#fff1f2',
+                  color: '#c62828',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 8px rgba(198, 40, 40, 0.08)'
+                }}>
+                  <SvgUser size={18} color="#c62828" strokeWidth={2} />
                 </div>
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item name="mssv" label={<span style={{ fontWeight: 600, color: '#475569' }}>MSSV</span>}>
-                      <Input disabled placeholder="MSSV..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item name="ho_ten" label={<span style={{ fontWeight: 600, color: '#475569' }}>Họ và tên</span>}>
-                      <Input disabled placeholder="Họ và tên..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item name="cccd" label={<span style={{ fontWeight: 600, color: '#475569' }}>Số CCCD</span>}>
-                      <Input disabled placeholder="CCCD..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item name="ngay_sinh" label={<span style={{ fontWeight: 600, color: '#475569' }}>Ngày sinh</span>}>
-                      <DatePicker disabled style={{ width: '100%', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} format="DD/MM/YYYY" placeholder="Ngày sinh..." />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item name="khoa" label={<span style={{ fontWeight: 600, color: '#475569' }}>Khoa</span>} style={{ marginBottom: 0 }}>
-                      <Select disabled placeholder="Khoa..." style={{ borderRadius: '8px' }}>
-                        {KHOA_LIST.map(k => <Select.Option key={k} value={k}>{k}</Select.Option>)}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item name="lop" label={<span style={{ fontWeight: 600, color: '#475569' }}>Lớp sinh hoạt</span>} style={{ marginBottom: 0 }}>
-                      <Input disabled placeholder="Lớp..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1' }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
+                <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>
+                  Thông tin cá nhân &amp; Học tập
+                </span>
               </div>
-            </Col>
+              <Tag icon={<SvgLock size={12} strokeWidth={1.8} />} color="warning" style={{ borderRadius: '6px', margin: 0, fontWeight: 600, padding: '2px 8px' }}>
+                Chỉ đọc
+              </Tag>
+            </div>
+            
+            <Row gutter={16} style={{ marginBottom: '16px' }}>
+              <Col span={8}>
+                <Form.Item name="ho_ten" label={<span style={{ fontWeight: 600, color: '#475569' }}>Họ và tên</span>} style={{ marginBottom: 0 }}>
+                  <Input disabled prefix={<SvgUser size={14} color="#94a3b8" strokeWidth={1.8} />} placeholder="Họ và tên..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', fontWeight: 500 }} />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="mssv" label={<span style={{ fontWeight: 600, color: '#475569' }}>MSSV</span>} style={{ marginBottom: 0 }}>
+                  <Input disabled prefix={<SvgIdcard size={14} color="#94a3b8" strokeWidth={1.8} />} placeholder="MSSV..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', fontWeight: 500 }} />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="cccd" label={<span style={{ fontWeight: 600, color: '#475569' }}>Số CCCD</span>} style={{ marginBottom: 0 }}>
+                  <Input disabled prefix={<SvgCccd size={14} color="#94a3b8" strokeWidth={1.8} />} placeholder="CCCD..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', fontWeight: 500 }} />
+                </Form.Item>
+              </Col>
+            </Row>
+            
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item name="ngay_sinh" label={<span style={{ fontWeight: 600, color: '#475569' }}>Ngày sinh</span>} style={{ marginBottom: 0 }}>
+                  <DatePicker disabled style={{ width: '100%', borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', fontWeight: 500 }} format="DD/MM/YYYY" placeholder="Ngày sinh..." />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="khoa" label={<span style={{ fontWeight: 600, color: '#475569' }}>Khoa</span>} style={{ marginBottom: 0 }}>
+                  <Select disabled placeholder="Khoa..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', fontWeight: 500 }}>
+                    {KHOA_LIST.map(k => <Select.Option key={k} value={k}>{k}</Select.Option>)}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="lop" label={<span style={{ fontWeight: 600, color: '#475569' }}>Lớp sinh hoạt</span>} style={{ marginBottom: 0 }}>
+                  <Input disabled prefix={<SvgHome size={14} color="#94a3b8" strokeWidth={1.8} />} placeholder="Lớp..." style={{ borderRadius: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', color: '#64748b', fontWeight: 500 }} />
+                </Form.Item>
+              </Col>
+            </Row>
 
-            {/* Cột phải: Thông tin liên hệ */}
-            <Col xs={24} lg={12}>
-              <div style={{
-                padding: '24px',
-                border: '1px solid #e2e8f0',
-                borderRadius: '16px',
-                backgroundColor: '#ffffff',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.015)',
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                  <PhoneOutlined style={{ fontSize: '18px', color: '#e11d48' }} />
-                  <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Thông tin liên hệ</span>
-                </div>
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item name="so_dien_thoai" label={<span style={{ fontWeight: 600, color: '#475569' }}>Số điện thoại</span>} rules={[{ pattern: /^[0-9]+$/, message: 'SĐT không hợp lệ' }]}>
-                      <Input placeholder="Nhập số điện thoại..." style={{ borderRadius: '8px' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item name="facebook" label={<span style={{ fontWeight: 600, color: '#475569' }}>Facebook</span>}>
-                      <Input placeholder="Nhập link Facebook..." style={{ borderRadius: '8px' }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item name="email" label={<span style={{ fontWeight: 600, color: '#475569' }}>Email cá nhân</span>} rules={[{ type: 'email', message: 'Email không hợp lệ' }]}>
-                      <Input placeholder="Nhập địa chỉ email liên hệ..." style={{ borderRadius: '8px' }} />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item name="email_sv" label={<span style={{ fontWeight: 600, color: '#475569' }}>Email SV</span>} rules={[{ type: 'email', message: 'Email không hợp lệ' }]} style={{ marginBottom: 0 }}>
-                      <Input placeholder="Nhập email sinh viên..." style={{ borderRadius: '8px' }} />
-                    </Form.Item>
-                  </Col>
-                </Row>
-              </div>
-            </Col>
-          </Row>
+            <Divider style={{ margin: '20px 0', borderColor: '#f1f5f9' }} />
+
+            {/* Thông tin liên hệ */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <SvgPhone size={16} color="#c62828" strokeWidth={2} />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>Thông tin liên hệ</span>
+            </div>
+            
+            <Row gutter={16}>
+              <Col span={6}>
+                <Form.Item name="so_dien_thoai" label={<span style={{ fontWeight: 600, color: '#475569' }}>Số điện thoại</span>} rules={[{ pattern: /^[0-9]+$/, message: 'SĐT không hợp lệ' }]} style={{ marginBottom: 0 }}>
+                  <Input prefix={<SvgPhone size={14} color="#94a3b8" strokeWidth={1.8} />} placeholder="Nhập SĐT..." style={{ borderRadius: '8px' }} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="facebook" label={<span style={{ fontWeight: 600, color: '#475569' }}>Facebook</span>} style={{ marginBottom: 0 }}>
+                  <Input prefix={<SvgFacebook size={14} color="#94a3b8" strokeWidth={1.8} />} placeholder="Link Facebook..." style={{ borderRadius: '8px' }} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="email" label={<span style={{ fontWeight: 600, color: '#475569' }}>Email cá nhân</span>} rules={[{ type: 'email', message: 'Email không hợp lệ' }]} style={{ marginBottom: 0 }}>
+                  <Input prefix={<SvgMail size={14} color="#94a3b8" strokeWidth={1.8} />} placeholder="Email liên hệ..." style={{ borderRadius: '8px' }} />
+                </Form.Item>
+              </Col>
+              <Col span={6}>
+                <Form.Item name="email_sv" label={<span style={{ fontWeight: 600, color: '#475569' }}>Email sinh viên</span>} rules={[{ type: 'email', message: 'Email không hợp lệ' }]} style={{ marginBottom: 0 }}>
+                  <Input prefix={<SvgMail size={14} color="#94a3b8" strokeWidth={1.8} />} placeholder="Email SV..." style={{ borderRadius: '8px' }} />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
 
           {/* HÀNG 2: Địa chỉ */}
           <div style={{
             padding: '24px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #f1f5f9',
             borderRadius: '16px',
             backgroundColor: '#ffffff',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.015)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.02)',
             marginBottom: '24px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              <EnvironmentOutlined style={{ fontSize: '18px', color: '#e11d48' }} />
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Địa chỉ</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid #f8fafc', paddingBottom: '14px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: '#fff1f2',
+                color: '#c62828',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(198, 40, 40, 0.08)'
+              }}>
+                <SvgAddress size={18} color="#c62828" strokeWidth={2} />
+              </div>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Địa chỉ liên hệ &amp; Quê quán</span>
             </div>
 
-            {/* Quê quán & Quê quán cũ */}
-            <Row gutter={24} style={{ marginBottom: '20px' }}>
-              <Col span={12}>
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd', height: '100%' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                    <span>🏡 Quê quán</span>
+            {/* Địa chỉ & Quê quán */}
+            <Row gutter={[0, 20]}>
+              {/* 1. Quê quán hiện tại */}
+              <Col span={24}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <SvgHome size={16} color="#c62828" strokeWidth={2} />
+                    <span>Quê quán hiện tại</span>
                   </div>
-                  <Row gutter={12}>
+                  <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="tinh_tp_qq" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/Thành phố</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="tinh_tp_qq" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh / Thành phố</span>} style={{ marginBottom: 0 }}>
                         <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_qq: undefined })} />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name="xa_phuong_qq" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="xa_phuong_qq" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã / Phường / Thị trấn</span>} style={{ marginBottom: 0 }}>
                         <AddressWardSelect province={watchTinhTpQq} />
                       </Form.Item>
                     </Col>
@@ -2835,50 +3177,51 @@ const DangVienDuBi = () => {
                 </div>
               </Col>
 
-              <Col span={12}>
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd', height: '100%' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                    <span>🏡 Quê quán cũ (nếu có)</span>
+              {/* 2. Quê quán cũ (nếu có thay đổi địa giới) */}
+              <Col span={24}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <SvgHome size={16} color="#94a3b8" strokeWidth={2} />
+                    <span>Quê quán cũ (nếu có thay đổi địa giới)</span>
                   </div>
-                  <Row gutter={12}>
+                  <Row gutter={16}>
                     <Col span={8}>
-                      <Form.Item name="tinh_tp_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/TP</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="tinh_tp_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh / TP</span>} style={{ marginBottom: 0 }}>
                         <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_qq_cu: undefined, xa_phuong_qq_cu: undefined })} />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
-                      <Form.Item name="quan_huyen_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Quận/Huyện</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="quan_huyen_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Quận / Huyện</span>} style={{ marginBottom: 0 }}>
                         <AddressDistrictSelect province={watchTinhTpQqCu} onChange={() => form.setFieldsValue({ xa_phuong_qq_cu: undefined })} />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
-                      <Form.Item name="xa_phuong_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="xa_phuong_qq_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã / Phường</span>} style={{ marginBottom: 0 }}>
                         <AddressWardSelect isOld={true} province={watchTinhTpQqCu} district={watchQuanHuyenQqCu} />
                       </Form.Item>
                     </Col>
                   </Row>
                 </div>
               </Col>
-            </Row>
 
-            {/* Hộ khẩu thường trú & Thường trú cũ */}
-            <Row gutter={24} style={{ marginBottom: '20px' }}>
-              <Col span={12}>
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd', height: '100%' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                    <span>🏠 Hộ khẩu thường trú</span>
+              {/* 3. Hộ khẩu thường trú */}
+              <Col span={24}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <SvgHome size={16} color="#c62828" strokeWidth={2} />
+                    <span>Hộ khẩu thường trú</span>
                   </div>
                   <Form.Item name="chi_tiet_dc" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Số nhà, tên đường, tổ, thôn...</span>} style={{ marginBottom: '12px' }}>
                     <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '8px' }} />
                   </Form.Item>
-                  <Row gutter={12}>
+                  <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="tinh_tp_tt" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/Thành phố</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="tinh_tp_tt" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh / Thành phố</span>} style={{ marginBottom: 0 }}>
                         <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tt: undefined })} />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name="xa_phuong_tt" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="xa_phuong_tt" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã / Phường</span>} style={{ marginBottom: 0 }}>
                         <AddressWardSelect province={watchTinhTpTt} />
                       </Form.Item>
                     </Col>
@@ -2886,53 +3229,56 @@ const DangVienDuBi = () => {
                 </div>
               </Col>
 
-              <Col span={12}>
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd', height: '100%' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                    <span>🏠 Thường trú cũ (nếu có)</span>
+              {/* 4. Thường trú cũ (nếu có) */}
+              <Col span={24}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <SvgHome size={16} color="#94a3b8" strokeWidth={2} />
+                    <span>Thường trú cũ (nếu có)</span>
                   </div>
                   <Form.Item name="chi_tiet_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Số nhà, tên đường, tổ, thôn cũ...</span>} style={{ marginBottom: '12px' }}>
                     <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm cũ..." style={{ borderRadius: '8px' }} />
                   </Form.Item>
-                  <Row gutter={12}>
+                  <Row gutter={16}>
                     <Col span={8}>
-                      <Form.Item name="tinh_tp_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/TP</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="tinh_tp_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh / TP</span>} style={{ marginBottom: 0 }}>
                         <AddressProvinceSelect isOld={true} onChange={() => form.setFieldsValue({ quan_huyen_tt_cu: undefined, xa_phuong_tt_cu: undefined })} />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
-                      <Form.Item name="quan_huyen_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Quận/Huyện</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="quan_huyen_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Quận / Huyện</span>} style={{ marginBottom: 0 }}>
                         <AddressDistrictSelect province={watchTinhTpTtCu} onChange={() => form.setFieldsValue({ xa_phuong_tt_cu: undefined })} />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
-                      <Form.Item name="xa_phuong_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="xa_phuong_tt_cu" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã / Phường</span>} style={{ marginBottom: 0 }}>
                         <AddressWardSelect isOld={true} province={watchTinhTpTtCu} district={watchQuanHuyenTtCu} />
                       </Form.Item>
                     </Col>
                   </Row>
                 </div>
               </Col>
-            </Row>
 
-            {/* Địa chỉ tạm trú */}
-            <Row gutter={24}>
-              <Col span={12}>
-                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#fafbfd' }}>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid #f1f5f9', paddingBottom: '6px' }}>
-                    <span>📍 Địa chỉ tạm trú</span>
+              {/* 5. Địa chỉ tạm trú hiện tại */}
+              <Col span={24}>
+                <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', backgroundColor: '#f8fafc' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#334155', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <SvgAddress size={16} color="#c62828" strokeWidth={2} />
+                    <span>Địa chỉ tạm trú hiện tại</span>
                   </div>
-                  <Form.Item name="chi_tiet_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Số nhà, tên đường, tổ, thôn...</span>} style={{ marginBottom: '12px' }}>
-                    <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '8px' }} />
-                  </Form.Item>
-                  <Row gutter={12}>
+                  <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="tinh_tp_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh/Thành phố</span>} style={{ marginBottom: 0 }}>
+                      <Form.Item name="chi_tiet_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Số nhà, tên đường, tổ, thôn...</span>} style={{ marginBottom: 0 }}>
+                        <Input placeholder="Nhập số nhà, tên đường, tổ dân phố, thôn, xóm..." style={{ borderRadius: '8px' }} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={6}>
+                      <Form.Item name="tinh_tp_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Tỉnh / Thành phố</span>} style={{ marginBottom: 0 }}>
                         <AddressProvinceSelect onChange={() => form.setFieldsValue({ xa_phuong_tam_tru: undefined })} />
                       </Form.Item>
                     </Col>
-                    <Col span={12}>
-                      <Form.Item name="xa_phuong_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã/Phường</span>} style={{ marginBottom: 0 }}>
+                    <Col span={6}>
+                      <Form.Item name="xa_phuong_tam_tru" label={<span style={{ fontWeight: 600, color: '#64748b', fontSize: '12px' }}>Xã / Phường</span>} style={{ marginBottom: 0 }}>
                         <AddressWardSelect province={watchTinhTpTamTru} />
                       </Form.Item>
                     </Col>
@@ -2945,15 +3291,27 @@ const DangVienDuBi = () => {
           {/* HÀNG 3: Quy trình & Tiến độ hồ sơ */}
           <div style={{
             padding: '24px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #f1f5f9',
             borderRadius: '16px',
             backgroundColor: '#ffffff',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.015)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.02), 0 8px 10px -6px rgba(0, 0, 0, 0.02)',
             marginBottom: '10px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-              <FlagOutlined style={{ fontSize: '18px', color: '#e11d48' }} />
-              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>QUY TRÌNH &amp; TIẾN ĐỘ HỒ SƠ</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid #f8fafc', paddingBottom: '14px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: '#fff1f2',
+                color: '#c62828',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(198, 40, 40, 0.08)'
+              }}>
+                <SvgFlag size={18} color="#c62828" strokeWidth={2} />
+              </div>
+              <span style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Quy trình &amp; Tiến độ hồ sơ</span>
             </div>
 
             {editingRecord && (
@@ -2969,7 +3327,7 @@ const DangVienDuBi = () => {
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tiến độ các bước hồ sơ:</span>
-                    <Tag color="red" style={{ fontSize: 11, padding: '4px 12px', fontWeight: 700, borderRadius: '20px', border: 'none', background: '#ffeef0', color: '#c62828' }}>
+                    <Tag color="red" style={{ fontSize: 11, padding: '4px 12px', fontWeight: 700, borderRadius: '20px', border: 'none', background: '#fee2e2', color: '#dc2626' }}>
                       Bước {editingRecord.ho_so_status || 1}: {SHORT_STEPS[editingRecord.ho_so_status || 1]}
                     </Tag>
                   </div>
@@ -3045,15 +3403,31 @@ const DangVienDuBi = () => {
                   <Select
                     showSearch
                     placeholder="Chọn Đảng viên hướng dẫn"
-                    optionFilterProp="children"
                     allowClear
                     style={{ width: '100%', borderRadius: '8px' }}
+                    filterOption={(input, option) => {
+                      const searchStr = (option?.searchLabel || '').toLowerCase();
+                      return searchStr.includes(input.toLowerCase());
+                    }}
                   >
-                    {allOfficialMembers.map(member => (
-                      <Select.Option key={member.id} value={member.ho_ten}>
-                        {member.ho_ten} ({member.lop || member.khoa || 'Chính thức'})
-                      </Select.Option>
-                    ))}
+                    {guidesForHoSo.map(member => {
+                      const isHoSoSHD = member.nhom === 'Hồ sơ sinh hoạt Đảng';
+                      return (
+                        <Select.Option key={member.id} value={member.ho_ten} searchLabel={`${member.ho_ten} ${member.lop || ''} ${member.khoa || ''} ${member.nhom || ''}`}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            <span>
+                              <span style={{ fontWeight: 500 }}>{member.ho_ten}</span>
+                              <span style={{ color: '#8c8c8c', fontSize: '12px', marginLeft: '6px' }}>({member.lop || member.khoa || 'Chính thức'})</span>
+                            </span>
+                            {isHoSoSHD && (
+                              <Tag style={{ margin: 0, borderRadius: '4px', fontSize: '11px', border: 'none', backgroundColor: '#fee2e2', color: '#dc2626', fontWeight: 600 }}>
+                                Hồ sơ SHĐ
+                              </Tag>
+                            )}
+                          </div>
+                        </Select.Option>
+                      );
+                    })}
                   </Select>
                 </Form.Item>
               </Col>
@@ -3062,15 +3436,31 @@ const DangVienDuBi = () => {
                   <Select
                     showSearch
                     placeholder="Chọn Đảng viên hướng dẫn làm hồ sơ"
-                    optionFilterProp="children"
                     allowClear
                     style={{ width: '100%', borderRadius: '8px' }}
+                    filterOption={(input, option) => {
+                      const searchStr = (option?.searchLabel || '').toLowerCase();
+                      return searchStr.includes(input.toLowerCase());
+                    }}
                   >
-                    {allOfficialMembers.map(member => (
-                      <Select.Option key={member.id} value={member.ho_ten}>
-                        {member.ho_ten} ({member.lop || member.khoa || 'Chính thức'})
-                      </Select.Option>
-                    ))}
+                    {guidesForHoSo.map(member => {
+                      const isHoSoSHD = member.nhom === 'Hồ sơ sinh hoạt Đảng';
+                      return (
+                        <Select.Option key={member.id} value={member.ho_ten} searchLabel={`${member.ho_ten} ${member.lop || ''} ${member.khoa || ''} ${member.nhom || ''}`}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                            <span>
+                              <span style={{ fontWeight: 500 }}>{member.ho_ten}</span>
+                              <span style={{ color: '#8c8c8c', fontSize: '12px', marginLeft: '6px' }}>({member.lop || member.khoa || 'Chính thức'})</span>
+                            </span>
+                            {isHoSoSHD && (
+                              <Tag style={{ margin: 0, borderRadius: '4px', fontSize: '11px', border: 'none', backgroundColor: '#fee2e2', color: '#dc2626', fontWeight: 600 }}>
+                                Hồ sơ SHĐ
+                              </Tag>
+                            )}
+                          </div>
+                        </Select.Option>
+                      );
+                    })}
                   </Select>
                 </Form.Item>
               </Col>

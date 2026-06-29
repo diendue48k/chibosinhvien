@@ -77,6 +77,7 @@ const AddressWardSelect = ({ value, onChange, province, district, isOld = false,
       filterOption={(input, option) => 
         option.children?.toString().toLowerCase().includes(input.toLowerCase())
       }
+      style={{ width: '100%' }}
     >
       {options.map(opt => <Option key={opt} value={opt}>{opt}</Option>)}
       {province && <Option value="Khác" style={{ fontWeight: 'bold', color: '#c62828' }}>+ Khác (Nhập tay)</Option>}

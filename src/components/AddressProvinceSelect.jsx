@@ -21,6 +21,7 @@ const AddressProvinceSelect = ({ value, onChange, placeholder, size, isOld = fal
       filterOption={(input, option) => 
         option.children?.toString().toLowerCase().includes(input.toLowerCase())
       }
+      style={{ width: '100%' }}
     >
       {options.map(opt => <Option key={opt} value={opt}>{opt}</Option>)}
     </Select>
