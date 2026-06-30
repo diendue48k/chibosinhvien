@@ -598,6 +598,16 @@ const DocumentGenerator = () => {
   useEffect(() => {
     if (selectedMember) {
       const normalized = normalizeAddressForForm(selectedMember);
+      
+      const combinedMembers = [...officialMembers, ...probationaryList];
+      const sameKhoaLcd = combinedMembers.find(m => m.khoa === selectedMember.khoa && m.bi_thu_lcd)?.bi_thu_lcd;
+      const sameKhoaChuTriLcd = combinedMembers.find(m => m.khoa === selectedMember.khoa && m.chu_tri_lcd)?.chu_tri_lcd;
+      const sameLopBc = combinedMembers.find(m => m.lop === selectedMember.lop && m.bi_thu_chi_doan)?.bi_thu_chi_doan;
+      const sameLopChuTri = combinedMembers.find(m => m.lop === selectedMember.lop && m.chu_tri_chi_doan)?.chu_tri_chi_doan;
+
+      const finalBiThuLcd = selectedMember.bi_thu_lcd || selectedMember.chu_tri_lcd || sameKhoaLcd || sameKhoaChuTriLcd || '';
+      const finalBiThuChiDoan = selectedMember.bi_thu_chi_doan || selectedMember.chu_tri_chi_doan || sameLopBc || sameLopChuTri || '';
+
       form.setFieldsValue({
         ho_ten: normalized.ho_ten,
         mssv: normalized.mssv,
@@ -641,6 +651,7 @@ const DocumentGenerator = () => {
         dvhd_ngay_vao_dang: selectedMember.dvhd_ngay_vao_dang ? dayjs(selectedMember.dvhd_ngay_vao_dang) : null,
         dvhd_ngay_chinh_thuc: selectedMember.dvhd_ngay_chinh_thuc ? dayjs(selectedMember.dvhd_ngay_chinh_thuc) : null,
         nam_vao_chi_bo_dvhd: selectedMember.nam_vao_chi_bo_dvhd || '',
+        ngay_phan_cong: selectedMember.ngay_phan_cong ? dayjs(selectedMember.ngay_phan_cong) : null,
         cccd: selectedMember.cccd || '',
         gioi_tinh: selectedMember.gioi_tinh || 'Nam',
         sdt: selectedMember.so_dien_thoai || selectedMember.sdt || '',
@@ -672,7 +683,7 @@ const DocumentGenerator = () => {
         tham_gia_chi_doan: selectedMember.tham_gia_chi_doan || selectedMember.tong_so_dv_chi_doan || selectedMember.tong_so_sv_lop || null,
         vang_chi_doan: selectedMember.vang_chi_doan !== undefined && selectedMember.vang_chi_doan !== null ? Number(selectedMember.vang_chi_doan) : 0,
         ly_do_vang_chi_doan: selectedMember.ly_do_vang_chi_doan || '',
-        bi_thu_chi_doan: selectedMember.bi_thu_chi_doan || selectedMember.ho_ten || '',
+        bi_thu_chi_doan: finalBiThuChiDoan,
 
         // Tab 4 defaults
         ngay_hop_lcd: selectedMember.ngay_hop_lcd ? dayjs(selectedMember.ngay_hop_lcd) : null,
@@ -682,7 +693,7 @@ const DocumentGenerator = () => {
         tong_so_uy_vien_lcd: selectedMember.tong_so_uy_vien_lcd || null,
         tham_gia_lcd: selectedMember.tham_gia_lcd || selectedMember.tong_so_uy_vien_lcd || null,
         vang_lcd: selectedMember.vang_lcd !== undefined && selectedMember.vang_lcd !== null ? Number(selectedMember.vang_lcd) : 0,
-        bi_thu_lcd: selectedMember.bi_thu_lcd || '',
+        bi_thu_lcd: finalBiThuLcd,
 
         // Tab 5 defaults
         so_nq_doan_truong: selectedMember.so_nq_doan_truong || '',
@@ -704,7 +715,7 @@ const DocumentGenerator = () => {
         tong_so_dv_du_bi: selectedMember.tong_so_dv_du_bi || activeStats?.probationary || null,
       });
     }
-  }, [selectedMember, form, activeStats]);
+  }, [selectedMember, form, activeStats, officialMembers, probationaryList]);
 
 
   const getFieldsToValidate = (docType) => {
@@ -720,7 +731,7 @@ const DocumentGenerator = () => {
       case 'bien_ban_lcd':
         return ['chu_tri_lcd', 'thu_ky_lcd', 'tong_so_uy_vien_lcd', 'tham_gia_lcd'];
       case 'nghi_quyet_lcd':
-        return ['chu_tri_lcd'];
+        return ['bi_thu_lcd', 'chu_tri_lcd'];
       case 'nghi_quyet_doan_truong':
         return ['tan_thanh_doan_truong'];
       case 'all':
@@ -728,7 +739,7 @@ const DocumentGenerator = () => {
           'chi_bo_ket_nap', 'co_quan_cong_tac', 'chi_bo_sinh_hoat', 'uu_diem', 'khuyet_diem',
           'chu_tri_lop', 'thu_ky_lop', 'tong_so_sv_lop', 'tham_gia_lop',
           'bi_thu_chi_doan', 'chu_tri_chi_doan', 'thu_ky_chi_doan', 'tong_so_dv_chi_doan', 'tham_gia_chi_doan',
-          'chu_tri_lcd', 'thu_ky_lcd', 'tong_so_uy_vien_lcd', 'tham_gia_lcd',
+          'bi_thu_lcd', 'chu_tri_lcd', 'thu_ky_lcd', 'tong_so_uy_vien_lcd', 'tham_gia_lcd',
           'tan_thanh_doan_truong'
         ];
       default:
@@ -765,6 +776,7 @@ const DocumentGenerator = () => {
       ngay_hop_chi_doan: allValues.ngay_hop_chi_doan ? allValues.ngay_hop_chi_doan.format('YYYY-MM-DD') : '',
       ngay_hop_lcd: allValues.ngay_hop_lcd ? allValues.ngay_hop_lcd.format('YYYY-MM-DD') : '',
       ngay_hop_doan_truong: allValues.ngay_hop_doan_truong ? allValues.ngay_hop_doan_truong.format('YYYY-MM-DD') : '',
+      ngay_phan_cong: allValues.ngay_phan_cong ? allValues.ngay_phan_cong.format('YYYY-MM-DD') : '',
       tong_so_chi_uy_noi_cu_tru: (allValues.tong_so_chi_uy_noi_cu_tru === null || allValues.tong_so_chi_uy_noi_cu_tru === undefined || allValues.tong_so_chi_uy_noi_cu_tru === '') ? '      ' : allValues.tong_so_chi_uy_noi_cu_tru,
       tong_so_to_chuc_ctxh: (allValues.tong_so_to_chuc_ctxh === null || allValues.tong_so_to_chuc_ctxh === undefined || allValues.tong_so_to_chuc_ctxh === '') ? '      ' : allValues.tong_so_to_chuc_ctxh
     };
@@ -1647,7 +1659,7 @@ const DocumentGenerator = () => {
               Đang sinh hoạt tại Chi bộ: {previewData.chi_bo_sinh_hoat || '..................'}.
             </div>
             <div style={indentStyle}>
-              Được Chi bộ phân công theo dõi, giúp đỡ đảng viên dự bị <strong>{previewData.ho_ten}</strong> phấn đấu trở thành đảng viên chính thức. Nay tôi xin báo cáo với Chi bộ những ưu, khuyết điểm của đảng viên dự bị như sau:
+              Ngày {previewData.ngay_phan_cong_d || '...'} tháng {previewData.ngay_phan_cong_m || '...'} năm {previewData.ngay_phan_cong_y || '...'} được Chi bộ phân công giúp đỡ đảng viên dự bị: <strong>{previewData.ho_ten}</strong> phấn đấu trở thành đảng viên chính thức; nay xin báo cáo Chi bộ những vấn đề chủ yếu của đảng viên dự bị như sau:
             </div>
 
             <div style={{ fontWeight: 'bold', marginTop: '15px', marginBottom: '5px' }}>1- Ưu điểm:</div>
@@ -2293,34 +2305,44 @@ const DocumentGenerator = () => {
                       </Col>
                       <Col span={6}>
                         <Form.Item name="chu_tri_chi_doan" label={<span className="premium-form-label">Chủ trì Chi đoàn</span>}>
-                          <Input placeholder="Bí thư Chi đoàn" />
+                          <Input placeholder="Chủ trì Chi đoàn" />
                         </Form.Item>
                       </Col>
-                      <Col span={12}>
+                      <Col span={6}>
                         <Form.Item name="thu_ky_lop" label={<span className="premium-form-label">Thư ký Lớp & CĐ</span>}>
-                          <Input placeholder="Lớp phó hoặc phó bí thư Chi Đoàn" />
+                          <Input placeholder="Lớp phó/phó BT Chi Đoàn" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="bi_thu_chi_doan" label={<span className="premium-form-label">Bí thư Chi đoàn</span>}>
+                          <Input placeholder="Bí thư Chi đoàn" />
                         </Form.Item>
                       </Col>
                     </Row>
 
                     <Row gutter={16}>
-                      <Col span={6}>
+                      <Col span={5}>
                         <Form.Item name="chu_tri_lcd" label={<span className="premium-form-label">Chủ trì LCĐ</span>}>
+                          <Input placeholder="Chủ trì LCĐ" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={5}>
+                        <Form.Item name="thu_ky_lcd" label={<span className="premium-form-label">Thư ký LCĐ</span>}>
+                          <Input placeholder="Thư ký LCĐ" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={6}>
+                        <Form.Item name="bi_thu_lcd" label={<span className="premium-form-label">Bí thư LCĐ</span>}>
                           <Input placeholder="Bí thư Liên chi Đoàn" />
                         </Form.Item>
                       </Col>
-                      <Col span={6}>
-                        <Form.Item name="thu_ky_lcd" label={<span className="premium-form-label">Thư ký LCĐ</span>}>
-                          <Input placeholder="Thư ký Liên chi Đoàn" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={6}>
+                      <Col span={4}>
                         <Form.Item name="tong_so_uy_vien_lcd" label={<span className="premium-form-label">TS UV LCĐ</span>}>
                           <InputNumber style={{width:'100%'}} placeholder="11" />
                         </Form.Item>
                       </Col>
-                      <Col span={6}>
-                        <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">TS UV BCH Đoàn trường</span>}>
+                      <Col span={4}>
+                        <Form.Item name="tan_thanh_doan_truong" label={<span className="premium-form-label">TS Đoàn trường</span>}>
                           <InputNumber style={{width:'100%'}} placeholder="28" />
                         </Form.Item>
                       </Col>
@@ -2332,7 +2354,7 @@ const DocumentGenerator = () => {
                         <div style={{ fontWeight: 800, color: '#0369a1', fontSize: 13.5, marginBottom: 12 }}>Dành cho Quản lý (Mẫu 11, 12, 13)</div>
                         
                         <Row gutter={16}>
-                          <Col span={8}>
+                          <Col span={10}>
                             <Form.Item name="dvhd" label={<span className="premium-form-label">Đảng viên hướng dẫn (Mẫu 11)</span>}>
                               <Select 
                                 showSearch 
@@ -2355,24 +2377,32 @@ const DocumentGenerator = () => {
                               </Select>
                             </Form.Item>
                           </Col>
-                          <Col span={4}>
+                          <Col span={6}>
+                            <Form.Item name="ngay_phan_cong" label={<span className="premium-form-label">Ngày phân công giúp đỡ (Mẫu 11)</span>}>
+                              <DatePicker format="DD/MM/YYYY" style={{width:'100%'}} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item name="nam_vao_chi_bo_dvhd" label={<span className="premium-form-label">Năm hướng dẫn</span>}>
+                              <Input placeholder="2022" />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+
+                        <Row gutter={16}>
+                          <Col span={8}>
                             <Form.Item name="dvhd_ngay_sinh" label={<span className="premium-form-label">Ngày sinh (ĐVHD)</span>}>
                               <DatePicker format="DD/MM/YYYY" style={{width:'100%'}} />
                             </Form.Item>
                           </Col>
-                          <Col span={4}>
+                          <Col span={8}>
                             <Form.Item name="dvhd_ngay_vao_dang" label={<span className="premium-form-label">Vào Đảng (ĐVHD)</span>}>
                               <DatePicker format="DD/MM/YYYY" style={{width:'100%'}} />
                             </Form.Item>
                           </Col>
-                          <Col span={4}>
+                          <Col span={8}>
                             <Form.Item name="dvhd_ngay_chinh_thuc" label={<span className="premium-form-label">Chính thức (ĐVHD)</span>}>
                               <DatePicker format="DD/MM/YYYY" style={{width:'100%'}} />
-                            </Form.Item>
-                          </Col>
-                          <Col span={4}>
-                            <Form.Item name="nam_vao_chi_bo_dvhd" label={<span className="premium-form-label">Năm hướng dẫn</span>}>
-                              <Input placeholder="2022" />
                             </Form.Item>
                           </Col>
                         </Row>

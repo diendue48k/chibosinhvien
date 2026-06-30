@@ -145,6 +145,10 @@ export const VALID_PLACEHOLDERS = [
   { key: '{{tan_thanh_doan_truong}}', desc: 'Số tán thành (Đoàn Trường)' },
   { key: '{{ti_le_doan_truong}}', desc: 'Tỉ lệ % tán thành (Đoàn Trường)' },
   { key: '{{bi_thu_doan_truong}}', desc: 'Bí thư Đoàn Trường' },
+  // Phân công giúp đỡ (Mẫu 11)
+  { key: '{{ngay_phan_cong_d}}', desc: 'Ngày phân công giúp đỡ (dd)' },
+  { key: '{{ngay_phan_cong_m}}', desc: 'Tháng phân công giúp đỡ (mm)' },
+  { key: '{{ngay_phan_cong_y}}', desc: 'Năm phân công giúp đỡ (yyyy)' },
 ];
 
 // ============================================================

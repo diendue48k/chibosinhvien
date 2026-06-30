@@ -93,14 +93,15 @@ const buildGiayGioiThieu = (reg, member, custom = {}) => {
     line1: 'ĐẢNG BỘ ỦY BAN NHÂN DÂN TPĐN',
     line2: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
     soGgt: 'Số          -GGT/ĐU',
-    ngay: reg.created_at ? dayjs(reg.created_at).format('DD') : '.....',
-    thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '.....',
+    ngay: reg.created_at ? dayjs(reg.created_at).format('DD') : '     ',
+    thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '     ',
     nam: reg.created_at ? dayjs(reg.created_at).format('YYYY') : '2026',
     kinhGuiPhuong: `Đảng ủy phường ${reg.phuong || '...'}, ${reg.thanh_pho || 'Đà Nẵng'},`,
     thucHienQuyDinh: 'Thực hiện Quy định số 213-QĐ/TW, ngày 02 tháng 01 năm 2020 của Bộ Chính trị về trách nhiệm của đảng viên đang công tác thường xuyên giữ mối liên hệ với tổ chức đảng và nhân dân nơi cư trú.',
     dangBoGioiThieu: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
     sinhHoatTaiChiBo: 'Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.',
     tenBiThu: reg.ten_bi_thu || member.ten_bi_thu || 'Phan Minh Đức',
+    chucVu: 'PHÓ BÍ THƯ',
     ...custom
   };
 
@@ -294,7 +295,7 @@ const buildGiayGioiThieu = (reg, member, custom = {}) => {
               width: { size: 4811, type: WidthType.DXA },
               children: [
                 new Paragraph({ alignment: AlignmentType.CENTER, spacing: { line: 288, before: 0, after: 40 }, children: [
-                  new TextRun({ text: 'BÍ THƯ', bold: false, size: 28, font: 'Times New Roman' }),
+                  new TextRun({ text: c.chucVu || 'PHÓ BÍ THƯ', bold: false, size: 28, font: 'Times New Roman' }),
                 ]}),
               ]
             }),
@@ -462,15 +463,16 @@ const DangKy213 = () => {
     line1: 'ĐẢNG BỘ ỦY BAN NHÂN DÂN TPĐN',
     line2: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
     soGgt: 'Số          -GGT/ĐU',
-    ngay: '.....',
-    thang: '.....',
+    ngay: '     ',
+    thang: '     ',
     nam: '2026',
     kinhGuiPhuong: '',
     kinhGuiChiBo: '',
     thucHienQuyDinh: 'Thực hiện Quy định số 213-QĐ/TW, ngày 02 tháng 01 năm 2020 của Bộ Chính trị về trách nhiệm của đảng viên đang công tác thường xuyên giữ mối liên hệ với tổ chức đảng và nhân dân nơi cư trú.',
     dangBoGioiThieu: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
     sinhHoatTaiChiBo: 'Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.',
-    tenBiThu: 'Phan Minh Đức'
+    tenBiThu: 'Phan Minh Đức',
+    chucVu: 'PHÓ BÍ THƯ'
   });
 
   const buildFullAddress = (reg) => {
@@ -522,14 +524,15 @@ const DangKy213 = () => {
       line1: 'ĐẢNG BỘ ỦY BAN NHÂN DÂN TPĐN',
       line2: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
       soGgt: 'Số          -GGT/ĐU',
-      ngay: reg.created_at ? dayjs(reg.created_at).format('DD') : '.....',
-      thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '.....',
+      ngay: reg.created_at ? dayjs(reg.created_at).format('DD') : '     ',
+      thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '     ',
       nam: reg.created_at ? dayjs(reg.created_at).format('YYYY') : '2026',
       kinhGuiPhuong: `Đảng ủy phường ${reg.phuong || '...'}, ${reg.thanh_pho || 'Đà Nẵng'}`,
       thucHienQuyDinh: 'Thực hiện Quy định số 213-QĐ/TW, ngày 02 tháng 01 năm 2020 của Bộ Chính trị về trách nhiệm của đảng viên đang công tác thường xuyên giữ mối liên hệ với tổ chức đảng và nhân dân nơi cư trú.',
       dangBoGioiThieu: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
       sinhHoatTaiChiBo: 'Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.',
-      tenBiThu: reg.ten_bi_thu || member.ten_bi_thu || 'Phan Minh Đức'
+      tenBiThu: reg.ten_bi_thu || member.ten_bi_thu || 'Phan Minh Đức',
+      chucVu: reg.chuc_vu || 'PHÓ BÍ THƯ'
     });
     setDocPreviewVisible(true);
   };
@@ -740,14 +743,15 @@ const DangKy213 = () => {
         line1: 'ĐẢNG BỘ ỦY BAN NHÂN DÂN TPĐN',
         line2: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
         soGgt: 'Số          -GGT/ĐU',
-        ngay: reg.created_at ? dayjs(reg.created_at).format('DD') : '.....',
-        thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '.....',
+        ngay: reg.created_at ? dayjs(reg.created_at).format('DD') : '     ',
+        thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '     ',
         nam: reg.created_at ? dayjs(reg.created_at).format('YYYY') : '2026',
         kinhGuiPhuong: `Đảng ủy phường ${reg.phuong || '...'}, ${reg.thanh_pho || 'Đà Nẵng'}`,
         thucHienQuyDinh: 'Thực hiện Quy định số 213-QĐ/TW, ngày 02 tháng 01 năm 2020 của Bộ Chính trị về trách nhiệm của đảng viên đang công tác thường xuyên giữ mối liên hệ với tổ chức đảng và nhân dân nơi cư trú.',
         dangBoGioiThieu: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
         sinhHoatTaiChiBo: 'Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.',
         tenBiThu: reg.ten_bi_thu || member.ten_bi_thu || 'Phan Minh Đức',
+        chucVu: 'PHÓ BÍ THƯ',
         ...customFields,
         ...customData
       };
@@ -904,6 +908,8 @@ const DangKy213 = () => {
           replaceParagraphValue(p, null, '- ' + customFieldsMerged.kinhGuiPhuong);
         } else if (pText === 'Phan Minh Đức') {
           replaceParagraphValue(p, null, customFieldsMerged.tenBiThu);
+        } else if (pText === 'PHÓ BÍ THƯ') {
+          replaceParagraphValue(p, null, customFieldsMerged.chucVu);
         } else if (pText.includes('tiếp nhận và tạo điều kiện cho đảng viên') && pText.includes('hoàn thành nhiệm vụ.')) {
           for (let j = 0; j < tElements.length; j++) {
             if (tElements[j].textContent === 'Lê Quốc Việt') {
@@ -1054,8 +1060,8 @@ const DangKy213 = () => {
           line1: 'ĐẢNG BỘ ỦY BAN NHÂN DÂN TPĐN',
           line2: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
           soGgt: 'Số          -GGT/ĐU',
-          ngay: reg.created_at ? dayjs(reg.created_at).format('DD') : '.....',
-          thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '.....',
+          ngay: reg.created_at ? dayjs(reg.created_at).format('DD') : '     ',
+          thang: reg.created_at ? dayjs(reg.created_at).format('MM') : '     ',
           nam: reg.created_at ? dayjs(reg.created_at).format('YYYY') : '2026',
           kinhGuiPhuong: `Đảng ủy phường ${reg.phuong || '...'}, ${reg.thanh_pho || 'Đà Nẵng'}`,
           kinhGuiChiBo: `Chi bộ ${reg.chi_bo_noi_cu_tru || '...'}`,
@@ -1063,6 +1069,7 @@ const DangKy213 = () => {
           dangBoGioiThieu: 'ĐẢNG ỦY ĐẠI HỌC ĐÀ NẴNG',
           sinhHoatTaiChiBo: 'Sinh viên, Đảng ủy bộ phận Trường Đại học Kinh tế, Đảng bộ Đại học Đà Nẵng.',
           tenBiThu: reg.ten_bi_thu || member.ten_bi_thu || 'Phan Minh Đức',
+          chucVu: 'PHÓ BÍ THƯ',
           ...customFields
         };
 
@@ -1136,6 +1143,8 @@ const DangKy213 = () => {
             replaceParagraphValue(p, null, '- ' + customFieldsMerged.kinhGuiChiBo);
           } else if (pText === 'Phan Minh Đức') {
             replaceParagraphValue(p, null, customFieldsMerged.tenBiThu);
+          } else if (pText === 'PHÓ BÍ THƯ') {
+            replaceParagraphValue(p, null, customFieldsMerged.chucVu);
           } else if (pText.includes('tiếp nhận và tạo điều kiện cho đảng viên') && pText.includes('hoàn thành nhiệm vụ.')) {
             for (let j = 0; j < tElements.length; j++) {
               if (tElements[j].textContent === 'Lê Quốc Việt') {
@@ -2627,9 +2636,18 @@ const DangKy213 = () => {
                   <Form.Item label={<span style={{ fontWeight: 600 }}>Đang sinh hoạt tại Chi bộ</span>}>
                     <Input.TextArea rows={2} value={customFields.sinhHoatTaiChiBo} onChange={(e) => setCustomFields({ ...customFields, sinhHoatTaiChiBo: e.target.value })} />
                   </Form.Item>
-                  <Form.Item label={<span style={{ fontWeight: 600 }}>Bí thư chi bộ/Đại diện ký tên</span>}>
-                    <Input value={customFields.tenBiThu} onChange={(e) => setCustomFields({ ...customFields, tenBiThu: e.target.value })} />
-                  </Form.Item>
+                  <Row gutter={8}>
+                    <Col span={12}>
+                      <Form.Item label={<span style={{ fontWeight: 600 }}>Chức vụ người ký</span>}>
+                        <Input value={customFields.chucVu} onChange={(e) => setCustomFields({ ...customFields, chucVu: e.target.value })} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item label={<span style={{ fontWeight: 600 }}>Đại diện ký tên</span>}>
+                        <Input value={customFields.tenBiThu} onChange={(e) => setCustomFields({ ...customFields, tenBiThu: e.target.value })} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </Form>
               </Card>
 
@@ -2788,7 +2806,7 @@ const DangKy213 = () => {
                           <div style={{ fontSize: '11pt' }}>Tiếp nhận ngày ………………………</div>
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          <div style={{ fontWeight: 'bold', fontSize: '11.5pt' }}>BÍ THƯ</div>
+                          <div style={{ fontWeight: 'bold', fontSize: '11.5pt' }}>{customFields.chucVu || 'PHÓ BÍ THƯ'}</div>
                         </td>
                       </tr>
                       {/* Row 2: Đã giới thiệu... | (Trống) */}
