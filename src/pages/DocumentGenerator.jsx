@@ -651,7 +651,9 @@ const DocumentGenerator = () => {
         dvhd_ngay_vao_dang: selectedMember.dvhd_ngay_vao_dang ? dayjs(selectedMember.dvhd_ngay_vao_dang) : null,
         dvhd_ngay_chinh_thuc: selectedMember.dvhd_ngay_chinh_thuc ? dayjs(selectedMember.dvhd_ngay_chinh_thuc) : null,
         nam_vao_chi_bo_dvhd: selectedMember.nam_vao_chi_bo_dvhd || '',
-        ngay_phan_cong: selectedMember.ngay_phan_cong ? dayjs(selectedMember.ngay_phan_cong) : null,
+        ngay_phan_cong: selectedMember.ngay_phan_cong 
+          ? dayjs(selectedMember.ngay_phan_cong) 
+          : (selectedMember.ngay_vao_dang ? dayjs(selectedMember.ngay_vao_dang) : null),
         cccd: selectedMember.cccd || '',
         gioi_tinh: selectedMember.gioi_tinh || 'Nam',
         sdt: selectedMember.so_dien_thoai || selectedMember.sdt || '',
@@ -836,7 +838,7 @@ const DocumentGenerator = () => {
       const dateFields = [
         'ngay_sinh', 'ngay_vao_dang', 'ngay_hop_lop', 'ngay_hop_chi_doan',
         'ngay_hop_lcd', 'ngay_hop_doan_truong', 'ngay_ky',
-        'dvhd_ngay_sinh', 'dvhd_ngay_vao_dang', 'dvhd_ngay_chinh_thuc'
+        'dvhd_ngay_sinh', 'dvhd_ngay_vao_dang', 'dvhd_ngay_chinh_thuc', 'ngay_phan_cong'
       ];
       
       for (const field of dateFields) {
