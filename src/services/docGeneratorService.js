@@ -153,8 +153,8 @@ const prepareTemplateData = (data, docType) => {
     chi_bo_sinh_hoat_caps: (data.chi_bo_sinh_hoat || 'Sinh viên').toUpperCase(),
     khong_tan_thanh_ctxh: 0,
     
-    ngay_phan_cong_d: getD(data.ngay_phan_cong),
-    ngay_phan_cong_m: getM(data.ngay_phan_cong),
+    ngay_phan_cong_d: '',
+    ngay_phan_cong_m: '',
     ngay_phan_cong_y: getY(data.ngay_phan_cong, false),
     
     ngay_hop_chi_bo_d: getD(data.ngay_hop_chi_bo || data.ngay_hop),
