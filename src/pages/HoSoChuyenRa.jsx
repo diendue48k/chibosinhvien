@@ -2290,8 +2290,8 @@ const HoSoChuyenRa = ({ forceTab }) => {
                   <Popconfirm
                     title="Xác nhận hủy hàng loạt?"
                     description="Hủy quy trình chuyển sinh hoạt của toàn bộ hồ sơ đang chọn?"
-                    okText="Hủy hồ sơ"
-                    cancelText="Đóng"
+                    okText="Xóa"
+                    cancelText="Hủy"
                     okButtonProps={{ danger: true }}
                     onConfirm={async () => {
                       try {
@@ -3135,7 +3135,7 @@ const HoSoChuyenRa = ({ forceTab }) => {
                   {editingProcessRecord.buoc === 3 && (
                     <Button type="primary" size="small" icon={<CheckOutlined />} onClick={(e) => { e.stopPropagation(); setIsEditProcessModalVisible(false); handleCompleteClick(editingProcessRecord); }} style={{ backgroundColor: '#52c41a', borderColor: '#52c41a', borderRadius: '20px', fontWeight: 600, fontSize: '11px', padding: '0 8px', height: '24px' }}>Hoàn tất</Button>
                   )}
-                  <Popconfirm title="Bạn có chắc muốn hủy tiến trình chuyển đi này?" onConfirm={(e) => { e.stopPropagation(); setIsEditProcessModalVisible(false); handleCancelProcess(editingProcessRecord.id); }} onCancel={(e) => e.stopPropagation()} okText="Hủy" cancelText="Đóng" okButtonProps={{ danger: true }}>
+                  <Popconfirm title="Bạn có chắc muốn hủy tiến trình chuyển đi này?" onConfirm={(e) => { e.stopPropagation(); setIsEditProcessModalVisible(false); handleCancelProcess(editingProcessRecord.id); }} onCancel={(e) => e.stopPropagation()} okText="Xóa" cancelText="Hủy" okButtonProps={{ danger: true }}>
                     <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }} />
                   </Popconfirm>
                 </Space>
